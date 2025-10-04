@@ -1,0 +1,54 @@
+Always follow these tokens (never hardcode other hex values):
+
+Colors:
+- primary: #2F855A (hover: #276749, disabled: #A0AEC0)
+- accent: #68D391
+- brown: #8B5E3C
+- background: #F7FAF5
+- surface: #FFFFFF
+- text-dark: #2D3748
+- text-muted: #718096
+- error: #E53E3E
+- info: #3182CE 
+
+Border radius: 8px
+
+Border width (default for outlines): 1.5px
+
+Shadows:
+- card: 0 2px 6px rgba(0,0,0,0.08)
+- modal: 0 4px 20px rgba(0,0,0,0.15)
+
+Spacing uses the 8px grid. Prefer Tailwind scale:
+- 8px = gap-2
+- 12px = gap-3
+- 16px = gap-4
+- 24px = gap-6
+- 32px = gap-8
+
+Button padding: 12px 20px → py-3 px-5  
+Card padding: 16px → p-4  
+Form field padding: 10px 12px → py-2.5 px-3
+
+Use Boxicons for all icons (CDN: https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css).  
+Use: <i class='bx bx-…'></i>
+
+Prefer component classes via @layer components in resources/css/app.css:
+- .btn
+- .btn-primary
+- .btn-secondary
+- .card
+- .input
+- .alert
+- .alert-info
+- .alert-error
+
+When modifying code:
+- Use these component classes and tokens, not raw utilities that break the rules.
+- Output code in 4‑backtick fenced blocks with language and a filepath comment.
+- Use // ...existing code... to show unchanged context.
+
+For Laravel:
+- Use Blade, @vite for assets, and keep HTML semantic.
+- Include accessibility (focus-visible rings, aria labels) when relevant.
+- Keep answers short and impersonal.
