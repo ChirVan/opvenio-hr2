@@ -11,8 +11,6 @@ use App\Modules\competency_management\Models\CompetencyFramework;
 use App\Modules\training_management\Controllers\TrainingCatalogController;
 use App\Modules\learning_management\Controllers\AssessmentCategoryController;
 use App\Http\Controllers\Auth\TwoFactorController;
-
-
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect()->route('dashboard');
@@ -207,6 +205,9 @@ Route::middleware([
                     }
                 }
             })->name('gap-analysis-employees');
+            
+            // API Employees Route (for external API integration)
+            Route::get('/api-employees', [\App\Modules\training_management\Controllers\TrainingAssignmentController::class, 'getApiEmployees'])->name('api-employees');
             
             // Controller routes (must come after AJAX routes)
             Route::get('/', [\App\Modules\training_management\Controllers\TrainingAssignmentController::class, 'index'])->name('index');

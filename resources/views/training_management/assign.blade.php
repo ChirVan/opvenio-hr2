@@ -160,10 +160,21 @@
                                                 <div class="text-sm text-gray-900">
                                                     @if($assignment->assignmentEmployees->count() > 0)
                                                         @foreach($assignment->assignmentEmployees as $assignmentEmployee)
+                                                            @php
+                                                                $employee = isset($employeesData) ? ($employeesData[$assignmentEmployee->employee_id] ?? null) : null;
+                                                            @endphp
                                                             <div class="mb-1">
-                                                                {{ $assignmentEmployee->employee->lastname ?? 'Unknown' }}, {{ $assignmentEmployee->employee->firstname ?? 'Employee' }}
-                                                                @if($assignmentEmployee->employee->job_role)
-                                                                    <span class="text-xs text-gray-500">({{ $assignmentEmployee->employee->job_role }})</span>
+                                                                @if($employee)
+                                                                    {{ $employee['full_name'] }}
+                                                                    <span class="text-xs text-gray-500">({{ $employee['employee_id'] }} - {{ $employee['job_title'] }})</span>
+                                                                    <div class="text-xs text-gray-400">
+                                                                        {{ $employee['email'] }} • 
+                                                                        <span class="inline-flex px-1 py-0.5 rounded text-xs {{ $employee['employment_status'] === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                                                            {{ $employee['employment_status'] }}
+                                                                        </span>
+                                                                    </div>
+                                                                @else
+                                                                    <span class="text-red-500">Employee not found (ID: {{ $assignmentEmployee->employee_id }})</span>
                                                                 @endif
                                                             </div>
                                                         @endforeach

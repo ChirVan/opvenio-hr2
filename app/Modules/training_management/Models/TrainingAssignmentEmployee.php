@@ -42,10 +42,18 @@ class TrainingAssignmentEmployee extends Model
     /**
      * Get the employee (from competency_management database)
      */
-    public function employee(): BelongsTo
+    /**
+     * Get employee data from external API
+     * Note: employee_id refers to external API employee ID, not local database
+     */
+    public function getEmployeeData()
     {
-        return $this->belongsTo(\App\Modules\competency_management\Models\Employee::class, 'employee_id');
+        $employeeService = app(\App\Services\EmployeeApiService::class);
+        return $employeeService->getEmployee($this->employee_id);
     }
+
+    // NOTE: employee() relationship removed as we now use external API
+    // Use getEmployeeData() method instead to fetch employee information
 
     /**
      * Scope: Get completed assignments

@@ -113,68 +113,68 @@ class AssessmentCategory extends Model
     {
         $colorMap = [
             'blue' => [
-                'gradient' => 'from-blue-50 to-blue-100',
-                'from' => 'from-blue-50',
-                'to' => 'to-blue-100',
-                'border' => 'border-blue-200',
+                'gradient' => 'from-blue-400 to-blue-600',
+                'from' => 'from-blue-400',
+                'to' => 'to-blue-600',
+                'border' => 'border-blue-300',
                 'bg' => 'bg-blue-500',
-                'text' => 'text-blue-600'
+                'text' => 'text-blue-700'
             ],
             'green' => [
-                'gradient' => 'from-green-50 to-green-100',
-                'from' => 'from-green-50',
-                'to' => 'to-green-100',
-                'border' => 'border-green-200',
+                'gradient' => 'from-green-400 to-green-600',
+                'from' => 'from-green-400',
+                'to' => 'to-green-600',
+                'border' => 'border-green-300',
                 'bg' => 'bg-green-500',
-                'text' => 'text-green-600'
+                'text' => 'text-green-700'
             ],
             'red' => [
-                'gradient' => 'from-red-50 to-red-100',
-                'from' => 'from-red-50',
-                'to' => 'to-red-100',
-                'border' => 'border-red-200',
+                'gradient' => 'from-red-400 to-red-600',
+                'from' => 'from-red-400',
+                'to' => 'to-red-600',
+                'border' => 'border-red-300',
                 'bg' => 'bg-red-500',
-                'text' => 'text-red-600'
+                'text' => 'text-red-700'
             ],
             'purple' => [
-                'gradient' => 'from-purple-50 to-purple-100',
-                'from' => 'from-purple-50',
-                'to' => 'to-purple-100',
-                'border' => 'border-purple-200',
+                'gradient' => 'from-purple-400 to-purple-600',
+                'from' => 'from-purple-400',
+                'to' => 'to-purple-600',
+                'border' => 'border-purple-300',
                 'bg' => 'bg-purple-500',
-                'text' => 'text-purple-600'
+                'text' => 'text-purple-700'
             ],
             'orange' => [
-                'gradient' => 'from-orange-50 to-orange-100',
-                'from' => 'from-orange-50',
-                'to' => 'to-orange-100',
-                'border' => 'border-orange-200',
+                'gradient' => 'from-orange-400 to-orange-600',
+                'from' => 'from-orange-400',
+                'to' => 'to-orange-600',
+                'border' => 'border-orange-300',
                 'bg' => 'bg-orange-500',
-                'text' => 'text-orange-600'
+                'text' => 'text-orange-700'
             ],
             'teal' => [
-                'gradient' => 'from-teal-50 to-teal-100',
-                'from' => 'from-teal-50',
-                'to' => 'to-teal-100',
-                'border' => 'border-teal-200',
+                'gradient' => 'from-teal-400 to-teal-600',
+                'from' => 'from-teal-400',
+                'to' => 'to-teal-600',
+                'border' => 'border-teal-300',
                 'bg' => 'bg-teal-500',
-                'text' => 'text-teal-600'
+                'text' => 'text-teal-700'
             ],
             'indigo' => [
-                'gradient' => 'from-indigo-50 to-indigo-100',
-                'from' => 'from-indigo-50',
-                'to' => 'to-indigo-100',
-                'border' => 'border-indigo-200',
+                'gradient' => 'from-indigo-400 to-indigo-600',
+                'from' => 'from-indigo-400',
+                'to' => 'to-indigo-600',
+                'border' => 'border-indigo-300',
                 'bg' => 'bg-indigo-500',
-                'text' => 'text-indigo-600'
+                'text' => 'text-indigo-700'
             ],
             'pink' => [
-                'gradient' => 'from-pink-50 to-pink-100',
-                'from' => 'from-pink-50',
-                'to' => 'to-pink-100',
-                'border' => 'border-pink-200',
+                'gradient' => 'from-pink-400 to-pink-600',
+                'from' => 'from-pink-400',
+                'to' => 'to-pink-600',
+                'border' => 'border-pink-300',
                 'bg' => 'bg-pink-500',
-                'text' => 'text-pink-600'
+                'text' => 'text-pink-700'
             ]
         ];
 

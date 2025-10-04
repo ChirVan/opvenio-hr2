@@ -48,7 +48,44 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         @forelse($categories as $category)
-                            <div class="bg-gradient-to-br {{ $category->color_classes['gradient'] }} {{ $category->color_classes['border'] }} rounded-lg p-6 hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 relative group">
+                            @php
+                                $colorClasses = $category->color_classes;
+                                $gradient = $colorClasses['gradient'] ?? 'from-blue-400 to-blue-600';
+                                $border = $colorClasses['border'] ?? 'border-blue-200';
+                                $bg = $colorClasses['bg'] ?? 'bg-blue-500';
+                                $text = $colorClasses['text'] ?? 'text-blue-600';
+                                
+                                // Inline style fallback for reliable colors
+                                $colorMap = [
+                                    'bg-blue-500' => '#3B82F6',
+                                    'bg-green-500' => '#10B981',
+                                    'bg-purple-500' => '#8B5CF6',
+                                    'bg-red-500' => '#EF4444',
+                                    'bg-yellow-500' => '#F59E0B',
+                                    'bg-pink-500' => '#EC4899',
+                                    'bg-indigo-500' => '#6366F1',
+                                    'bg-orange-500' => '#F97316',
+                                    'bg-teal-500' => '#14B8A6',
+                                    'bg-cyan-500' => '#06B6D4',
+                                ];
+                                
+                                $gradientMap = [
+                                    'from-blue-400 to-blue-600' => 'linear-gradient(to bottom right, #60A5FA, #2563EB)',
+                                    'from-green-400 to-green-600' => 'linear-gradient(to bottom right, #4ADE80, #059669)',
+                                    'from-purple-400 to-purple-600' => 'linear-gradient(to bottom right, #A78BFA, #7C3AED)',
+                                    'from-red-400 to-red-600' => 'linear-gradient(to bottom right, #F87171, #DC2626)',
+                                    'from-yellow-400 to-yellow-600' => 'linear-gradient(to bottom right, #FBBF24, #D97706)',
+                                    'from-pink-400 to-pink-600' => 'linear-gradient(to bottom right, #F472B6, #DB2777)',
+                                    'from-indigo-400 to-indigo-600' => 'linear-gradient(to bottom right, #818CF8, #4F46E5)',
+                                    'from-orange-400 to-orange-600' => 'linear-gradient(to bottom right, #FB923C, #EA580C)',
+                                    'from-teal-400 to-teal-600' => 'linear-gradient(to bottom right, #2DD4BF, #0D9488)',
+                                    'from-cyan-400 to-cyan-600' => 'linear-gradient(to bottom right, #22D3EE, #0891B2)',
+                                ];
+                                
+                                $inlineGradient = $gradientMap[$gradient] ?? $gradientMap['from-blue-400 to-blue-600'];
+                                $inlineBg = $colorMap[$bg] ?? $colorMap['bg-blue-500'];
+                            @endphp
+                            <div class="bg-gradient-to-br {{ $gradient }} {{ $border }} border rounded-lg p-6 hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 relative group" style="background: {{ $inlineGradient }}; border-color: {{ $inlineBg }}40;">
                                 <!-- Action Buttons - Show on Hover -->
                                 <div class="absolute top-3 right-3 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                     <button onclick="editCategory({{ $category->id }}, event)" 
@@ -66,14 +103,14 @@
                                 <!-- Category Content - Clickable Area -->
                                 <div class="cursor-pointer" onclick="showExaminations('{{ $category->category_slug }}')">
                                     <div class="flex items-center justify-between mb-4">
-                                        <div class="w-12 h-12 {{ $category->color_classes['bg'] }} rounded-lg flex items-center justify-center">
+                                        <div class="w-12 h-12 {{ $bg }} rounded-lg flex items-center justify-center" style="background-color: {{ $inlineBg }};">
                                             <i class='bx {{ $category->category_icon }} text-white text-2xl'></i>
                                         </div>
-                                        <span class="{{ $category->color_classes['bg'] }} text-white text-xs px-2 py-1 rounded-full">{{ $category->assessments_count }} Assessments</span>
+                                        <span class="{{ $bg }} text-white text-xs px-2 py-1 rounded-full" style="background-color: {{ $inlineBg }};">{{ $category->assessments_count }} Assessments</span>
                                     </div>
                                     <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ $category->category_name }}</h3>
                                     <p class="text-gray-600 text-sm mb-4">{{ Str::limit($category->description, 80) }}</p>
-                                    <div class="flex items-center {{ $category->color_classes['text'] }} text-sm font-medium">
+                                    <div class="flex items-center {{ $text }} text-sm font-medium">
                                         <span>View Assessments</span>
                                         <i class='bx bx-right-arrow-alt ml-1'></i>
                                     </div>

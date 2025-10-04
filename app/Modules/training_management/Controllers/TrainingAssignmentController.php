@@ -8,6 +8,7 @@ use App\Modules\training_management\Models\TrainingAssignmentEmployee;
 use App\Modules\training_management\Models\TrainingCatalog;
 use App\Modules\training_management\Models\TrainingMaterial;
 use App\Modules\competency_management\Models\GapAnalysis;
+use App\Services\EmployeeApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,73 @@ use Illuminate\Validation\Rule;
 
 class TrainingAssignmentController extends Controller
 {
+    protected $employeeApiService;
+
+    public function __construct(EmployeeApiService $employeeApiService)
+    {
+        $this->employeeApiService = $employeeApiService;
+    }
+
+    /**
+     * Helper method to fetch employee data for given employee IDs
+     */
+    private function getEmployeesData(array $employeeIds): array
+    {
+        $employeesData = [];
+        
+        if (!empty($employeeIds)) {
+            $allEmployees = $this->employeeApiService->getEmployees();
+            if ($allEmployees) {
+                foreach ($allEmployees as $employee) {
+                    if (in_array($employee['id'], $employeeIds)) {
+                        $employeesData[$employee['id']] = $employee;
+                    }
+                }
+            }
+        }
+        
+        return $employeesData;
+    }
+
+    /**
+     * Get employees from external API for assignment form
+     */
+    public function getApiEmployees(Request $request)
+    {
+        try {
+            // Clear cache if refresh is requested
+            if ($request->has('refresh')) {
+                $this->employeeApiService->clearCache();
+            }
+
+            $employees = $this->employeeApiService->getEmployees();
+            
+            if ($employees === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to fetch employees from external API',
+                    'employees' => []
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Employees loaded successfully',
+                'count' => count($employees),
+                'employees' => $employees
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching employees for training assignment: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading employees',
+                'employees' => []
+            ], 500);
+        }
+    }
+
     /**
      * Display a listing of training assignments
      */
@@ -24,13 +92,21 @@ class TrainingAssignmentController extends Controller
         $assignments = TrainingAssignment::with([
             'trainingCatalog',
             'creator',
-            'assignmentEmployees.employee',
+            'assignmentEmployees', // Removed .employee since we use external API
             'trainingMaterials'
         ])
         ->orderBy('created_at', 'desc')
         ->paginate(15);
 
-        return view('training_management.assign', compact('assignments'));
+        // Get all unique employee IDs from assignments
+        $employeeIds = $assignments->flatMap(function($assignment) {
+            return $assignment->assignmentEmployees->pluck('employee_id');
+        })->unique()->toArray();
+
+        // Fetch employee data from external API
+        $employeesData = $this->getEmployeesData($employeeIds);
+
+        return view('training_management.assign', compact('assignments', 'employeesData'));
     }
 
     /**
@@ -58,7 +134,8 @@ class TrainingAssignmentController extends Controller
                 'training_catalog_id' => 'required|exists:training_management.training_catalogs,id',
                 'training_materials' => 'required|array|min:1',
                 'training_materials.*' => 'exists:training_management.training_materials,id',
-                'employee_id' => 'required|integer',
+                'employee_id' => 'required|integer|min:1', // Changed: external API employee ID
+                'job_title' => 'nullable|string|max:255', // Added: job title from API
                 'priority' => 'required|in:low,medium,high,urgent',
                 'assignment_type' => 'required|in:mandatory,optional,development',
                 'start_date' => 'required|date|after_or_equal:today',
@@ -67,13 +144,11 @@ class TrainingAssignmentController extends Controller
                 'action' => 'required|in:draft,assign'
             ]);
 
-            // Verify employee exists in gap analysis
-            $employeeExists = GapAnalysis::where('employee_id', $validated['employee_id'])
-                ->exists();
-
-            if (!$employeeExists) {
+            // Verify employee exists in external API
+            $employee = $this->employeeApiService->getEmployee($validated['employee_id']);
+            if (!$employee) {
                 return back()->withErrors([
-                    'employee_id' => 'Selected employee not found in gap analysis data.'
+                    'employee_id' => 'Selected employee not found in the external system.'
                 ])->withInput();
             }
 
@@ -117,13 +192,16 @@ class TrainingAssignmentController extends Controller
 
             DB::commit();
 
-            $message = $status === 'active' 
-                ? 'Training assignment created and activated successfully!'
-                : 'Training assignment saved as draft successfully!';
+            $baseMessage = $status === 'active' 
+                ? 'Training assignment created and activated successfully'
+                : 'Training assignment saved as draft successfully';
+            
+            $message = "{$baseMessage} for employee: {$employee['full_name']} ({$employee['employee_id']})";
 
             Log::info('Training assignment created', [
                 'assignment_id' => $assignment->id,
                 'employee_id' => $validated['employee_id'],
+                'employee_name' => $employee['full_name'],
                 'status' => $status,
                 'created_by' => Auth::id()
             ]);
@@ -157,11 +235,15 @@ class TrainingAssignmentController extends Controller
         $assignment->load([
             'trainingCatalog.framework',
             'trainingMaterials',
-            'assignmentEmployees.employee',
+            'assignmentEmployees', // Removed .employee since we use external API
             'creator'
         ]);
 
-        return view('training_management.assign', compact('assignment'));
+        // Get employee data from external API for this assignment
+        $employeeIds = $assignment->assignmentEmployees->pluck('employee_id')->toArray();
+        $employeesData = $this->getEmployeesData($employeeIds);
+
+        return view('training_management.assign', compact('assignment', 'employeesData'));
     }
 
     /**
@@ -176,7 +258,7 @@ class TrainingAssignmentController extends Controller
 
         $assignment->load([
             'trainingMaterials',
-            'assignmentEmployees.employee'
+            'assignmentEmployees' // Removed .employee since we use external API
         ]);
 
         return view('training_management.assignCRUD.create', compact('assignment', 'trainingCatalogs'));

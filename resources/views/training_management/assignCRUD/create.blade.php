@@ -61,6 +61,11 @@
                     </div>
                 @endif
 
+                <!-- API Status Indicator -->
+                <div id="apiStatusIndicator" class="mb-4" style="display: none;">
+                    <!-- This will be populated by JavaScript -->
+                </div>
+
                 <!-- Header -->
                 <div class="flex justify-between items-start mb-6">
                     <div>
@@ -90,22 +95,41 @@
                             </label>
                             <select id="employee_id" name="employee_id"
                                     class="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('employee_id') border-red-500 @enderror">
-                                <option value="">Loading employees from gap analysis...</option>
+                                <option value="">Loading employees from API...</option>
                             </select>
-                            <p class="text-sm text-gray-500 mt-1">Only employees with gap analysis data are shown.</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <p class="text-sm text-gray-500">Employees loaded from external HR system.</p>
+                                <button type="button" onclick="refreshEmployees()" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded" title="Refresh employee data">
+                                    <i class='bx bx-refresh'></i> Refresh
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Job Role (Read-only) -->
-                        <div>
-                            <label for="job_role" class="block text-sm font-medium text-gray-700 mb-2">
-                                Job Role
-                            </label>
-                            <input type="text" id="job_role" name="job_role" readonly
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
-                                   placeholder="Select an employee to view their job role"
-                                   value="">
-                            <p class="text-sm text-gray-500 mt-1">Job role is automatically populated based on selected employee.</p>
+                        <!-- Employee Information Display -->
+                        <div class="mt-4 p-4 bg-gray-50 rounded-md hidden" id="employeeInfoCard">
+                            <h4 class="font-medium text-gray-800 mb-2">Employee Information</h4>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-600">Employee ID:</span>
+                                    <span id="displayEmployeeId" class="font-medium ml-2"></span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Email:</span>
+                                    <span id="displayEmail" class="font-medium ml-2"></span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Job Title:</span>
+                                    <span id="displayJobTitle" class="font-medium ml-2"></span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Employment Status:</span>
+                                    <span id="displayEmploymentStatus" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-2"></span>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Job Title (Hidden field for form submission) -->
+                        <input type="hidden" id="job_title" name="job_title" value="">
 
                         <!-- Assigned By (Read-only) -->
                         <div>
@@ -262,60 +286,144 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Store employee data for job role lookup
+            // Store employee data for lookup
             let employeeData = {};
             
-            // Load employees from gap analysis
-            function loadEmployeesFromGapAnalysis() {
+            // Load employees from external API
+            function loadEmployeesFromAPI() {
                 const employeeSelect = document.getElementById('employee_id');
-                employeeSelect.innerHTML = '<option value="">Loading employees from gap analysis...</option>';
+                employeeSelect.innerHTML = '<option value="">Loading employees from API...</option>';
                 
-                fetch('/training/assign/gap-analysis-employees')
-                    .then(response => response.json())
-                    .then(employees => {
-                        employeeSelect.innerHTML = '<option value="">Select an employee</option>';
-                        if (employees.length > 0) {
-                            // Store employee data for job role lookup
+                fetch('/training/assign/api-employees')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success && data.employees && data.employees.length > 0) {
+                            employeeSelect.innerHTML = '<option value="">Select an employee</option>';
+                            
+                            // Show success status
+                            showApiStatus('success', `Successfully loaded ${data.employees.length} employees from external API.`);
+                            
+                            // Store employee data for lookup
                             employeeData = {};
-                            employees.forEach(employee => {
+                            data.employees.forEach(employee => {
                                 // Store employee data
                                 employeeData[employee.id] = {
-                                    job_role: employee.job_role,
-                                    firstname: employee.employee_firstname,
-                                    lastname: employee.employee_lastname,
-                                    framework: employee.framework,
-                                    competency_name: employee.competency_name
+                                    employee_id: employee.employee_id,
+                                    full_name: employee.full_name,
+                                    email: employee.email,
+                                    job_title: employee.job_title,
+                                    employment_status: employee.employment_status
                                 };
                                 
                                 const option = document.createElement('option');
                                 option.value = employee.id;
-                                option.textContent = `${employee.employee_lastname}, ${employee.employee_firstname} - ${employee.framework} (${employee.competency_name})`;
+                                option.textContent = `${employee.full_name} (${employee.employee_id}) - ${employee.job_title}`;
                                 employeeSelect.appendChild(option);
                             });
+                            
+                            console.log(`Loaded ${data.employees.length} employees from API`);
                         } else {
-                            employeeSelect.innerHTML = '<option value="">No employees found in gap analysis</option>';
+                            employeeSelect.innerHTML = '<option value="">No employees found</option>';
+                            showApiStatus('warning', 'No employees returned from external API.');
+                            console.warn('No employees returned from API');
                         }
                     })
                     .catch(error => {
                         console.error('Error loading employees:', error);
-                        employeeSelect.innerHTML = '<option value="">Error loading employees from gap analysis</option>';
+                        employeeSelect.innerHTML = '<option value="">Error loading employees from API</option>';
+                        showApiStatus('error', 'Unable to load employees from external API. Please try refreshing or contact administrator.');
                     });
             }
 
-            // Handle employee selection change to update job role
+            // Function to show API status
+            function showApiStatus(type, message) {
+                const statusIndicator = document.getElementById('apiStatusIndicator');
+                statusIndicator.style.display = 'block';
+                
+                let className, icon;
+                switch(type) {
+                    case 'success':
+                        className = 'bg-green-50 border-l-4 border-green-400 p-4';
+                        icon = 'bx-check-circle text-green-400';
+                        break;
+                    case 'warning':
+                        className = 'bg-yellow-50 border-l-4 border-yellow-400 p-4';
+                        icon = 'bx-error-circle text-yellow-400';
+                        break;
+                    case 'error':
+                        className = 'bg-red-50 border-l-4 border-red-400 p-4';
+                        icon = 'bx-x-circle text-red-400';
+                        break;
+                }
+                
+                statusIndicator.innerHTML = `
+                    <div class="${className}">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class='bx ${icon} text-xl'></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm ${type === 'success' ? 'text-green-700' : type === 'warning' ? 'text-yellow-700' : 'text-red-700'}">
+                                    <strong>Employee API Status:</strong> ${message}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Handle employee selection change
             document.getElementById('employee_id').addEventListener('change', function() {
                 const selectedEmployeeId = this.value;
-                const jobRoleInput = document.getElementById('job_role');
+                const employeeInfoCard = document.getElementById('employeeInfoCard');
+                const jobTitleInput = document.getElementById('job_title');
+                
+                // Display elements
+                const displayEmployeeId = document.getElementById('displayEmployeeId');
+                const displayEmail = document.getElementById('displayEmail');
+                const displayJobTitle = document.getElementById('displayJobTitle');
+                const displayEmploymentStatus = document.getElementById('displayEmploymentStatus');
                 
                 if (selectedEmployeeId && employeeData[selectedEmployeeId]) {
-                    jobRoleInput.value = employeeData[selectedEmployeeId].job_role || 'No job role specified';
+                    const employee = employeeData[selectedEmployeeId];
+                    
+                    // Show employee info card
+                    employeeInfoCard.classList.remove('hidden');
+                    
+                    // Update display elements
+                    displayEmployeeId.textContent = employee.employee_id || 'N/A';
+                    displayEmail.textContent = employee.email || 'N/A';
+                    displayJobTitle.textContent = employee.job_title || 'N/A';
+                    displayEmploymentStatus.textContent = employee.employment_status || 'N/A';
+                    
+                    // Update hidden job title field for form submission
+                    jobTitleInput.value = employee.job_title || '';
+                    
+                    // Style employment status badge
+                    if (employee.employment_status === 'Active') {
+                        displayEmploymentStatus.className = 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 ml-2';
+                    } else {
+                        displayEmploymentStatus.className = 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 ml-2';
+                    }
                 } else {
-                    jobRoleInput.value = '';
+                    // Hide employee info card
+                    employeeInfoCard.classList.add('hidden');
+                    jobTitleInput.value = '';
                 }
             });
 
+            // Refresh employees function
+            window.refreshEmployees = function() {
+                loadEmployeesFromAPI();
+            };
+
             // Load employees on page load
-            loadEmployeesFromGapAnalysis();
+            loadEmployeesFromAPI();
 
             // Training catalog change handler (for loading materials)
             const catalogSelect = document.getElementById('training_catalog_id');
