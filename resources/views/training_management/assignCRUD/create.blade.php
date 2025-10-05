@@ -294,7 +294,7 @@
                 const employeeSelect = document.getElementById('employee_id');
                 employeeSelect.innerHTML = '<option value="">Loading employees from API...</option>';
                 
-                fetch('/training/assign/api-employees')
+                fetch('{{ route("training.assign.api-employees") }}')
                     .then(response => {
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
@@ -437,7 +437,7 @@
                 if (catalogId) {
                     // Fetch materials via AJAX
                     console.log('Fetching materials for catalog ID:', catalogId);
-                    fetch(`/training/assign/materials/${catalogId}`)
+                    fetch(`{{ url('/training/assign/materials') }}/${catalogId}`)
                         .then(response => {
                             console.log('Response status:', response.status);
                             if (!response.ok) {
