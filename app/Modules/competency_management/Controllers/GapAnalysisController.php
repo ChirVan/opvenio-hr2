@@ -92,8 +92,10 @@ class GapAnalysisController extends Controller
         $validatedData = $request->validated();
         
         // Note: employee_id now stores the external API employee ID (not local database ID)
-        // Verify that the employee exists in the external API before storing
-        $employee = $this->employeeApiService->getEmployee($validatedData['employee_id']);
+        // Get all employees to find the selected one (more reliable than single employee API call)
+        $allEmployees = $this->employeeApiService->getEmployees();
+        $employee = collect($allEmployees)->firstWhere('id', $validatedData['employee_id']);
+        
         if (!$employee) {
             return back()->withErrors(['employee_id' => 'Selected employee not found in the external system.'])->withInput();
         }
