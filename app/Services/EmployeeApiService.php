@@ -13,7 +13,7 @@ class EmployeeApiService
 
     public function __construct()
     {
-        $this->baseUrl = 'https://hr4.microfinancial-1.com/services/hcm-services/public';
+        $this->baseUrl = 'https://hr4.microfinancial-1.com/services/hcm-services/public/api';
         $this->timeout = 30; // 30 seconds timeout
     }
 
