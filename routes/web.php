@@ -272,6 +272,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 // Debug route for API testing (remove this in production)
 Route::get('/debug-employee-api', function () {
+    // Clear the cache to test fresh data
+    \Illuminate\Support\Facades\Cache::forget('external_employees');
+    
     $employeeService = new \App\Services\EmployeeApiService();
     
     $output = "<h2>Employee API Debug Information</h2><hr>";
@@ -320,11 +323,53 @@ Route::get('/debug-employee-api', function () {
     }
     
     $output .= "<hr>";
-    $output .= "<h3>4. Environment Information</h3>";
+    
+    // Test the specific training assignment API endpoint
+    $output .= "<h3>4. Testing Training Assignment API Endpoint</h3>";
+    try {
+        $controller = new \App\Modules\training_management\Controllers\TrainingAssignmentController(
+            new \App\Services\EmployeeApiService()
+        );
+        $request = new \Illuminate\Http\Request();
+        $response = $controller->getApiEmployees($request);
+        $responseData = $response->getData(true);
+        
+        if ($responseData['success']) {
+            $output .= "✅ Training Assignment API: Success<br>";
+            $output .= "Message: " . $responseData['message'] . "<br>";
+            $output .= "Count: " . $responseData['count'] . "<br>";
+        } else {
+            $output .= "❌ Training Assignment API: Failed<br>";
+            $output .= "Message: " . $responseData['message'] . "<br>";
+        }
+    } catch (\Exception $e) {
+        $output .= "❌ Training Assignment API Exception: " . $e->getMessage() . "<br>";
+    }
+    $output .= "<hr>";
+    
+    // Test cache status
+    $output .= "<h3>5. Cache Information</h3>";
+    $cacheKey = 'external_employees';
+    if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+        $cachedData = \Illuminate\Support\Facades\Cache::get($cacheKey);
+        $output .= "Cache Status: ✅ Has cached data<br>";
+        $output .= "Cached Employee Count: " . count($cachedData) . "<br>";
+    } else {
+        $output .= "Cache Status: ❌ No cached data<br>";
+    }
+    $output .= "<hr>";
+    
+    $output .= "<h3>6. Environment Information</h3>";
     $output .= "PHP Version: " . PHP_VERSION . "<br>";
     $output .= "Laravel Version: " . app()->version() . "<br>";
     $output .= "Environment: " . config('app.env') . "<br>";
     $output .= "Debug Mode: " . (config('app.debug') ? 'Enabled' : 'Disabled') . "<br>";
     
     return $output;
+})->middleware('auth');
+
+// Clear employee cache route
+Route::get('/clear-employee-cache', function() {
+    \Illuminate\Support\Facades\Cache::forget('external_employees');
+    return "Employee cache cleared! <a href='/debug-employee-api'>Test API again</a>";
 })->middleware('auth');
