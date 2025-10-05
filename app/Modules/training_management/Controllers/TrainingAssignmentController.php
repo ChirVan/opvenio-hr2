@@ -145,7 +145,10 @@ class TrainingAssignmentController extends Controller
             ]);
 
             // Verify employee exists in external API
-            $employee = $this->employeeApiService->getEmployee($validated['employee_id']);
+            // Get all employees to find the selected one (more reliable than single employee API call)
+            $allEmployees = $this->employeeApiService->getEmployees();
+            $employee = collect($allEmployees)->firstWhere('id', $validated['employee_id']);
+            
             if (!$employee) {
                 return back()->withErrors([
                     'employee_id' => 'Selected employee not found in the external system.'
