@@ -269,3 +269,62 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/', [AssessmentCategoryController::class, 'index'])->name('index');
     });
 });
+
+// Debug route for API testing (remove this in production)
+Route::get('/debug-employee-api', function () {
+    $employeeService = new \App\Services\EmployeeApiService();
+    
+    $output = "<h2>Employee API Debug Information</h2><hr>";
+    
+    // Test the base URL
+    $baseUrl = 'https://hr4.microfinancial-1.com/services/hcm-services/public/api';
+    $fullUrl = $baseUrl . '/employees';
+    $output .= "<h3>1. Service Configuration</h3>";
+    $output .= "Base URL: {$baseUrl}<br>";
+    $output .= "Full URL: {$fullUrl}<br><hr>";
+    
+    // Test basic connectivity
+    $output .= "<h3>2. Testing API Connectivity</h3>";
+    try {
+        $response = \Illuminate\Support\Facades\Http::timeout(30)
+            ->withOptions(['verify' => false])
+            ->get($fullUrl);
+            
+        $output .= "Response Status: " . $response->status() . "<br>";
+        
+        if ($response->successful()) {
+            $data = $response->json();
+            $output .= "✅ Success! Got " . count($data) . " employees<br>";
+            $output .= "First employee: <pre>" . json_encode($data[0] ?? [], JSON_PRETTY_PRINT) . "</pre>";
+        } else {
+            $output .= "❌ HTTP Error<br>";
+            $output .= "Response Body: <pre>" . $response->body() . "</pre>";
+        }
+        
+    } catch (\Exception $e) {
+        $output .= "❌ Exception: " . $e->getMessage() . "<br>";
+        $output .= "Exception Code: " . $e->getCode() . "<br>";
+        $output .= "Exception File: " . $e->getFile() . ":" . $e->getLine() . "<br>";
+    }
+    $output .= "<hr>";
+    
+    // Test through the service
+    $output .= "<h3>3. Testing through EmployeeApiService</h3>";
+    $employees = $employeeService->getEmployees();
+    
+    if ($employees) {
+        $output .= "✅ Service returned " . count($employees) . " employees<br>";
+        $output .= "First employee: <pre>" . json_encode($employees[0] ?? [], JSON_PRETTY_PRINT) . "</pre>";
+    } else {
+        $output .= "❌ Service returned null or empty<br>";
+    }
+    
+    $output .= "<hr>";
+    $output .= "<h3>4. Environment Information</h3>";
+    $output .= "PHP Version: " . PHP_VERSION . "<br>";
+    $output .= "Laravel Version: " . app()->version() . "<br>";
+    $output .= "Environment: " . config('app.env') . "<br>";
+    $output .= "Debug Mode: " . (config('app.debug') ? 'Enabled' : 'Disabled') . "<br>";
+    
+    return $output;
+})->middleware('auth');
