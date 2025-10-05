@@ -77,7 +77,7 @@
                         </div>
                         <div>
                             <span class="font-medium text-gray-700">2FA Confirmed:</span>
-                            <span class="ml-2">{{ $user->two_factor_confirmed_at ? $user->two_factor_confirmed_at->format('M d, Y H:i') : 'Not Confirmed' }}</span>
+                            <span class="ml-2">{{ $user->two_factor_confirmed_at ? \Carbon\Carbon::parse($user->two_factor_confirmed_at)->format('M d, Y H:i') : 'Not Confirmed' }}</span>
                         </div>
                     </div>
                 </div>
