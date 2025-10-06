@@ -78,6 +78,14 @@ class Quiz extends Model
     }
 
     /**
+     * Get the assessment assignments for this quiz.
+     */
+    public function assessmentAssignments(): HasMany
+    {
+        return $this->hasMany(AssessmentAssignment::class);
+    }
+
+    /**
      * Scope a query to only include published quizzes.
      */
     public function scopePublished($query)

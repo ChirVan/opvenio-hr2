@@ -10,6 +10,7 @@ use App\Modules\competency_management\Controllers\GapAnalysisController;
 use App\Modules\competency_management\Models\CompetencyFramework;
 use App\Modules\training_management\Controllers\TrainingCatalogController;
 use App\Modules\learning_management\Controllers\AssessmentCategoryController;
+use App\Modules\learning_management\Controllers\AssessmentAssignmentController;
 use App\Http\Controllers\Auth\TwoFactorController;
 Route::get('/', function () {
     if (Auth::check()) {
@@ -227,9 +228,10 @@ Route::middleware([
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::prefix('learning')->name('learning.')->group(function () {
         Route::get('/assessment', [AssessmentCategoryController::class, 'index'])->name('assessment');
-        Route::get('/hub', function () {
-            return view('learning_management.hub');
-        })->name('hub');
+        Route::get('/hub', [AssessmentAssignmentController::class, 'index'])->name('hub');
+        Route::get('/hub/create', function () {
+            return view('learning_management.hubCRUD.create');
+        })->name('hub.create');
         
         // Quiz Routes
         Route::get('/quiz', [\App\Modules\learning_management\Controllers\QuizController::class, 'create'])->name('quiz');
@@ -256,6 +258,22 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
             'update' => 'assessment.categories.update',
             'destroy' => 'assessment.categories.destroy'
         ]);
+
+        // Assessment Assignment Routes
+        Route::resource('assessment-assignments', \App\Modules\learning_management\Controllers\AssessmentAssignmentController::class)->names([
+            'index' => 'assessment-assignments.index',
+            'create' => 'assessment-assignments.create',
+            'store' => 'assessment-assignments.store',
+            'show' => 'assessment-assignments.show',
+            'edit' => 'assessment-assignments.edit',
+            'update' => 'assessment-assignments.update',
+            'destroy' => 'assessment-assignments.destroy'
+        ]);
+        
+        // Additional Assessment Assignment Routes
+        Route::patch('assessment-assignments/{assessmentAssignment}/cancel', [\App\Modules\learning_management\Controllers\AssessmentAssignmentController::class, 'cancel'])->name('assessment-assignments.cancel');
+        Route::get('api/employee-assignments', [\App\Modules\learning_management\Controllers\AssessmentAssignmentController::class, 'getEmployeeAssignments'])->name('api.employee-assignments');
+        Route::get('api/assignment-stats', [\App\Modules\learning_management\Controllers\AssessmentAssignmentController::class, 'getStats'])->name('api.assignment-stats');
     });
 
     // Keep old assessment-center routes for backward compatibility (redirect to new routes)

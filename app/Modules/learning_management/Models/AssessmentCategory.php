@@ -73,6 +73,14 @@ class AssessmentCategory extends Model
     }
 
     /**
+     * Get the assessment assignments for this category
+     */
+    public function assessmentAssignments(): HasMany
+    {
+        return $this->hasMany(AssessmentAssignment::class);
+    }
+
+    /**
      * Scope: Get active categories
      */
     public function scopeActive($query)
