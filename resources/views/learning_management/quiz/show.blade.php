@@ -218,12 +218,16 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        window.location.href = data.redirect_url || '{{ route("learning.assessment") }}';
+                        // Show success message
+                        alert(data.message || 'Quiz deleted successfully!');
+                        // Redirect to assessment page
+                        window.location.href = '{{ route("learning.assessment") }}';
                     } else {
                         alert(data.message || 'An error occurred');
                     }
                 })
                 .catch(error => {
+                    console.error('Delete error:', error);
                     alert('An error occurred while deleting the quiz');
                 });
             }

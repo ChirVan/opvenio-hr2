@@ -244,26 +244,57 @@ class QuizController extends Controller
     public function destroy(Quiz $quiz): JsonResponse
     {
         try {
+            Log::info('Quiz deletion started', [
+                'quiz_id' => $quiz->id,
+                'quiz_title' => $quiz->quiz_title,
+                'user_id' => Auth::id(),
+                'request' => request()->all()
+            ]);
+
             DB::connection('learning_management')->beginTransaction();
 
+            // Check if quiz has related data that might prevent deletion
+            $questionCount = $quiz->questions()->count();
+            Log::info('Quiz has questions', ['count' => $questionCount]);
+
             $quizTitle = $quiz->quiz_title;
-            $quiz->delete();
+            
+            // Try to delete the quiz
+            $deleted = $quiz->delete();
+            Log::info('Quiz deletion attempt', ['deleted' => $deleted]);
 
             DB::connection('learning_management')->commit();
 
+            Log::info('Quiz deleted successfully', [
+                'quiz_title' => $quizTitle,
+                'user_id' => Auth::id()
+            ]);
+
             return response()->json([
                 'success' => true,
-                'message' => "Quiz '{$quizTitle}' has been deleted successfully.",
-                'redirect_url' => route('learning.quiz.index')
+                'message' => "Quiz '{$quizTitle}' has been deleted successfully."
             ]);
 
         } catch (Exception $e) {
             DB::connection('learning_management')->rollBack();
             
+            Log::error('Quiz deletion failed', [
+                'quiz_id' => $quiz->id ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => Auth::id(),
+                'request' => request()->all()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete quiz. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
+                'debug_info' => config('app.debug') ? [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'message' => $e->getMessage()
+                ] : null
             ], 500);
         }
     }
