@@ -24,6 +24,7 @@ class StoreQuizRequest extends FormRequest
     {
         return [
             'quiz_title' => 'required|string|max:255',
+            'category_id' => 'nullable|exists:learning_management.assessment_categories,id',
             'competency' => 'required|exists:competency_management.competencies,id',
             'time_limit' => 'nullable|integer|min:5|max:180',
             'description' => 'nullable|string|max:1000',

@@ -61,11 +61,23 @@ class QuizController extends Controller
             // Determine status based on action
             $status = $request->action === 'publish' ? 'published' : 'draft';
 
-            // Get the first available category if none provided
-            $categoryId = $request->category_id;
+            // Debug: Log what we're receiving
+            Log::info('Quiz Store Debug', [
+                'category_id_from_request' => $request->category_id,
+                'all_request_data' => $request->all(),
+                'has_category_id' => $request->has('category_id'),
+                'category_id_filled' => $request->filled('category_id')
+            ]);
+
+            // Get the category ID, with proper fallback
+            $categoryId = $request->filled('category_id') ? $request->category_id : null;
+            
             if (!$categoryId) {
                 $firstCategory = AssessmentCategory::first();
                 $categoryId = $firstCategory ? $firstCategory->id : 1;
+                Log::info('Quiz Store: Using fallback category', ['fallback_category_id' => $categoryId]);
+            } else {
+                Log::info('Quiz Store: Using provided category', ['provided_category_id' => $categoryId]);
             }
 
             // Create the quiz

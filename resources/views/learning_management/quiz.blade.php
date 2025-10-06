@@ -64,6 +64,28 @@
                 <!-- Form -->
                 <form method="POST" action="{{ route('learning.quiz.store') }}" class="space-y-8" id="quizForm">
                     @csrf
+                    
+                    <!-- Hidden Category ID -->
+                    @if(isset($category))
+                        <input type="hidden" name="category_id" value="{{ $category->id }}">
+                    @endif
+
+                    <!-- Category Indicator -->
+                    @if(isset($category))
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class='bx bx-check-circle text-green-600 text-xl'></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-green-800">Creating Quiz for Category</h3>
+                                <p class="text-sm text-green-700 mt-1">
+                                    <strong>{{ $category->category_name }}</strong> (ID: {{ $category->id }})
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
 
                     <!-- Quiz Details Section -->
                     <div class="bg-blue-50 rounded-lg p-6">
@@ -326,6 +348,13 @@
                 formData.append('time_limit', document.getElementById('time_limit').value);
                 formData.append('description', document.getElementById('description').value);
                 formData.append('action', clickedAction);
+                
+                // Add category_id if present (from hidden input)
+                const categoryIdInput = document.querySelector('input[name="category_id"]');
+                if (categoryIdInput) {
+                    formData.append('category_id', categoryIdInput.value);
+                    console.log('Debug: Adding category_id to form data:', categoryIdInput.value);
+                }
 
                 // Add questions
                 const questions = document.querySelectorAll('.question-item');
