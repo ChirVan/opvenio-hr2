@@ -13,6 +13,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
+use Laravel\Fortify\Contracts\LoginResponse;
+use Illuminate\Http\RedirectResponse;
 
 class FortifyServiceProvider extends ServiceProvider
 {

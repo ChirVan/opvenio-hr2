@@ -18,6 +18,23 @@
             </div>
         @endif
 
+        <!-- Role Verification Card -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class='bx bx-check-circle text-blue-600 text-xl'></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Admin/HR Dashboard Access</h3>
+                    <p class="text-sm text-blue-700 mt-1">
+                        <strong>User:</strong> {{ Auth::user()->name }} |
+                        <strong>Email:</strong> {{ Auth::user()->email }} |
+                        <strong>Role:</strong> {{ ucfirst(Auth::user()->role) }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <!-- Dashboard Header -->
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>

@@ -29,6 +29,13 @@ Route::middleware([
         return view('dashboard');
     })->name('dashboard');
 
+    // ESS (Employee Self Service) routes
+    Route::prefix('ess')->name('ess.')->group(function () {
+        Route::get('/dashboard', function () {
+            return view('ess.dashboard');
+        })->name('dashboard');
+    });
+
     // Two-factor authentication info page
     Route::get('/auth/two-factor-info', [TwoFactorController::class, 'show'])->name('two-factor.info');
 

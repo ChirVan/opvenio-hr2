@@ -29,6 +29,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -63,5 +64,49 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Check if user has a specific role.
+     */
+    public function hasRole(string|array $role): bool
+    {
+        if (is_array($role)) {
+            return in_array($this->role, $role);
+        }
+        
+        return $this->role === $role;
+    }
+
+    /**
+     * Check if user is an employee.
+     */
+    public function isEmployee(): bool
+    {
+        return $this->role === 'employee';
+    }
+
+    /**
+     * Check if user is HR.
+     */
+    public function isHr(): bool
+    {
+        return $this->role === 'hr';
+    }
+
+    /**
+     * Check if user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user can access admin features.
+     */
+    public function canAccessAdmin(): bool
+    {
+        return in_array($this->role, ['admin', 'hr']);
     }
 }
