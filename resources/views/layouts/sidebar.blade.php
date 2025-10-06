@@ -72,6 +72,7 @@
             <div id="learningMenu" class="mt-2 ml-2 {{ request()->routeIs('learning.*') ? '' : 'hidden' }}">
                 <div class="bg-white bg-opacity-10 rounded-lg p-1">
                     <a href="{{ route('learning.assessment') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('learning.assessment') ? 'active' : '' }}">Assessment Center</a>
+                    <a href="{{ route('learning.hub') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('learning.hub') ? 'active' : '' }}">Assessment Hub</a>
                 </div>
             </div>
         </div>

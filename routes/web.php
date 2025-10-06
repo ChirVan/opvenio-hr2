@@ -227,6 +227,9 @@ Route::middleware([
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::prefix('learning')->name('learning.')->group(function () {
         Route::get('/assessment', [AssessmentCategoryController::class, 'index'])->name('assessment');
+        Route::get('/hub', function () {
+            return view('learning_management.hub');
+        })->name('hub');
         
         // Quiz Routes
         Route::get('/quiz', [\App\Modules\learning_management\Controllers\QuizController::class, 'create'])->name('quiz');
