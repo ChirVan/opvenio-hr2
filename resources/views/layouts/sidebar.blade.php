@@ -6,6 +6,8 @@
     $isTrainingOpen = request()->routeIs('training.*');
     // Server-side active detection for learning submenu
     $isLearningOpen = request()->routeIs('learning.*');
+    // Server-side active detection for succession planning submenu
+    $isSuccessionOpen = request()->routeIs('succession.*');
 @endphp
 <aside id="sidebar" class="fixed left-0 shadow-card p-4 z-40 overflow-y-auto active" 
        style="background: var(--color-primary); 
@@ -25,13 +27,14 @@
     <div class="text-white text-opacity-70 text-xs font-bold uppercase mb-2 sidebar-text">Main Content</div>
     
     <nav class="flex flex-col gap-2">
+       
         <div class="relative">
             <button id="competencyToggle" class="btn btn-primary w-full flex items-center justify-between gap-3 hover:bg-white hover:bg-opacity-10 transition-colors duration-200 rounded-lg p-3 {{ $isCompetencyOpen ? 'open active' : '' }}">
-                <span class="flex items-center gap-3">
-                    <i class='bx bx-target-lock text-xl text-white'></i>
-                    <span class="sidebar-text text-white">Competency Management</span>
+                <span class="flex items-center gap-2">
+                    <i class='bx bx-target-lock text-lg text-white'></i>
+                    <span class="sidebar-text text-white text-base">Competency Management</span>
+                    <i id="competencyChevron" class='bx bx-chevron-down text-white text-base ml-2 {{ $isCompetencyOpen ? 'rotate-180' : '' }}'></i>
                 </span>
-                <i id="competencyChevron" class='bx bx-chevron-down text-white {{ $isCompetencyOpen ? 'rotate-180' : '' }}'></i>
             </button>
 
             <div id="competencyMenu" class="mt-2 ml-2 {{ $isCompetencyOpen ? '' : 'hidden' }}">
@@ -45,11 +48,11 @@
         
         <div class="relative">
             <button id="trainingToggle" class="btn btn-primary w-full flex items-center justify-between gap-3 hover:bg-white hover:bg-opacity-10 transition-colors duration-200 rounded-lg p-3 {{ $isTrainingOpen ? 'open active' : '' }}">
-                <span class="flex items-center gap-3">
-                    <i class='bx bx-dumbbell text-xl text-white'></i>
-                    <span class="sidebar-text text-white">Training Management</span>
+                <span class="flex items-center gap-2">
+                    <i class='bx bx-dumbbell text-lg text-white'></i>
+                    <span class="sidebar-text text-white text-base">Training Management</span>
+                    <i id="trainingChevron" class='bx bx-chevron-down text-white text-base ml-2 {{ $isTrainingOpen ? 'rotate-180' : '' }}'></i>
                 </span>
-                <i id="trainingChevron" class='bx bx-chevron-down text-white {{ $isTrainingOpen ? 'rotate-180' : '' }}'></i>
             </button>
 
             <div id="trainingMenu" class="mt-2 ml-2 {{ $isTrainingOpen ? '' : 'hidden' }}">
@@ -62,30 +65,40 @@
         
         <div class="relative">
             <button id="learningToggle" class="btn btn-primary w-full flex items-center justify-between gap-3 hover:bg-white hover:bg-opacity-10 transition-colors duration-200 rounded-lg p-3 {{ request()->routeIs('learning.*') ? 'open active' : '' }}">
-                <span class="flex items-center gap-3">
-                    <i class='bx bx-book-open text-xl text-white'></i>
-                    <span class="sidebar-text text-white">Learning Management</span>
+                <span class="flex items-center gap-2">
+                    <i class='bx bx-book-open text-lg text-white'></i>
+                    <span class="sidebar-text text-white text-base">Learning Management</span>
+                    <i id="learningChevron" class='bx bx-chevron-down text-white text-base ml-2 {{ request()->routeIs('learning.*') ? 'rotate-180' : '' }}'></i>
                 </span>
-                <i id="learningChevron" class='bx bx-chevron-down text-white {{ request()->routeIs('learning.*') ? 'rotate-180' : '' }}'></i>
             </button>
 
             <div id="learningMenu" class="mt-2 ml-2 {{ request()->routeIs('learning.*') ? '' : 'hidden' }}">
                 <div class="bg-white bg-opacity-10 rounded-lg p-1">
                     <a href="{{ route('learning.assessment') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('learning.assessment') ? 'active' : '' }}">Assessment Center</a>
                     <a href="{{ route('learning.hub') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('learning.hub') ? 'active' : '' }}">Assessment Hub</a>
+                    <a href="{{ route('assessment.results') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('assessment.results*') ? 'active' : '' }}">Assessment Results</a>
+                    <a href="{{ route('assessment.approved-employees') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('assessment.approved-employees') ? 'active' : '' }}">Approved Employees</a>
                 </div>
             </div>
         </div>
         
-        <a href="#" class="btn btn-primary flex items-center gap-3 hover:bg-white hover:bg-opacity-10 transition-colors duration-200 rounded-lg p-3">
-            <i class='bx bx-git-branch text-xl text-white'></i>
-            <span class="sidebar-text text-white">Succession Planning</span>
-        </a>
+        <div class="relative">
+            <button id="successionToggle" class="btn btn-primary w-full flex items-center justify-between gap-3 hover:bg-white hover:bg-opacity-10 transition-colors duration-200 rounded-lg p-3 {{ $isSuccessionOpen ? 'open active' : '' }}">
+                <span class="flex items-center gap-2">
+                    <i class='bx bx-git-branch text-lg text-white'></i>
+                    <span class="sidebar-text text-white text-base">Succession Planning</span>
+                    <i id="successionChevron" class='bx bx-chevron-down text-white text-base ml-2 {{ $isSuccessionOpen ? 'rotate-180' : '' }}'></i>
+                </span>
+            </button>
+
+            <div id="successionMenu" class="mt-2 ml-2 {{ $isSuccessionOpen ? '' : 'hidden' }}">
+                <div class="bg-white bg-opacity-10 rounded-lg p-1">
+                    <a href="{{ route('succession.talent-pool') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('succession.talent-pool') ? 'active' : '' }}">Talent Pool</a>
+                    <a href="{{ route('succession.successors') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('succession.successors') ? 'active' : '' }}">Successors</a>
+                </div>
+            </div>
+        </div>
         
-        <a href="#" class="btn btn-primary flex items-center gap-3 hover:bg-white hover:bg-opacity-10 transition-colors duration-200 rounded-lg p-3">
-            <i class='bx bx-user-check text-xl text-white'></i>
-            <span class="sidebar-text text-white">Employee Self-Service</span>
-        </a>
     </nav>
     
     <!-- Optional: Add collapse toggle inside sidebar -->
@@ -190,6 +203,11 @@
     const learningMenu = document.getElementById('learningMenu');
     const learningChevron = document.getElementById('learningChevron');
         
+        // Succession Planning dropdown elements
+    const successionToggle = document.getElementById('successionToggle');
+    const successionMenu = document.getElementById('successionMenu');
+    const successionChevron = document.getElementById('successionChevron');
+        
         // Optional: Add keyboard navigation
         document.addEventListener('keydown', function(e) {
             // Alt + S to toggle sidebar
@@ -229,6 +247,17 @@
                 learningToggle.classList.toggle('open', !isOpen);
                 learningChevron.classList.toggle('rotate-180', !isOpen);
                 learningToggle.classList.toggle('active', !isOpen);
+            });
+        }
+
+        if (successionToggle) {
+            successionToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                const isOpen = !successionMenu.classList.contains('hidden');
+                successionMenu.classList.toggle('hidden');
+                successionToggle.classList.toggle('open', !isOpen);
+                successionChevron.classList.toggle('rotate-180', !isOpen);
+                successionToggle.classList.toggle('active', !isOpen);
             });
         }
     });

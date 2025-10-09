@@ -48,7 +48,7 @@
                                 <p class="card-text small text-muted">Courses & Training</p>
                             </div>
                         </div>
-                        <a href="#" class="btn btn-outline-success btn-sm">View Courses →</a>
+                        <a href="{{ route('ess.lms') }}" class="btn btn-outline-success btn-sm">View Courses →</a>
                     </div>
                 </div>
             </div>

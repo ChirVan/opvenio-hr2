@@ -30,6 +30,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'employee_id',
     ];
 
     /**
@@ -108,5 +109,32 @@ class User extends Authenticatable
     public function canAccessAdmin(): bool
     {
         return in_array($this->role, ['admin', 'hr']);
+    }
+
+    /**
+     * Get the user's training assignments
+     */
+    public function trainingAssignments()
+    {
+        return $this->hasManyThrough(
+            'App\Modules\training_management\Models\TrainingAssignment',
+            'App\Modules\training_management\Models\TrainingAssignmentEmployee',
+            'employee_id', // Foreign key on TrainingAssignmentEmployee table
+            'id', // Foreign key on TrainingAssignment table
+            'employee_id', // Local key on User table
+            'training_assignment_id' // Local key on TrainingAssignmentEmployee table
+        );
+    }
+
+    /**
+     * Get the user's assessment assignments
+     */
+    public function assessmentAssignments()
+    {
+        return $this->hasMany(
+            'App\Modules\learning_management\Models\AssessmentAssignment',
+            'employee_id',
+            'employee_id'
+        );
     }
 }

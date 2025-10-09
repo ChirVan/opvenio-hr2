@@ -34,17 +34,22 @@
 
             <!-- Simple dropdown menu -->
             <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded shadow-lg py-2 z-50">
-                <a href="{{ route('profile.show') }}" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100">
+                <a href="{{ route('profile.show') }}" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-black">
                     <i class="bx bx-user"></i>
                     <span>Profile</span>
                 </a>
-                <a href="{{ route('two-factor.info') }}" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100">
+                <a href="{{ route('profile.show') }}#two-factor" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-black">
                     <i class="bx bx-cog"></i>
                     <span>Security Settings</span>
                 </a>
+                <a href="{{ route('audit.logs') }}" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-black">
+                    <i class="bx bx-history"></i>
+                    <span>Audit Logs</span>
+                </a>
+                
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2">
+                    <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-black">
                         <i class="bx bx-power-off"></i>
                         <span>Logout</span>
                     </button>

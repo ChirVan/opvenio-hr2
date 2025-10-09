@@ -1,3 +1,5 @@
+
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -12,6 +14,7 @@ use App\Modules\training_management\Controllers\TrainingCatalogController;
 use App\Modules\learning_management\Controllers\AssessmentCategoryController;
 use App\Modules\learning_management\Controllers\AssessmentAssignmentController;
 use App\Http\Controllers\Auth\TwoFactorController;
+
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect()->route('dashboard');
@@ -25,19 +28,64 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
+    // Audit Logs page
+    Route::get('/audit-logs', function() {
+        $logs = \App\Models\AuditLog::latest()->paginate(20);
+        return view('audit_logs.history', compact('logs'));
+    })->name('audit.logs');
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
 
     // ESS (Employee Self Service) routes
     Route::prefix('ess')->name('ess.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('ess.dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [App\Http\Controllers\ESSController::class, 'dashboard'])->name('dashboard');
+        Route::get('/lms', [App\Http\Controllers\ESSController::class, 'lms'])->name('lms');
+        Route::get('/assessment/{id}/take', [App\Http\Controllers\ESSController::class, 'takeAssessment'])->name('assessment.take');
+        Route::post('/assessment/{id}/submit', [App\Http\Controllers\ESSController::class, 'submitAssessment'])->name('assessment.submit');
     });
 
-    // Two-factor authentication info page
-    Route::get('/auth/two-factor-info', [TwoFactorController::class, 'show'])->name('two-factor.info');
+    // Assessment Results Management (for HR/Admin)
+    Route::middleware(['role:admin,hr'])->group(function () {
+        Route::get('/assessment-results', [App\Http\Controllers\AssessmentResultsController::class, 'index'])->name('assessment.results');
+        Route::get('/assessment-results/{id}/evaluate', [App\Http\Controllers\AssessmentResultsController::class, 'evaluate'])->name('assessment.results.evaluate');
+        Route::get('/assessment-results/{id}/evaluate/step2', [App\Http\Controllers\AssessmentResultsController::class, 'evaluateStep2'])->name('assessment.results.evaluate.step2');
+        Route::post('/assessment-results/{id}/submit-evaluation', [App\Http\Controllers\AssessmentResultsController::class, 'submitEvaluation'])->name('assessment.results.submit-evaluation');
+        Route::post('/assessment-results/{id}/approve', [App\Http\Controllers\AssessmentResultsController::class, 'approve'])->name('assessment.results.approve');
+        Route::post('/assessment-results/{id}/reject', [App\Http\Controllers\AssessmentResultsController::class, 'reject'])->name('assessment.results.reject');
+        Route::get('/approved-employees', [App\Http\Controllers\AssessmentResultsController::class, 'approvedEmployeesReport'])->name('assessment.approved-employees');
+    });
+
+    // Succession Planning (Talent Pool) - Admin/HR only
+    Route::middleware(['role:admin,hr'])->group(function () {
+        // Talent pool index with primary route name
+        Route::get('/talent-pool', [App\Modules\succession_planning\Controllers\TalentPoolController::class, 'index'])->name('succession.talent-pool');
+        
+        // Add route for promotion potential form
+        Route::get('/talent-pool/potential/{employee_id}', [App\Modules\succession_planning\Controllers\TalentPoolController::class, 'showPotential'])->name('succession.potential');
+        // Add route for promotion submission
+        Route::post('/talent-pool/promote', [App\Modules\succession_planning\Controllers\TalentPoolController::class, 'promoteEmployee'])->name('succession.promote');
+        // Add route for successors page
+        Route::get('/successors', function() {
+            return view('succession_planning.successors');
+        })->name('succession.successors');
+        // Add route for successors page
+        Route::get('/successors', function() {
+            return view('succession_planning.successors');
+        })->name('succession.successors');
+// Add GET route for /talent-pool/promote to redirect to talent pool (outside middleware group)
+Route::get('/talent-pool/promote', function() {
+    return redirect()->route('succession.talent-pool');
+});
+    });
+
+    // Assessment Results Management (Admin/HR only)
+    Route::prefix('learning-management')->name('learning-management.')->middleware(['role:admin,hr'])->group(function () {
+        Route::get('/assessment-results', [App\Modules\learning_management\Controllers\AssessmentResultsController::class, 'index'])->name('assessment-results.index');
+        Route::get('/assessment-results/{id}/evaluate', [App\Modules\learning_management\Controllers\AssessmentResultsController::class, 'evaluate'])->name('assessment-results.evaluate');
+        Route::put('/assessment-results/{id}/evaluation', [App\Modules\learning_management\Controllers\AssessmentResultsController::class, 'updateEvaluation'])->name('assessment-results.update-evaluation');
+        Route::get('/assessment-results/statistics', [App\Modules\learning_management\Controllers\AssessmentResultsController::class, 'statistics'])->name('assessment-results.statistics');
+    });
 
     // Competency management routes with controller
     Route::get('/competency/frameworks', [CompetencyFrameworkController::class, 'index'])->name('competency.frameworks');
@@ -57,7 +105,6 @@ Route::middleware([
     Route::put('/competency/competencies/{competency}', [CompetencyController::class, 'update'])->name('competency.competencies.update');
     Route::delete('/competency/competencies/{competency}', [CompetencyController::class, 'destroy'])->name('competency.competencies.destroy');
 
-
     // With these NEW role mapping routes:
     Route::get('/competency/rolemapping', [RoleMappingController::class, 'index'])->name('competency.rolemapping');
     Route::get('/competency/rolemapping/create', [RoleMappingController::class, 'create'])->name('competency.rolemapping.create');
@@ -68,14 +115,14 @@ Route::middleware([
     Route::delete('/competency/rolemapping/{roleMapping}', [RoleMappingController::class, 'destroy'])->name('competency.rolemapping.destroy');
 
     Route::prefix('competency')->group(function () {
-    Route::get('gapanalysis', [GapAnalysisController::class, 'index'])->name('competency.gapanalysis');
-    Route::get('gapanalysis/create', [GapAnalysisController::class, 'create'])->name('competency.gapanalysis.create');
-    Route::post('gapanalysis', [GapAnalysisController::class, 'store'])->name('competency.gapanalysis.store');
-    Route::get('gapanalysis/{id}', [GapAnalysisController::class, 'show'])->name('competency.gapanalysis.show');
-    Route::get('gapanalysis/{id}/edit', [GapAnalysisController::class, 'edit'])->name('competency.gapanalysis.edit');
-    Route::put('gapanalysis/{id}', [GapAnalysisController::class, 'update'])->name('competency.gapanalysis.update');
-    Route::delete('gapanalysis/{id}', [GapAnalysisController::class, 'destroy'])->name('competency.gapanalysis.destroy');
-});
+        Route::get('gapanalysis', [GapAnalysisController::class, 'index'])->name('competency.gapanalysis');
+        Route::get('gapanalysis/create', [GapAnalysisController::class, 'create'])->name('competency.gapanalysis.create');
+        Route::post('gapanalysis', [GapAnalysisController::class, 'store'])->name('competency.gapanalysis.store');
+        Route::get('gapanalysis/{id}', [GapAnalysisController::class, 'show'])->name('competency.gapanalysis.show');
+        Route::get('gapanalysis/{id}/edit', [GapAnalysisController::class, 'edit'])->name('competency.gapanalysis.edit');
+        Route::put('gapanalysis/{id}', [GapAnalysisController::class, 'update'])->name('competency.gapanalysis.update');
+        Route::delete('gapanalysis/{id}', [GapAnalysisController::class, 'destroy'])->name('competency.gapanalysis.destroy');
+    });
 
     // Training Management Routes
     Route::prefix('training')->group(function () {
