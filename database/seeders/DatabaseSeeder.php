@@ -16,9 +16,9 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => bcrypt('Password123'), // known password for local testing
+            'name' => 'John Roy Dadap',
+            'email' => 'royvinsondadap@gmail.com',
+            'password' => bcrypt('password123'), // known password for local testing
         ]);
 
         $this->call(\Database\Seeders\EmployeesTableSeeder::class);
