@@ -77,7 +77,7 @@
     <!-- Right: Branding (70%) -->
     <div class="hidden md:flex md:w-[70%] items-center justify-center p-12" style="background: var(--color-primary);">
         <div class="text-white text-center max-w-md">
-            <h3 class="text-4xl font-bold mb-2">JAVES COOPERATIVE MICRO</h3>
+            <h3 class="text-4xl font-bold mb-2">JAVES COOPERATIVE MICROFINANCE</h3>
             <p class="text-base mb-6">Human Resources II</p>
 
             <div class="bg-white bg-opacity-10 rounded-2xl p-8 shadow-lg flex flex-col items-center mb-8">

@@ -64,7 +64,7 @@ Route::middleware([
         // Add route for promotion potential form
         Route::get('/talent-pool/potential/{employee_id}', [App\Modules\succession_planning\Controllers\TalentPoolController::class, 'showPotential'])->name('succession.potential');
         // Add route for promotion submission
-        Route::post('/talent-pool/promote', [App\Modules\succession_planning\Controllers\TalentPoolController::class, 'promoteEmployee'])->name('succession.promote');
+    Route::post('/talent-pool/promote', [App\Modules\succession_planning\Controllers\PromotionController::class, 'store'])->name('succession.promote');
         // Add route for successors page
         Route::get('/successors', function() {
             return view('succession_planning.successors');
@@ -73,10 +73,42 @@ Route::middleware([
         Route::get('/successors', function() {
             return view('succession_planning.successors');
         })->name('succession.successors');
-// Add GET route for /talent-pool/promote to redirect to talent pool (outside middleware group)
-Route::get('/talent-pool/promote', function() {
-    return redirect()->route('succession.talent-pool');
-});
+        // Add GET route for /talent-pool/promote to redirect to talent pool (outside middleware group)
+        Route::get('/talent-pool/promote', function() {
+            return redirect()->route('succession.talent-pool');
+        });
+        Route::get('/potential-successors', function () {
+            $results = DB::connection('ess')->table('assessment_results')
+                ->where('status', 'passed')
+                ->get();
+
+            // Fetch all employees from the API
+            $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
+                ->get('https://hr4.microfinancial-1.com/services/hcm-services/public/api/employees');
+            $employeesApi = $apiResponse->json();
+
+            // Map employee_id to details for quick lookup
+            $employeeMap = collect($employeesApi)->keyBy('employee_id');
+
+            // Merge API data into results
+            $approvedEmployees = $results->map(function ($item) use ($employeeMap) {
+                $details = $employeeMap->get($item->employee_id);
+                return (object) [
+                    'employee_id' => $item->employee_id,
+                    'full_name' => $details['full_name'] ?? '',
+                    'email' => $details['email'] ?? '',
+                    'job_title' => $details['job_title'] ?? '',
+                    'assignment_id' => $item->assignment_id,
+                    'status' => $item->status,
+                    'score' => $item->score,
+                ];
+            });
+
+            // Get all promoted employee_ids
+            $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
+
+            return view('succession_planning.potential_successor', compact('approvedEmployees', 'promotedIds'));
+        })->name('succession.potential-successors');
     });
 
     // Assessment Results Management (Admin/HR only)

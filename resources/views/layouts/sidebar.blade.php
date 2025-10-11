@@ -95,6 +95,7 @@
                 <div class="bg-white bg-opacity-10 rounded-lg p-1">
                     <a href="{{ route('succession.talent-pool') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('succession.talent-pool') ? 'active' : '' }}">Talent Pool</a>
                     <a href="{{ route('succession.successors') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('succession.successors') ? 'active' : '' }}">Successors</a>
+                    <a href="{{ route('succession.potential-successors') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('succession.potential-successors') ? 'active' : '' }}">Potential Successors</a>
                 </div>
             </div>
         </div>

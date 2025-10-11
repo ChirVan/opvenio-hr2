@@ -7,7 +7,7 @@
 		@include('layouts.sidebar')
 	@endsection
 
-	<div class="py-6 px-4">
+	<div class="py-6 px-4 print-area">
 		
 			<div class="bg-gradient-to-r from-green-600 to-green-800 rounded-t-lg shadow-lg p-6 text-white">
 				<div class="flex items-center justify-between">
@@ -22,6 +22,11 @@
 					@php
 						$promotions = \App\Modules\succession_planning\Models\Promotion::all();
 					@endphp
+					<div class="flex justify-end mb-4">
+						<button onclick="window.print()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs shadow transition flex items-center gap-2">
+							<i class='bx bx-printer text-white'></i> Export / Print
+						</button>
+					</div>
 					<div class="overflow-x-auto">
 						<table class="min-w-full divide-y divide-gray-200 shadow-sm">
 							<thead class="bg-gray-50">
@@ -33,7 +38,7 @@
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Potential Job</th>
 								
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
-									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Action</th>
+
 								</tr>
 							</thead>
 							<tbody class="bg-white divide-y divide-gray-100">
@@ -50,11 +55,7 @@
 												{{ ucfirst($promotion->status) }}
 											</span>
 										</td>
-										<td class="px-6 py-4 whitespace-nowrap">
-											<button type="button" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-xs shadow transition flex items-center gap-2">
-												<i class='bx bx-check-circle text-white'></i> Approve
-											</button>
-										</td>
+
 									</tr>
 								@empty
 									<tr>
@@ -70,6 +71,56 @@
 	</div>
 
 	<style>
+		@media print {
+			.print-area {
+				width: 100vw !important;
+				max-width: 100vw !important;
+				margin: 0 !important;
+				padding: 0 !important;
+				box-shadow: none !important;
+				background: white !important;
+			}
+			.print-area table {
+				width: 100vw !important;
+				max-width: 100vw !important;
+				font-size: 0.9em;
+			}
+			.print-area th, .print-area td {
+				white-space: normal !important;
+				word-break: break-word !important;
+				padding: 8px !important;
+			}
+		}
+		@media print {
+			.print-area .overflow-x-auto {
+				overflow: visible !important;
+			}
+			.print-area table {
+				width: 100% !important;
+				font-size: 0.9em;
+			}
+		}
+		@media print {
+			body * {
+				visibility: hidden !important;
+			}
+			.print-area, .print-area * {
+				visibility: visible !important;
+			}
+			.print-area {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 100vw;
+				background: white;
+				z-index: 9999;
+			}
+			.print-area .flex.justify-end,
+			.print-area .alert,
+			.print-area .export-btn {
+				display: none !important;
+			}
+		}
 		/* Enhanced table styling for clarity and modern look */
 		.table-successors th {
 			background: linear-gradient(90deg, #e0f7fa 0%, #e8f5e9 100%);
