@@ -1,5 +1,3 @@
-
-
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -43,6 +41,12 @@ Route::middleware([
         Route::get('/lms', [App\Http\Controllers\ESSController::class, 'lms'])->name('lms');
         Route::get('/assessment/{id}/take', [App\Http\Controllers\ESSController::class, 'takeAssessment'])->name('assessment.take');
         Route::post('/assessment/{id}/submit', [App\Http\Controllers\ESSController::class, 'submitAssessment'])->name('assessment.submit');
+        Route::get('/leave', function () {
+            return view('ess.leave');
+        })->name('leave');
+        Route::get('/payslip', function () {
+            return view('ess.payslip');
+        })->name('payslip');
     });
 
     // Assessment Results Management (for HR/Admin)
@@ -165,7 +169,7 @@ Route::middleware([
             'show' => 'training.catalog.show',
             'edit' => 'training.catalog.edit',
             'update' => 'training.catalog.update',
-            'destroy' => 'training.catalog.destroy',
+            'destroy' => 'training.catalog.destroy'
         ]);
         
         // Training catalog detail page with materials
@@ -277,8 +281,8 @@ Route::middleware([
                                     'job_role' => $employee->job_role,
                                     'competency_name' => $employee->competency_name ?: 'No Competency',
                                     'framework' => $employee->framework ?: 'No Framework',
-                                    'proficiency_level' => $employee->proficiency_level
-                                ];
+                                'proficiency_level' => $employee->proficiency_level
+                            ];
                             });
                         
                         \Log::info("Fallback query found " . $employees->count() . " employees");
@@ -376,6 +380,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/', [AssessmentCategoryController::class, 'index'])->name('index');
     });
 });
+
+// Profile & Security Settings
+Route::get('/profile/security', function () {
+    return view('profile.security-settings');
+})->name('profile.security');
 
 // Debug route for API testing (remove this in production)
 Route::get('/debug-employee-api', function () {

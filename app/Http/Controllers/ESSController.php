@@ -89,6 +89,23 @@ class ESSController extends Controller
             \Log::info("Training assignments data", $assignments->toArray());
 
             return $assignments->map(function ($assignment) {
+                // Fetch training materials for this assignment
+                $materials = DB::connection('training_management')
+                    ->table('training_assignment_materials as tam')
+                    ->join('training_materials as tm', 'tam.training_material_id', '=', 'tm.id')
+                    ->where('tam.training_assignment_id', $assignment->assignment_id)
+                    ->select([
+                        'tm.id',
+                        'tm.lesson_title',
+                        'tm.lesson_content',
+                        'tm.status',
+                        'tm.is_active',
+                        'tam.is_required',
+                        'tam.order_sequence'
+                    ])
+                    ->orderBy('tam.order_sequence')
+                    ->get();
+
                 return [
                     'id' => $assignment->assignment_id,
                     'title' => $assignment->course_title,
@@ -101,6 +118,7 @@ class ESSController extends Controller
                     'priority' => $assignment->priority,
                     'started_at' => $assignment->started_at,
                     'completed_at' => $assignment->completed_at,
+                    'materials' => $materials,
                 ];
             });
 

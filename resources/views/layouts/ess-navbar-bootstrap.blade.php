@@ -30,6 +30,7 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><a class="dropdown-item" href="#"><i class="bx bx-user me-2"></i>My Profile</a></li>
                     <li><a class="dropdown-item" href="#"><i class="bx bx-cog me-2"></i>Settings</a></li>
+                    <li><a class="dropdown-item" href="{{ route('profile.security') }}"><i class="bx bx-shield me-2"></i>Security Settings</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <form method="POST" action="{{ route('logout') }}" class="d-inline">
