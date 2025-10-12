@@ -13,7 +13,8 @@ class EmployeeApiService
 
     public function __construct()
     {
-        $this->baseUrl = 'https://hr4.microfinancial-1.com/services/hcm-services/public/api';
+        // Base URL should NOT end with /employees
+        $this->baseUrl = 'https://hr4.microfinancial-1.com/services/hcm-services/public';
         $this->timeout = 30; // 30 seconds timeout
     }
 
@@ -25,26 +26,30 @@ class EmployeeApiService
     public function getEmployees()
     {
         try {
-            // Cache the API response for 5 minutes to avoid frequent API calls
+            // Cache the API response for 5 minutes
             return Cache::remember('external_employees', 300, function () {
+                $url = $this->baseUrl . '/employees';
+
                 $response = Http::timeout($this->timeout)
                     ->withOptions([
                         'verify' => false, // Disable SSL verification for external API
                     ])
-                    ->get($this->baseUrl . '/employees');
+                    ->get($url);
 
                 if ($response->successful()) {
-                    $employees = $response->json();
-                    
-                    // Transform the data to only include the fields we need
+                    $data = $response->json();
+
+                    // Some APIs return {"employees": [...]}, others return [...]
+                    $employees = $data['employees'] ?? $data;
+
                     return collect($employees)->map(function ($employee) {
                         return [
-                            'id' => $employee['id'],
-                            'employee_id' => $employee['employee_id'],
-                            'full_name' => $employee['full_name'],
-                            'email' => $employee['email'],
-                            'employment_status' => $employee['employment_status'],
-                            'job_title' => $employee['job_title'],
+                            'id' => $employee['id'] ?? null,
+                            'employee_id' => $employee['employee_id'] ?? '',
+                            'full_name' => $employee['full_name'] ?? '',
+                            'email' => $employee['email'] ?? '',
+                            'employment_status' => $employee['employment_status'] ?? '',
+                            'job_title' => $employee['job_title'] ?? '',
                         ];
                     })->toArray();
                 }
@@ -52,12 +57,11 @@ class EmployeeApiService
                 Log::error('Employee API request failed', [
                     'status' => $response->status(),
                     'body' => $response->body(),
-                    'url' => $this->baseUrl . '/employees'
+                    'url' => $url,
                 ]);
 
                 return null;
             });
-
         } catch (\Exception $e) {
             Log::error('Employee API service error: ' . $e->getMessage(), [
                 'url' => $this->baseUrl . '/employees'
@@ -75,24 +79,32 @@ class EmployeeApiService
     public function getEmployee($employeeId)
     {
         try {
+            $url = $this->baseUrl . '/employees/' . $employeeId;
+
             $response = Http::timeout($this->timeout)
                 ->withOptions([
-                    'verify' => false, // Disable SSL verification for external API
+                    'verify' => false,
                 ])
-                ->get($this->baseUrl . '/employees/' . $employeeId);
+                ->get($url);
 
             if ($response->successful()) {
                 $employee = $response->json();
-                
+
                 return [
-                    'id' => $employee['id'],
-                    'employee_id' => $employee['employee_id'],
-                    'full_name' => $employee['full_name'],
-                    'email' => $employee['email'],
-                    'employment_status' => $employee['employment_status'],
-                    'job_title' => $employee['job_title'],
+                    'id' => $employee['id'] ?? null,
+                    'employee_id' => $employee['employee_id'] ?? '',
+                    'full_name' => $employee['full_name'] ?? '',
+                    'email' => $employee['email'] ?? '',
+                    'employment_status' => $employee['employment_status'] ?? '',
+                    'job_title' => $employee['job_title'] ?? '',
                 ];
             }
+
+            Log::error('Employee API individual request failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'url' => $url,
+            ]);
 
             return null;
 
@@ -125,8 +137,6 @@ class EmployeeApiService
 
     /**
      * Clear the employees cache
-     * 
-     * @return void
      */
     public function clearCache()
     {

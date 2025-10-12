@@ -88,7 +88,7 @@ Route::middleware([
 
             // Fetch all employees from the API
             $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
-                ->get('https://hr4.microfinancial-1.com/services/hcm-services/public/api/employees');
+                ->get('https://hr4.microfinancial-1.com/services/hcm-services/public/employees');
             $employeesApi = $apiResponse->json();
 
             // Map employee_id to details for quick lookup
@@ -396,7 +396,7 @@ Route::get('/debug-employee-api', function () {
     $output = "<h2>Employee API Debug Information</h2><hr>";
     
     // Test the base URL
-    $baseUrl = 'https://hr4.microfinancial-1.com/services/hcm-services/public/api';
+    $baseUrl = 'https://hr4.microfinancial-1.com/services/hcm-services/public/employees';
     $fullUrl = $baseUrl . '/employees';
     $output .= "<h3>1. Service Configuration</h3>";
     $output .= "Base URL: {$baseUrl}<br>";
