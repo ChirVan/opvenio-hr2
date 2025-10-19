@@ -6,6 +6,7 @@ use App\Modules\competency_management\Models\Competency;
 use App\Modules\competency_management\Models\CompetencyFramework;
 use App\Modules\competency_management\Requests\StoreCompetencyRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 
 class CompetencyController extends Controller
@@ -37,7 +38,17 @@ class CompetencyController extends Controller
     public function store(StoreCompetencyRequest $request)
     {
         try {
-            Competency::create($request->validated());
+            $competency = Competency::create($request->validated());
+
+            // Log activity (CREATE)
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name ?? 'Unknown',
+                'activity' => 'Create',
+                'details' => 'Created competency: ' . $competency->competency_name,
+                'status' => 'Success',
+                'created_at' => now(),
+            ]);
 
             // Redirect to frameworks page after successful creation
             return redirect()
@@ -66,13 +77,46 @@ class CompetencyController extends Controller
 
     public function update(Request $request, Competency $competency)
     {
-        // We'll add this later
+        try {
+            $competency->update($request->all());
+
+            // Log activity (UPDATE)
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name ?? 'Unknown',
+                'activity' => 'Edit',
+                'details' => 'Updated competency: ' . $competency->competency_name,
+                'status' => 'Success',
+                'created_at' => now(),
+            ]);
+
+            return redirect()
+                ->route('competency.competencies')
+                ->with('success', 'Competency updated successfully!');
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'An error occurred while updating the competency.');
+        }
     }
 
     public function destroy(Competency $competency)
     {
         try {
+            $name = $competency->competency_name;
             $competency->delete();
+
+            // Log activity (DELETE)
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name ?? 'Unknown',
+                'activity' => 'Delete',
+                'details' => 'Deleted competency: ' . $name,
+                'status' => 'Success',
+                'created_at' => now(),
+            ]);
+
             return redirect()
                 ->route('competency.competencies')
                 ->with('success', 'Competency deleted successfully!');

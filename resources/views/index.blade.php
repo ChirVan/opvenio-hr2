@@ -42,7 +42,7 @@
         </span>
         <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
             class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="Enter your email">
+            placeholder="Enter your email" autocomplete="off">
     </div>
 </div>
 

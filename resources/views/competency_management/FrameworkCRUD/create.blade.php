@@ -45,7 +45,7 @@
                                 id="framework_name" 
                                 name="framework_name" 
                                 value="{{ old('framework_name') }}"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 @error('framework_name') border-red-500 @enderror"
+                                class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 {{ $errors->has('framework_name') ? 'border-red-500' : 'border-gray-300' }}"
                                 placeholder="Enter framework name"
                                 required
                             >
@@ -63,7 +63,7 @@
                                 id="description" 
                                 name="description" 
                                 rows="4"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 @error('description') border-red-500 @enderror"
+                                class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 {{ $errors->has('description') ? 'border-red-500' : 'border-gray-300' }}"
                                 placeholder="Enter framework description"
                                 required
                             >{{ old('description') }}</textarea>
@@ -84,7 +84,7 @@
                                     id="effective_date" 
                                     name="effective_date" 
                                     value="{{ old('effective_date', date('Y-m-d')) }}"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 @error('effective_date') border-red-500 @enderror"
+                                    class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 {{ $errors->has('effective_date') ? 'border-red-500' : 'border-gray-300' }}"
                                     required
                                 >
                                 @error('effective_date')
@@ -100,7 +100,7 @@
                                 <select 
                                     id="status" 
                                     name="status" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 @error('status') border-red-500 @enderror"
+                                    class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 {{ $errors->has('status') ? 'border-red-500' : 'border-gray-300' }}"
                                     required
                                 >
                                     <option value="">Select Status</option>
@@ -125,7 +125,7 @@
                                 id="end_date" 
                                 name="end_date" 
                                 value="{{ old('end_date') }}"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 @error('end_date') border-red-500 @enderror"
+                                class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 {{ $errors->has('end_date') ? 'border-red-500' : 'border-gray-300' }}"
                             >
                             @error('end_date')
                                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -142,7 +142,7 @@
                                 id="notes" 
                                 name="notes" 
                                 rows="3"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 @error('notes') border-red-500 @enderror"
+                                class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 {{ $errors->has('notes') ? 'border-red-500' : 'border-gray-300' }}"
                                 placeholder="Any additional notes or comments about this framework"
                             >{{ old('notes') }}</textarea>
                             @error('notes')

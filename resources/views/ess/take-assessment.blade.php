@@ -183,7 +183,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-let timeRemaining = {{ $assessment->duration ? $assessment->duration * 60 : 0 }}; // Convert minutes to seconds
+let timeRemaining = {{ $assessment->duration ? ($assessment->duration * 60) : 0 }}; // Convert minutes to seconds
 let timerInterval;
 
 // Initialize timer if duration is set

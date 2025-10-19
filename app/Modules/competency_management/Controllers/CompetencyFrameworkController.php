@@ -7,6 +7,7 @@ use App\Modules\competency_management\Models\Competency; // <-- Added import
 use App\Modules\competency_management\Requests\StoreCompetencyFrameworkRequest;
 use App\Modules\competency_management\Requests\UpdateCompetencyFrameworkRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 
 class CompetencyFrameworkController extends Controller
@@ -52,13 +53,29 @@ class CompetencyFrameworkController extends Controller
     public function store(StoreCompetencyFrameworkRequest $request)
     {
         try {
-            CompetencyFramework::create($request->validated());
+            $framework = CompetencyFramework::create($request->validated());
+
+            // Log activity
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name ?? 'System',
+                'activity' => 'create_framework',
+                'details' => 'Created framework: ' . $framework->framework_name,
+                'status' => 'Success',
+            ]);
 
             return redirect()
                 ->route('competency.frameworks')
                 ->with('success', 'Framework created successfully!');
 
         } catch (\Exception $e) {
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name ?? 'System',
+                'activity' => 'create_framework',
+                'details' => 'Failed to create framework: ' . ($request->input('framework_name') ?? ''),
+                'status' => 'Failed',
+            ]);
             return redirect()
                 ->back()
                 ->withInput()
@@ -81,11 +98,27 @@ class CompetencyFrameworkController extends Controller
         try {
             $framework->update($request->validated());
 
+            // Log activity
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name ?? 'System',
+                'activity' => 'update_framework',
+                'details' => 'Updated framework: ' . $framework->framework_name,
+                'status' => 'Success',
+            ]);
+
             return redirect()
                 ->route('competency.frameworks')
                 ->with('success', 'Framework updated successfully!');
 
         } catch (\Exception $e) {
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name ?? 'System',
+                'activity' => 'update_framework',
+                'details' => 'Failed to update framework: ' . $framework->framework_name,
+                'status' => 'Failed',
+            ]);
             return redirect()
                 ->back()
                 ->withInput()
@@ -96,11 +129,29 @@ class CompetencyFrameworkController extends Controller
     public function destroy(CompetencyFramework $framework)
     {
         try {
+            $frameworkName = $framework->framework_name;
             $framework->delete();
+
+            // Log activity
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name ?? 'System',
+                'activity' => 'delete_framework',
+                'details' => 'Deleted framework: ' . $frameworkName,
+                'status' => 'Success',
+            ]);
+
             return redirect()
                 ->route('competency.frameworks')
                 ->with('success', 'Framework deleted successfully!');
         } catch (\Exception $e) {
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name ?? 'System',
+                'activity' => 'delete_framework',
+                'details' => 'Failed to delete framework: ' . ($framework->framework_name ?? ''),
+                'status' => 'Failed',
+            ]);
             return redirect()
                 ->back()
                 ->with('error', 'Error deleting framework.');

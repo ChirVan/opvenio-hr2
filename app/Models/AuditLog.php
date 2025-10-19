@@ -9,4 +9,6 @@ class AuditLog extends Model
     protected $fillable = [
         'user_id', 'user_name', 'activity', 'details', 'time_in', 'time_out', 'status'
     ];
+
+    public $timestamps = true;
 }

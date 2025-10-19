@@ -14,7 +14,7 @@ class EmployeeApiService
     public function __construct()
     {
         // Base URL should NOT end with /employees
-        $this->baseUrl = 'https://hr4.microfinancial-1.com/services/hcm-services/public';
+        $this->baseUrl = 'https://hr4.microfinancial-1.com/allemployees';
         $this->timeout = 30; // 30 seconds timeout
     }
 
@@ -28,7 +28,7 @@ class EmployeeApiService
         try {
             // Cache the API response for 5 minutes
             return Cache::remember('external_employees', 300, function () {
-                $url = $this->baseUrl . '/employees';
+                $url = $this->baseUrl; // Use the base URL directly
 
                 $response = Http::timeout($this->timeout)
                     ->withOptions([
@@ -64,7 +64,7 @@ class EmployeeApiService
             });
         } catch (\Exception $e) {
             Log::error('Employee API service error: ' . $e->getMessage(), [
-                'url' => $this->baseUrl . '/employees'
+                'url' => $this->baseUrl
             ]);
             return null;
         }
@@ -79,7 +79,7 @@ class EmployeeApiService
     public function getEmployee($employeeId)
     {
         try {
-            $url = $this->baseUrl . '/employees/' . $employeeId;
+            $url = $this->baseUrl . '/' . $employeeId; // Append ID directly to base URL
 
             $response = Http::timeout($this->timeout)
                 ->withOptions([
