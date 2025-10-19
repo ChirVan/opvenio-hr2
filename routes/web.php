@@ -39,7 +39,45 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/audit-logs', [App\Http\Controllers\HistoryController::class, 'index'])->name('audit.logs');
 
     Route::get('/dashboard', function () {
-        return view('dashboard');
+        $totalCourses = DB::connection('training_management')->table('training_catalogs')->count();
+        $availableCourses = DB::connection('training_management')->table('training_materials')->count();
+        $assignedEmployees = DB::connection('learning_management')->table('assessment_assignments')->count();
+        $identifiedSuccessors = DB::connection('succession_planning')->table('promotions')->count();
+
+        // Fetch approved employees for potential successors table
+        $results = DB::connection('ess')->table('assessment_results')->where('status', 'passed')->get();
+        $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
+            ->get('https://hr4.microfinancial-1.com/allemployees');
+        $employeesApi = $apiResponse->json();
+        if (isset($employeesApi['employees'])) {
+            $employeesApi = $employeesApi['employees'];
+        }
+        $employeeMap = collect($employeesApi)
+            ->filter(function ($employee) {
+                return isset($employee['employee_id']);
+            })
+            ->mapWithKeys(function ($employee) {
+                return [trim((string)$employee['employee_id']) => $employee];
+            });
+        $approvedEmployees = $results->map(function ($item) use ($employeeMap) {
+            $details = $employeeMap->get(trim((string)$item->employee_id));
+            return (object) array(
+                'employee_id' => $item->employee_id,
+                'full_name' => isset($details['full_name']) ? $details['full_name'] : '-',
+                'job_title' => isset($details['job_title']) ? $details['job_title'] : '-',
+                'status' => $item->status,
+            );
+        });
+        $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
+
+        return view('dashboard', compact(
+            'totalCourses',
+            'availableCourses',
+            'assignedEmployees',
+            'identifiedSuccessors',
+            'approvedEmployees',
+            'promotedIds'
+        ));
     })->name('dashboard');
 
     // ============================================================
@@ -85,19 +123,28 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
             $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
                 ->get('https://hr4.microfinancial-1.com/allemployees');
             $employeesApi = $apiResponse->json();
-            $employeeMap = collect($employeesApi)->keyBy('employee_id');
+            if (isset($employeesApi['employees'])) {
+                $employeesApi = $employeesApi['employees'];
+            }
+            $employeeMap = collect($employeesApi)
+                ->filter(function ($employee) {
+                    return isset($employee['employee_id']);
+                })
+                ->mapWithKeys(function ($employee) {
+                    return [trim((string)$employee['employee_id']) => $employee];
+                });
 
             $approvedEmployees = $results->map(function ($item) use ($employeeMap) {
-                $details = $employeeMap->get($item->employee_id);
-                return (object) [
+                $details = $employeeMap->get(trim((string)$item->employee_id));
+                return (object) array(
                     'employee_id' => $item->employee_id,
-                    'full_name' => $details['full_name'] ?? '',
-                    'email' => $details['email'] ?? '',
-                    'job_title' => $details['job_title'] ?? '',
+                    'full_name' => isset($details['full_name']) ? $details['full_name'] : '-',
+                    'email' => isset($details['email']) ? $details['email'] : '-',
+                    'job_title' => isset($details['job_title']) ? $details['job_title'] : '-',
                     'assignment_id' => $item->assignment_id,
                     'status' => $item->status,
                     'score' => $item->score,
-                ];
+                );
             });
 
             $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
