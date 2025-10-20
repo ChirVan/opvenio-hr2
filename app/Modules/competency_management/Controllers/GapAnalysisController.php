@@ -83,8 +83,9 @@ class GapAnalysisController extends Controller
             return (object) $employee;
         });
         
-        $roleMappings = \App\Modules\competency_management\Models\RoleMapping::with(['framework', 'competency'])->get();
-        return view('competency_management.GapCRUD.create', compact('employees', 'roleMappings'));
+    $roleMappings = \App\Modules\competency_management\Models\RoleMapping::with(['framework', 'competency'])->get();
+    $competencies = \App\Modules\competency_management\Models\Competency::all();
+    return view('competency_management.GapCRUD.create', compact('employees', 'roleMappings', 'competencies'));
     }
 
     public function store(StoreGapAnalysisRequest $request)

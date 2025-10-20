@@ -24,9 +24,30 @@ class CompetencyController extends Controller
             });
         }
 
-        $competencies = $query->orderBy('id', 'asc')->get();
+        // Category filter
+        if ($request->filled('category')) {
+            $query->whereHas('framework', function($q) use ($request) {
+                $q->where('framework_name', $request->category);
+            });
+        }
 
-        return view('competency_management.competencies.index', compact('competencies'));
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Sorting
+        if ($request->sort_name === 'az') {
+            $query->orderBy('competency_name', 'asc');
+        } elseif ($request->sort_name === 'za') {
+            $query->orderBy('competency_name', 'desc');
+        } else {
+            $query->orderBy('id', 'asc');
+        }
+
+        $competencies = $query->get();
+
+        return view('competency_management.frameworks', compact('competencies'));
     }
 
     public function create()
@@ -38,7 +59,15 @@ class CompetencyController extends Controller
     public function store(StoreCompetencyRequest $request)
     {
         try {
-            $competency = Competency::create($request->validated());
+            // Generate next competency_id (CMP-001, CMP-002, ...)
+            $last = \App\Modules\competency_management\Models\Competency::orderByDesc('id')->first();
+            $nextNumber = $last && $last->competency_id ? ((int) preg_replace('/\D/', '', $last->competency_id)) + 1 : 1;
+            $nextCompetencyId = 'CMP-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+
+            $data = $request->validated();
+            $data['competency_id'] = $nextCompetencyId;
+
+            $competency = Competency::create($data);
 
             // Log activity (CREATE)
             \App\Models\ActivityLog::create([
@@ -66,13 +95,13 @@ class CompetencyController extends Controller
     public function show(Competency $competency)
     {
         $competency->load('framework');
-        return view('competency_management.competencies.show', compact('competency'));
+        return view('competency_management.CompetencyCRUD.view', compact('competency'));
     }
 
     public function edit(Competency $competency)
     {
         $frameworks = CompetencyFramework::active()->get();
-        return view('competency_management.competencies.edit', compact('competency', 'frameworks'));
+        return view('competency_management.CompetencyCRUD.edit', compact('competency', 'frameworks'));
     }
 
     public function update(Request $request, Competency $competency)
@@ -91,7 +120,7 @@ class CompetencyController extends Controller
             ]);
 
             return redirect()
-                ->route('competency.competencies')
+                ->route('competency.competencies.index')
                 ->with('success', 'Competency updated successfully!');
         } catch (\Exception $e) {
             return redirect()
@@ -118,7 +147,7 @@ class CompetencyController extends Controller
             ]);
 
             return redirect()
-                ->route('competency.competencies')
+                ->route('competency.competencies.index')
                 ->with('success', 'Competency deleted successfully!');
         } catch (\Exception $e) {
             return redirect()

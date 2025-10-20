@@ -176,7 +176,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/materials/{catalog}', [\App\Modules\training_management\Controllers\TrainingAssignmentController::class, 'getMaterials'])->name('materials');
     Route::get('/gap-analysis-employees', [\App\Modules\training_management\Controllers\TrainingAssignmentController::class, 'getGapAnalysisEmployees'])->name('gap-analysis-employees');
 
-    Route::get('/competency/competencies', [CompetencyController::class, 'index'])->name('competency.competencies');
+    Route::get('/competency/competencies', [CompetencyController::class, 'index'])->name('competency.competencies.index');
     Route::get('/competency/competencies/create', [CompetencyController::class, 'create'])->name('competency.competencies.create');
     Route::post('/competency/competencies', [CompetencyController::class, 'store'])->name('competency.competencies.store');
     Route::get('/competency/competencies/{competency}', [CompetencyController::class, 'show'])->name('competency.competencies.show');

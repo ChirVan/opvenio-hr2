@@ -21,7 +21,8 @@ class Competency extends Model
         'status',
         'behavioral_indicators',
         'assessment_criteria',
-        'notes'
+        'notes',
+        'competency_id', // allow mass assignment
     ];
 
     // Relationship with CompetencyFramework

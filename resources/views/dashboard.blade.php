@@ -41,10 +41,8 @@
                         <p class="text-3xl font-bold mt-2">{{ number_format($totalCourses ?? 0) }}</p>
                         <p class="text-yellow-100 text-sm mt-1">Available Materials: {{ number_format($availableCourses ?? 0) }}</p>
                     </div>
-                    <div class="bg-yellow-400 bg-opacity-30 rounded-full p-3">
-                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v10H4V5z"/>
-                        </svg>
+                    <div class="bg-yellow-400 bg-opacity-30 rounded-full p-3 flex items-center justify-center">
+                        <i class='bx bx-book-open text-yellow-700 text-3xl'></i>
                     </div>
                 </div>
             </div>
@@ -57,10 +55,8 @@
                         <p class="text-3xl font-bold mt-2">{{ number_format($assignedEmployees ?? 0) }}</p>
                         <p class="text-blue-100 text-sm mt-1">Employees with assignments</p>
                     </div>
-                    <div class="bg-blue-400 bg-opacity-30 rounded-full p-3">
-                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 2a6 6 0 016 6v1a6 6 0 01-6 6 6 6 0 01-6-6V8a6 6 0 016-6z"/>
-                        </svg>
+                    <div class="bg-blue-400 bg-opacity-30 rounded-full p-3 flex items-center justify-center">
+                        <i class='bx bx-user-check text-blue-700 text-3xl'></i>
                     </div>
                 </div>
             </div>
@@ -73,10 +69,8 @@
                         <p class="text-3xl font-bold mt-2">{{ number_format($identifiedSuccessors ?? 0) }}</p>
                         <p class="text-green-100 text-sm mt-1">Talent pool</p>
                     </div>
-                    <div class="bg-green-400 bg-opacity-30 rounded-full p-3">
-                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M12 8c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2zm-2 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                        </svg>
+                    <div class="bg-green-400 bg-opacity-30 rounded-full p-3 flex items-center justify-center">
+                        <i class='bx bx-group text-green-700 text-3xl'></i>
                     </div>
                 </div>
             </div>
@@ -89,10 +83,8 @@
                         <p class="text-3xl font-bold mt-2">{{ number_format($reevaluationEmployees ?? 0) }}</p>
                         <p class="text-red-100 text-sm mt-1">Pending review</p>
                     </div>
-                    <div class="bg-red-400 bg-opacity-30 rounded-full p-3">
-                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm0 2h8v12H6V4z"/>
-                        </svg>
+                    <div class="bg-red-400 bg-opacity-30 rounded-full p-3 flex items-center justify-center">
+                        <i class='bx bx-error text-red-700 text-3xl'></i>
                     </div>
                 </div>
             </div>

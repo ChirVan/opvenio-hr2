@@ -39,8 +39,7 @@
 
             <div id="competencyMenu" class="mt-2 ml-2 {{ $isCompetencyOpen ? '' : 'hidden' }}">
                 <div class="bg-white bg-opacity-10 rounded-lg p-1">
-                    <a href="{{ route('competency.frameworks') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.frameworks') ? 'active' : '' }}">Frameworks</a>
-                    <a href="{{ route('competency.rolemapping') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.rolemapping') ? 'active' : '' }}">Role Mapping</a>
+                    <a href="{{ route('competency.frameworks') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.frameworks') ? 'active' : '' }}">Competencies</a>
                     <a href="{{ route('competency.gapanalysis') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.gapanalysis') ? 'active' : '' }}">Gap Analysis</a>
                 </div>
             </div>
