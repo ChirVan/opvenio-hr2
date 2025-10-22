@@ -8,6 +8,8 @@ use App\Services\EmployeeApiService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use App\Models\ActivityLog;
+use Illuminate\Support\Facades\Auth;
 
 class GapAnalysisController extends Controller
 {
@@ -104,6 +106,15 @@ class GapAnalysisController extends Controller
         // Create the gap analysis record with external employee ID
         $gapAnalysis = GapAnalysis::create($validatedData);
         
+        // Log activity
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'user_name' => Auth::user() ? Auth::user()->name : 'System',
+            'activity' => 'create_gap_analysis',
+            'details' => 'Created gap analysis for employee: ' . $employee['full_name'] . ' (' . $employee['employee_id'] . ')',
+            'status' => 'Success',
+        ]);
+        
         return redirect()->route('competency.gapanalysis')->with('success', 
             "Gap analysis record created successfully for employee: {$employee['full_name']} ({$employee['employee_id']})");
     }
@@ -124,13 +135,30 @@ class GapAnalysisController extends Controller
     {
         $gapAnalysis = GapAnalysis::findOrFail($id);
         $gapAnalysis->update($request->validated());
+        // Log activity
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'user_name' => Auth::user() ? Auth::user()->name : 'System',
+            'activity' => 'update_gap_analysis',
+            'details' => 'Updated gap analysis for employee ID: ' . $gapAnalysis->employee_id,
+            'status' => 'Success',
+        ]);
         return redirect()->route('competency.gapanalysis')->with('success', 'Gap analysis record updated.');
     }
 
     public function destroy($id)
     {
         $gapAnalysis = GapAnalysis::findOrFail($id);
+        $employeeId = $gapAnalysis->employee_id;
         $gapAnalysis->delete();
+        // Log activity
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'user_name' => Auth::user() ? Auth::user()->name : 'System',
+            'activity' => 'delete_gap_analysis',
+            'details' => 'Deleted gap analysis for employee ID: ' . $employeeId,
+            'status' => 'Success',
+        ]);
         return redirect()->route('competency.gapanalysis')->with('success', 'Gap analysis record deleted.');
     }
 }

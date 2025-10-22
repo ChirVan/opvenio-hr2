@@ -8,6 +8,8 @@ use App\Modules\training_management\Models\TrainingCatalog;
 use App\Modules\competency_management\Models\CompetencyFramework;
 use App\Modules\training_management\Requests\StoreTrainingCatalogRequest;
 use App\Modules\training_management\Requests\UpdateTrainingCatalogRequest;
+use App\Models\ActivityLog;
+use Illuminate\Support\Facades\Auth;
 
 class TrainingCatalogController extends Controller
 {
@@ -51,7 +53,6 @@ class TrainingCatalogController extends Controller
     {
         // Find the framework by name to get the ID
         $framework = CompetencyFramework::where('framework_name', $request->title)->first();
-        
         $trainingCatalog = TrainingCatalog::create([
             'title' => $request->title,
             'label' => $request->label,
@@ -59,7 +60,14 @@ class TrainingCatalogController extends Controller
             'is_active' => $request->has('is_active'),
             'framework_id' => $framework ? $framework->id : null,
         ]);
-
+        // Log activity
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'user_name' => Auth::user() ? Auth::user()->name : 'System',
+            'activity' => 'Create',
+            'details' => 'Created training catalog: ' . $trainingCatalog->title,
+            'status' => 'Success',
+        ]);
         return redirect()
             ->route('training.catalog.index')
             ->with('success', 'Training catalog entry created successfully!');
@@ -93,7 +101,6 @@ class TrainingCatalogController extends Controller
     {
         // Find the framework by name to get the ID
         $framework = CompetencyFramework::where('framework_name', $request->title)->first();
-        
         $catalog->update([
             'title' => $request->title,
             'label' => $request->label,
@@ -101,7 +108,14 @@ class TrainingCatalogController extends Controller
             'is_active' => $request->has('is_active'),
             'framework_id' => $framework ? $framework->id : null,
         ]);
-
+        // Log activity
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'user_name' => Auth::user() ? Auth::user()->name : 'System',
+            'activity' => 'Edit',
+            'details' => 'Updated training catalog: ' . $catalog->title,
+            'status' => 'Success',
+        ]);
         return redirect()
             ->route('training.catalog.index')
             ->with('success', 'Training catalog entry updated successfully!');
@@ -112,8 +126,16 @@ class TrainingCatalogController extends Controller
      */
     public function destroy(TrainingCatalog $catalog)
     {
+        $title = $catalog->title;
         $catalog->delete();
-
+        // Log activity
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'user_name' => Auth::user() ? Auth::user()->name : 'System',
+            'activity' => 'Delete',
+            'details' => 'Deleted training catalog: ' . $title,
+            'status' => 'Success',
+        ]);
         return redirect()
             ->route('training.catalog.index')
             ->with('success', 'Training catalog entry deleted successfully!');

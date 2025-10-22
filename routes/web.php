@@ -1,3 +1,5 @@
+
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -11,6 +13,7 @@ use App\Modules\competency_management\Controllers\GapAnalysisController;
 use App\Modules\training_management\Controllers\TrainingCatalogController;
 use App\Modules\learning_management\Controllers\AssessmentCategoryController;
 use App\Modules\learning_management\Controllers\AssessmentAssignmentController;
+use App\Modules\training_management\Controllers\TrainingMaterialController;
 use App\Http\Controllers\Auth\TwoFactorController;
 
 Route::get('/', function () {
@@ -207,6 +210,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     // =============== Training Management Routes =================
     // ============================================================
     Route::prefix('training')->group(function () {
+    // Destroy a single training material (for route('training.materials.destroy'))
+    Route::delete('catalog/{catalog}/material/{material}', [TrainingMaterialController::class, 'destroy'])->name('training.materials.destroy');
+    // Edit a single training material (for route('training.materials.edit'))
+    Route::get('catalog/{catalog}/material/{material}/edit', [TrainingMaterialController::class, 'edit'])->name('training.materials.edit');
+    // Show a single training material (for route('training.materials.show'))
+    Route::get('catalog/{catalog}/material/{material}', [TrainingMaterialController::class, 'show'])->name('training.materials.show');
         Route::resource('catalog', TrainingCatalogController::class)->names([
             'index' => 'training.catalog.index',
             'create' => 'training.catalog.create',

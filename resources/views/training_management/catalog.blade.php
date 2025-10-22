@@ -65,8 +65,8 @@
                 <!-- Training Catalog Entries -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="catalog-entries">
                     @forelse($trainingCatalogs as $catalog)
-                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer group" onclick="window.location.href='{{ route('training.catalog.detail', $catalog) }}'">
-                            <div class="p-6">
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-200 group">
+                            <div class="p-6 cursor-pointer" onclick="window.location.href='{{ route('training.catalog.detail', $catalog) }}'">
                                 <div class="flex items-start justify-between mb-4">
                                     <div class="flex items-center">
                                         <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -96,23 +96,24 @@
                                     <div class="text-xs text-gray-500">
                                         Created {{ $catalog->created_at->format('M d, Y') }}
                                     </div>
-                                    <div class="flex space-x-3" onclick="event.stopPropagation()">
-                                        <a href="{{ route('training.catalog.edit', $catalog) }}" 
-                                           class="text-indigo-600 hover:text-indigo-800 transition-colors" 
-                                           title="Edit"
-                                           onclick="event.stopPropagation()">
-                                            <i class='bx bx-edit text-lg'></i>
-                                        </a>
-                                        <form method="POST" action="{{ route('training.catalog.destroy', $catalog) }}" 
-                                              onsubmit="event.stopPropagation(); return confirm('Are you sure you want to delete this training catalog entry?')" 
-                                              class="inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-800 transition-colors" title="Delete">
-                                                <i class='bx bx-trash text-lg'></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Action buttons outside the clickable area -->
+                            <div class="px-6 pb-6">
+                                <div class="flex space-x-3">
+                                    <a href="{{ route('training.catalog.edit', $catalog) }}" 
+                                       class="text-indigo-600 hover:text-indigo-800 transition-colors" 
+                                       title="Edit">
+                                        <i class='bx bx-edit text-lg'></i>
+                                    </a>
+                                    <form method="POST" action="{{ route('training.catalog.destroy', $catalog) }}" class="inline delete-catalog-form">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" class="text-red-600 hover:text-red-800 transition-colors delete-catalog-btn" title="Delete">
+                                            <i class='bx bx-trash text-lg'></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -134,12 +135,46 @@
         </div>
     </div>
 
-    @push('scripts')
     <script>
-        function viewFrameworkTrainings(framework) {
-            // Redirect to the framework-specific training materials page
-            window.location.href = `{{ route('training.catalog.index') }}?framework=${framework}`;
-        }
+        console.log('Script tag loaded - INLINE');
+        
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM Content Loaded - INLINE');
+            
+            const deleteButtons = document.querySelectorAll('.delete-catalog-btn');
+            console.log('Found delete buttons - INLINE:', deleteButtons.length);
+            
+            deleteButtons.forEach(function(btn) {
+                console.log('Attaching listener to button - INLINE');
+                btn.addEventListener('click', function(e) {
+                    console.log('Delete button clicked - INLINE');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const form = btn.closest('form');
+                    
+                    if (typeof Swal !== 'undefined') {
+                        console.log('Swal is defined - INLINE');
+                        Swal.fire({
+                            title: 'Are you sure?',
+                            text: "This action cannot be undone!",
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#3085d6',
+                            confirmButtonText: 'Yes, delete it!',
+                            cancelButtonText: 'Cancel'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                form.submit();
+                            }
+                        });
+                    } else {
+                        console.error('Swal is NOT defined - INLINE');
+                        alert('SweetAlert2 is not loaded!');
+                    }
+                });
+            });
+        });
     </script>
-    @endpush
 </x-app-layout>

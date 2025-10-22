@@ -19,13 +19,13 @@ class HistoryController extends Controller
 		// Map activity type to label and color for display
 		foreach ($activityLogs as $log) {
 			$type = $log->activity;
-			if ($type === 'create_framework' || $type === 'Create') {
+			if (in_array($type, ['create_framework', 'Create', 'create_gap_analysis'])) {
 				$log->activity_label = 'Create';
 				$log->activity_class = 'bg-green-200 text-green-800';
-			} elseif ($type === 'update_framework' || $type === 'Edit') {
+			} elseif (in_array($type, ['update_framework', 'Edit', 'update_gap_analysis'])) {
 				$log->activity_label = 'Edit';
 				$log->activity_class = 'bg-blue-200 text-blue-800';
-			} elseif ($type === 'delete_framework' || $type === 'Delete') {
+			} elseif (in_array($type, ['delete_framework', 'Delete', 'delete_gap_analysis'])) {
 				$log->activity_label = 'Delete';
 				$log->activity_class = 'bg-red-200 text-red-800';
 			} else {

@@ -67,7 +67,6 @@
                                                     <div class="text-xs text-gray-500">{{ $log->employee_email }}</div>
                                                 </div>
                                             </div>
-                                        </td>
                                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                                             @if($log->time_in)
                                                 {{ \Carbon\Carbon::parse($log->time_in)->setTimezone('Asia/Manila')->format('M d, Y') }}<br>
@@ -135,9 +134,26 @@
                                             </div>
                                         </td>
                                         <td class="px-4 py-3 text-xs text-gray-900">
-                                            <span class="px-3 py-1 rounded-full font-semibold {{ $activity->activity_class }}">
-                                                {{ $activity->activity_label }}
-                                            </span>
+                                            @php
+                                                $label = $activity->activity_label ?? null;
+                                                $activityType = $activity->activity ?? $activity->activity_type ?? null;
+                                                // Map for both legacy and new logs
+                                                if (!$label) {
+                                                    if ($activityType === 'create_training_catalog' || $activityType === 'Create') $label = 'Create';
+                                                    elseif ($activityType === 'update_training_catalog' || $activityType === 'Edit') $label = 'Edit';
+                                                    elseif ($activityType === 'delete_training_catalog' || $activityType === 'Delete') $label = 'Delete';
+                                                    else $label = $activityType;
+                                                }
+                                            @endphp
+                                            @if($label === 'Edit')
+                                                <span style="background-color: #eaf4ff; color: #1a56db; padding: 4px 14px; border-radius: 16px; font-weight: 500; font-size: 12px; display: inline-block;">Edit</span>
+                                            @elseif($label === 'Delete')
+                                                <span style="background-color: #ffeaea; color: #d32f2f; padding: 4px 14px; border-radius: 16px; font-weight: 500; font-size: 12px; display: inline-block;">Delete</span>
+                                            @elseif($label === 'Create')
+                                                <span style="background-color: #c6f6d5; color: #256029; padding: 4px 14px; border-radius: 16px; font-weight: 500; font-size: 12px; display: inline-block;">Create</span>
+                                            @else
+                                                <span class="px-3 py-1 rounded-full font-semibold {{ $activity->activity_class }}">{{ $label }}</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3 text-xs text-gray-500">{{ $activity->details }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap">
