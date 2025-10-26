@@ -231,10 +231,10 @@
                                                         </form>
                                                     @endif
                                                     @if(in_array($assignment->status, ['draft', 'active']))
-                                                        <form method="POST" action="{{ route('training.assign.destroy', $assignment) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this assignment?')">
+                                                        <form method="POST" action="{{ route('training.assign.destroy', $assignment) }}" class="inline delete-assignment-form">
                                                             @csrf
                                                             @method('DELETE')
-                                                            <button type="submit" class="text-red-600 hover:text-red-900">
+                                                            <button type="submit" class="text-red-600 hover:text-red-900 delete-assignment-btn">
                                                                 <i class='bx bx-trash'></i>
                                                             </button>
                                                         </form>
@@ -288,6 +288,28 @@
         </div>
     </div>
 
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.delete-assignment-form').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: 'This action cannot be undone!',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+    </script>
     <style>
         .prose {
             max-width: none;

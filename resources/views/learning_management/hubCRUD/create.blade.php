@@ -192,7 +192,7 @@
                                     <option value="1" {{ old('max_attempts') == '1' ? 'selected' : '' }}>1 Attempt</option>
                                     <option value="2" {{ old('max_attempts') == '2' ? 'selected' : '' }}>2 Attempts</option>
                                     <option value="3" {{ old('max_attempts', '3') == '3' ? 'selected' : '' }}>3 Attempts</option>
-                                    <option value="unlimited" {{ old('max_attempts') == 'unlimited' ? 'selected' : '' }}>Unlimited</option>
+                                    
                                 </select>
                             </div>
                         </div>

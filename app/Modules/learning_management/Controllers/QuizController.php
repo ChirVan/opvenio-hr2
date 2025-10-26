@@ -123,12 +123,11 @@ class QuizController extends Controller
 
         } catch (Exception $e) {
             DB::connection('learning_management')->rollBack();
-            
             Log::error('Quiz creation failed', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all()
             ]);
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create quiz. Please try again.',

@@ -1,5 +1,3 @@
-
-
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -28,14 +26,95 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     // =============== Learning Routes (for Assessment Center) ====
     // ============================================================
     Route::prefix('learning')->name('learning.')->group(function () {
+    Route::get('/assessment-assignments', [\App\Modules\learning_management\Controllers\AssessmentAssignmentController::class, 'index'])->name('assessment-assignments.index');
         Route::get('/hub/create', function () {
             return view('learning_management.hubCRUD.create');
         })->name('hub.create');
     Route::get('/quiz', [\App\Modules\learning_management\Controllers\QuizController::class, 'create'])->name('quiz');
+    Route::post('/quiz', [\App\Modules\learning_management\Controllers\QuizController::class, 'store'])->name('quiz.store');
     Route::get('/assessment/categories/create', [AssessmentCategoryController::class, 'create'])->name('assessment.categories.create');
     Route::get('/hub', [AssessmentAssignmentController::class, 'index'])->name('hub');
         Route::get('/assessment', [AssessmentCategoryController::class, 'index'])->name('assessment');
+        // API route for assessment categories
+        Route::get('/assessment/categories/api', [AssessmentCategoryController::class, 'apiCategories'])->name('assessment.categories.api');
         // Add other learning routes here as needed
+
+        // Store assessment assignment
+        Route::post('/assessment-assignments', [\App\Modules\learning_management\Controllers\AssessmentAssignmentController::class, 'store'])->name('assessment-assignments.store');
+    Route::get('/assessment-assignments/{assignment}', [\App\Modules\learning_management\Controllers\AssessmentAssignmentController::class, 'show'])->name('assessment-assignments.show');
+    Route::get('/assessment-assignments/{assignment}/edit', [\App\Modules\learning_management\Controllers\AssessmentAssignmentController::class, 'edit'])->name('assessment-assignments.edit');
+    Route::delete('/assessment-assignments/{assignment}', [\App\Modules\learning_management\Controllers\AssessmentAssignmentController::class, 'destroy'])->name('assessment-assignments.destroy');
+        Route::get('/assessment/categories/{category}', [AssessmentCategoryController::class, 'show'])->name('assessment.categories.show');
+        Route::get('/quiz/{quiz}', [\App\Modules\learning_management\Controllers\QuizController::class, 'show'])->name('quiz.show');
+        Route::get('/quiz/{quiz}/edit', [\App\Modules\learning_management\Controllers\QuizController::class, 'edit'])->name('quiz.edit');
+        Route::get('/assessment/categories/{category}/quizzes', [\App\Modules\learning_management\Controllers\AssessmentCategoryController::class, 'quizzes'])->name('assessment.categories.quizzes');
+    });
+
+    // Audit Logs page
+    Route::get('/audit-logs', [App\Http\Controllers\HistoryController::class, 'index'])->name('audit.logs');
+
+    Route::get('/dashboard', function () {
+        $totalCourses = DB::connection('training_management')->table('training_catalogs')->count();
+        $availableCourses = DB::connection('training_management')->table('training_materials')->count();
+        $assignedEmployees = DB::connection('learning_management')->table('assessment_assignments')->count();
+        $identifiedSuccessors = DB::connection('succession_planning')->table('promotions')->count();
+
+        // Fetch approved employees for potential successors table
+        $results = DB::connection('ess')->table('assessment_results')->where('status', 'passed')->get();
+        $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
+            ->get('https://hr4.microfinancial-1.com/allemployees');
+        $employeesApi = $apiResponse->json();
+        if (isset($employeesApi['employees'])) {
+            $employeesApi = $employeesApi['employees'];
+        }
+        $employeeMap = collect($employeesApi)
+            ->filter(function ($employee) {
+                return isset($employee['employee_id']);
+            })
+            ->mapWithKeys(function ($employee) {
+                return [trim((string)$employee['employee_id']) => $employee];
+            });
+        $approvedEmployees = $results->map(function ($item) use ($employeeMap) {
+            $details = $employeeMap->get(trim((string)$item->employee_id));
+            return (object) array(
+                'employee_id' => $item->employee_id,
+                'full_name' => isset($details['full_name']) ? $details['full_name'] : '-',
+                'job_title' => isset($details['job_title']) ? $details['job_title'] : '-',
+                'status' => $item->status,
+            );
+        });
+        $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
+
+        return view('dashboard', compact(
+            'totalCourses',
+            'availableCourses',
+            'assignedEmployees',
+            'identifiedSuccessors',
+            'approvedEmployees',
+            'promotedIds'
+        ));
+    })->name('dashboard');
+
+    // ============================================================
+    // =============== Learning Routes (for Assessment Center) ====
+    // ============================================================
+    Route::prefix('learning')->name('learning.')->group(function () {
+        Route::get('/hub/create', function () {
+            return view('learning_management.hubCRUD.create');
+        })->name('hub.create');
+    Route::get('/quiz', [\App\Modules\learning_management\Controllers\QuizController::class, 'create'])->name('quiz');
+    Route::post('/quiz', [\App\Modules\learning_management\Controllers\QuizController::class, 'store'])->name('quiz.store');
+    Route::get('/assessment/categories/create', [AssessmentCategoryController::class, 'create'])->name('assessment.categories.create');
+    Route::get('/hub', [AssessmentAssignmentController::class, 'index'])->name('hub');
+        Route::get('/assessment', [AssessmentCategoryController::class, 'index'])->name('assessment');
+        // API route for assessment categories
+        Route::get('/assessment/categories/api', [AssessmentCategoryController::class, 'apiCategories'])->name('assessment.categories.api');
+        // Add other learning routes here as needed
+
+        // Store assessment assignment
+        Route::post('/assessment-assignments', [\App\Modules\learning_management\Controllers\AssessmentAssignmentController::class, 'store'])->name('assessment-assignments.store');
+        Route::get('/assessment/categories/{category}', [AssessmentCategoryController::class, 'show'])->name('assessment.categories.show');
+        Route::get('/quiz/{quiz}', [\App\Modules\learning_management\Controllers\QuizController::class, 'show'])->name('quiz.show');
     });
 
     // Audit Logs page
@@ -248,6 +327,29 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
                     return response()->json(['error' => $e->getMessage()], 500);
                 }
             });
+                // API route for employees (for training assignment)
+                Route::get('/api-employees', function () {
+                    try {
+                        // Try to get employees from cache first
+                        $employees = \Illuminate\Support\Facades\Cache::remember('external_employees', 60 * 10, function () {
+                            $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
+                                ->get('https://hr4.microfinancial-1.com/allemployees');
+                            $employeesApi = $apiResponse->json();
+                            return $employeesApi['employees'] ?? [];
+                        });
+                        return response()->json([
+                            'success' => true,
+                            'employees' => $employees
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error("Error fetching employees: " . $e->getMessage());
+                        return response()->json([
+                            'success' => false,
+                            'error' => $e->getMessage(),
+                            'employees' => []
+                        ], 500);
+                    }
+                })->name('api-employees');
 
             Route::get('/', [\App\Modules\training_management\Controllers\TrainingAssignmentController::class, 'index'])->name('index');
             Route::get('/create', [\App\Modules\training_management\Controllers\TrainingAssignmentController::class, 'create'])->name('create');

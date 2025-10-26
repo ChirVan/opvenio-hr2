@@ -133,7 +133,7 @@
                 @if(isset($assignments) && $assignments->count() > 0)
                     <div class="space-y-4">
                         @foreach($assignments as $assignment)
-                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg assignment-card" data-assignment-id="{{ $assignment->id }}">
                                 <div class="flex items-center space-x-4">
                                     @php
                                         $statusColors = [
@@ -163,6 +163,18 @@
                                                 • Due {{ $assignment->due_date->format('M j, Y') }}
                                             @endif
                                         </p>
+                                    </div>
+                                    <!-- Actions: View, Edit, Delete -->
+                                    <div class="flex items-center space-x-2 ml-4">
+                                        <a href="{{ route('learning.assessment-assignments.show', $assignment->id) }}" class="text-blue-500 hover:text-blue-700" title="View">
+                                            <i class='bx bx-show text-xl'></i>
+                                        </a>
+                                        <a href="{{ route('learning.assessment-assignments.edit', $assignment->id) }}" class="text-green-500 hover:text-green-700" title="Edit">
+                                            <i class='bx bx-edit-alt text-xl'></i>
+                                        </a>
+                                        <button type="button" class="text-red-500 hover:text-red-700 delete-assignment-btn" data-id="{{ $assignment->id }}" data-url="{{ route('learning.assessment-assignments.destroy', $assignment->id) }}" title="Delete" style="background:none;border:none;padding:0;">
+                                            <i class='bx bx-trash text-xl'></i>
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="text-right">
@@ -229,7 +241,51 @@
     </style>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
+            // AJAX delete for assessment assignments
+            document.querySelectorAll('.delete-assignment-btn').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: 'This action cannot be undone!',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (!result.isConfirmed) return;
+                        var assignmentId = btn.getAttribute('data-id');
+                        var url = btn.getAttribute('data-url');
+                        var card = document.querySelector('.assignment-card[data-assignment-id="' + assignmentId + '"]');
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                            },
+                            body: new URLSearchParams({
+                                '_method': 'DELETE'
+                            })
+                        })
+                        .then(function(response) {
+                            if (response.ok) {
+                                if (card) card.remove();
+                                Swal.fire('Deleted!', 'Assignment has been deleted.', 'success');
+                            } else {
+                                response.json().then(function(data) {
+                                    Swal.fire('Error', data.message || 'Failed to delete assignment.', 'error');
+                                });
+                            }
+                        })
+                        .catch(function() {
+                            Swal.fire('Error', 'Network error.', 'error');
+                        });
+                    });
+                });
+            });
             // Add smooth animations to statistics cards
             const statCards = document.querySelectorAll('.border-l-4');
             statCards.forEach(card => {

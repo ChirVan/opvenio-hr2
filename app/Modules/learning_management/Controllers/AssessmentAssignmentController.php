@@ -188,13 +188,14 @@ class AssessmentAssignmentController extends Controller
     /**
      * Remove the specified assessment assignment.
      */
-    public function destroy(AssessmentAssignment $assessmentAssignment): RedirectResponse
+    public function destroy($id): RedirectResponse
     {
+        $assessmentAssignment = AssessmentAssignment::on('learning_management')->findOrFail($id);
         $employeeName = $assessmentAssignment->employee_name;
         $assessmentAssignment->delete();
 
         return redirect()->route('learning.assessment-assignments.index')
-                       ->with('success', "Assessment assignment for {$employeeName} has been deleted.");
+            ->with('success', "Assessment assignment for {$employeeName} has been deleted.");
     }
 
     /**

@@ -17,6 +17,49 @@ use Exception;
 class AssessmentCategoryController extends Controller
 {
     /**
+     * Alias for getCategories to support route 'assessment.categories.api'.
+     */
+    public function apiCategories(Request $request): \Illuminate\Http\JsonResponse
+    {
+        return $this->getCategories($request);
+    }
+    /**
+     * Return quizzes for a given category (for AJAX fetch)
+     */
+    public function quizzes(Request $request, $category): \Illuminate\Http\JsonResponse
+    {
+        // Find category by slug or id
+        $cat = AssessmentCategory::where('category_slug', $category)
+            ->orWhere('id', $category)
+            ->first();
+        if (!$cat) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Category not found',
+                'data' => []
+            ], 404);
+        }
+        $quizzes = $cat->quizzes()->with('competency')->get();
+        $quizData = $quizzes->map(function ($quiz) {
+            return [
+                'id' => $quiz->id,
+                'quiz_title' => $quiz->quiz_title,
+                'description' => $quiz->description,
+                'status' => $quiz->status,
+                'competency_name' => $quiz->competency->competency_name ?? 'N/A',
+                'total_questions' => $quiz->questions()->count(),
+                'total_points' => $quiz->questions()->sum('points'),
+                'time_limit' => $quiz->time_limit,
+            ];
+        });
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'quizzes' => $quizData
+            ]
+        ]);
+    }
+    /**
      * Display a listing of the assessment categories.
      */
     public function index(Request $request): View

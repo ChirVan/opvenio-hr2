@@ -128,12 +128,18 @@
                         <div class="row g-4">
                             @forelse($assessmentAssignments as $assessment)
                             <div class="col-md-6 col-lg-4">
-                                <div class="card assessment-card h-100" style="cursor:pointer;"
-                                     onclick="viewAssessment({{ $assessment['id'] }}, '{{ addslashes($assessment['title']) }}', '{{ addslashes($assessment['description'] ?? '') }}', '{{ $assessment['status'] }}', {{ $assessment['attempts_used'] }}, {{ $assessment['max_attempts'] }}, '{{ $assessment['duration'] }}', {{ $assessment['score'] ?? 'null' }})">
+                                <div class="card assessment-card h-100">
                                     <div class="card-body">
                                         <h6 class="fw-bold">{{ $assessment['title'] }}</h6>
                                         <p class="text-muted small">{{ Str::limit($assessment['description'] ?? 'Assessment details not available', 100) }}</p>
-                                        <span class="badge bg-primary">View Assessment</span>
+                                        <span class="badge bg-primary mb-2">View Assessment</span>
+                                        <div class="d-grid gap-2 mt-2">
+                                            <a href="{{ route('ess.assessment.take', $assessment['id']) }}"
+                                               class="btn btn-success btn-sm{{ ($assessment['status'] === 'completed' || $assessment['attempts_used'] >= $assessment['max_attempts']) ? ' disabled' : '' }}"
+                                               {{ ($assessment['status'] === 'completed' || $assessment['attempts_used'] >= $assessment['max_attempts']) ? 'tabindex="-1" aria-disabled="true"' : '' }}>
+                                                <i class='bx bx-play-circle me-1'></i> Attempt Quiz
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
