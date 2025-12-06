@@ -85,8 +85,8 @@ class AssessmentCategoryController extends Controller
             return view('learning_management.assessment', compact('categories'));
         }
         
-        // Default to learning_management index view
-        return view('learning_management.index', compact('categories'));
+        // Default to learning_management assessment view
+        return view('learning_management.assessment', compact('categories'));
     }
 
     /**

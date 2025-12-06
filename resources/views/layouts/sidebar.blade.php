@@ -5,7 +5,7 @@
     // Server-side active detection for training submenu
     $isTrainingOpen = request()->routeIs('training.*');
     // Server-side active detection for learning submenu
-    $isLearningOpen = request()->routeIs('learning.*');
+    $isLearningOpen = request()->routeIs('learning.*') || request()->routeIs('assessment.results*');
     // Server-side active detection for succession planning submenu
     $isSuccessionOpen = request()->routeIs('succession.*');
 @endphp
@@ -40,7 +40,9 @@
             <div id="competencyMenu" class="mt-2 ml-2 {{ $isCompetencyOpen ? '' : 'hidden' }}">
                 <div class="bg-white bg-opacity-10 rounded-lg p-1">
                     <a href="{{ route('competency.frameworks') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.frameworks') ? 'active' : '' }}">Competencies</a>
-                    <a href="{{ route('competency.gapanalysis') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.gapanalysis') ? 'active' : '' }}">Gap Analysis</a>
+                    <a href="{{ route('competency.rolemapping') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.rolemapping*') ? 'active' : '' }}">Role Mapping</a>
+                    <a href="{{ route('competency.gap-analysis') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.gap-analysis*') ? 'active' : '' }}">Gap Analysis</a>
+                    <a href="{{ route('competency.gapanalysis') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.gapanalysis*') ? 'active' : '' }}">Gap Analysis (Legacy)</a>
                 </div>
             </div>
         </div>
@@ -58,23 +60,26 @@
                 <div class="bg-white bg-opacity-10 rounded-lg p-1">
                     <a href="{{ route('training.catalog.index') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('training.catalog.*') ? 'active' : '' }}">Training Catalog</a>
                     <a href="{{ route('training.assign.index') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('training.assign.*') ? 'active' : '' }}">Assign Training</a>
+                    <a href="{{ route('training.grant-request.index') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('training.grant-request.*') ? 'active' : '' }}">Grant Request</a>
                 </div>
             </div>
         </div>
         
         <div class="relative">
-            <button id="learningToggle" class="btn btn-primary w-full flex items-center justify-between gap-3 hover:bg-white hover:bg-opacity-10 transition-colors duration-200 rounded-lg p-3 {{ request()->routeIs('learning.*') ? 'open active' : '' }}">
+            <button id="learningToggle" class="btn btn-primary w-full flex items-center justify-between gap-3 hover:bg-white hover:bg-opacity-10 transition-colors duration-200 rounded-lg p-3 {{ $isLearningOpen ? 'open active' : '' }}">
                 <span class="flex items-center gap-2">
                     <i class='bx bx-book-open text-lg text-white'></i>
                     <span class="sidebar-text text-white text-base">Learning Management</span>
-                    <i id="learningChevron" class='bx bx-chevron-down text-white text-base ml-2 {{ request()->routeIs('learning.*') ? 'rotate-180' : '' }}'></i>
+                    <i id="learningChevron" class='bx bx-chevron-down text-white text-base ml-2 {{ $isLearningOpen ? 'rotate-180' : '' }}'></i>
                 </span>
             </button>
 
-            <div id="learningMenu" class="mt-2 ml-2 {{ request()->routeIs('learning.*') ? '' : 'hidden' }}">
+            <div id="learningMenu" class="mt-2 ml-2 {{ request()->routeIs('learning.*') || request()->routeIs('assessment.results*') ? '' : 'hidden' }}">
                 <div class="bg-white bg-opacity-10 rounded-lg p-1">
                     <a href="{{ route('learning.assessment') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('learning.assessment') ? 'active' : '' }}">Assessment Center</a>
                     <a href="{{ route('learning.hub') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('learning.hub') ? 'active' : '' }}">Assessment Hub</a>
+                    <a href="{{ route('learning.self-assess') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('learning.self-assess') ? 'active' : '' }}">Self Assessment</a>
+                    <a href="{{ route('assessment.results') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('assessment.results*') ? 'active' : '' }}">Assessment Results</a>
                 </div>
             </div>
         </div>

@@ -23,26 +23,30 @@ class StoreAssessmentAssignmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'assessment_category' => [
+            'quiz_ids' => [
                 'required',
-                'integer',
-                'exists:learning_management.assessment_categories,id'
+                'array',
+                'min:1'
             ],
-            'quiz_id' => [
+            'quiz_ids.*' => [
                 'required',
                 'integer',
                 'exists:learning_management.quizzes,id'
+            ],
+            'category_ids' => [
+                'required',
+                'array',
+                'min:1'
+            ],
+            'category_ids.*' => [
+                'required',
+                'integer',
+                'exists:learning_management.assessment_categories,id'
             ],
             'employee_id' => [
                 'required',
                 'string',
                 'max:255'
-            ],
-            'duration' => [
-                'required',
-                'integer',
-                'min:1',
-                'max:480' // Max 8 hours
             ],
             'start_date' => [
                 'required',
@@ -72,14 +76,12 @@ class StoreAssessmentAssignmentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'assessment_category.required' => 'Please select an assessment category.',
-            'assessment_category.exists' => 'The selected assessment category is invalid.',
-            'quiz_id.required' => 'Please select an assessment.',
-            'quiz_id.exists' => 'The selected assessment is invalid.',
+            'quiz_ids.required' => 'Please select at least one assessment.',
+            'quiz_ids.min' => 'Please select at least one assessment.',
+            'quiz_ids.*.exists' => 'One or more selected assessments are invalid.',
+            'category_ids.required' => 'Assessment category information is missing.',
+            'category_ids.*.exists' => 'One or more assessment categories are invalid.',
             'employee_id.required' => 'Please select an employee.',
-            'duration.required' => 'Duration is required.',
-            'duration.min' => 'Duration must be at least 1 minute.',
-            'duration.max' => 'Duration cannot exceed 480 minutes (8 hours).',
             'start_date.required' => 'Please specify when the assessment should be available.',
             'start_date.after_or_equal' => 'The start date cannot be in the past.',
             'due_date.required' => 'Please specify when the assessment is due.',
@@ -96,8 +98,8 @@ class StoreAssessmentAssignmentRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'assessment_category' => 'assessment category',
-            'quiz_id' => 'assessment',
+            'quiz_ids' => 'assessments',
+            'category_ids' => 'assessment categories',
             'employee_id' => 'employee',
             'start_date' => 'available from date',
             'due_date' => 'due date',
@@ -130,26 +132,36 @@ class StoreAssessmentAssignmentRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            // Custom validation logic can be added here
-            
-            // Check if the quiz belongs to the selected category
-            if ($this->assessment_category && $this->quiz_id) {
-                $quiz = \App\Modules\learning_management\Models\Quiz::on('learning_management')->find($this->quiz_id);
-                if ($quiz && $quiz->category_id != $this->assessment_category) {
-                    $validator->errors()->add('quiz_id', 'The selected assessment does not belong to the selected category.');
+            // Check each quiz belongs to its corresponding category
+            if ($this->quiz_ids && $this->category_ids && count($this->quiz_ids) === count($this->category_ids)) {
+                foreach ($this->quiz_ids as $index => $quizId) {
+                    $categoryId = $this->category_ids[$index] ?? null;
+                    
+                    if ($quizId && $categoryId) {
+                        $quiz = \App\Modules\learning_management\Models\Quiz::on('learning_management')->find($quizId);
+                        if ($quiz && $quiz->category_id != $categoryId) {
+                            $validator->errors()->add('quiz_ids', 'One or more assessments do not belong to their selected category.');
+                            break;
+                        }
+                    }
                 }
             }
 
-            // Check if the employee already has an active assignment for this quiz
-            if ($this->employee_id && $this->quiz_id) {
-                $existingAssignment = \App\Modules\learning_management\Models\AssessmentAssignment::on('learning_management')
-                    ->where('employee_id', $this->employee_id)
-                    ->where('quiz_id', $this->quiz_id)
-                    ->whereNotIn('status', ['completed', 'cancelled'])
-                    ->first();
-                
-                if ($existingAssignment) {
-                    $validator->errors()->add('employee_id', 'This employee already has an active assignment for the selected assessment.');
+            // Check if the employee already has active assignments for any of the selected quizzes
+            if ($this->employee_id && $this->quiz_ids) {
+                foreach ($this->quiz_ids as $quizId) {
+                    $existingAssignment = \App\Modules\learning_management\Models\AssessmentAssignment::on('learning_management')
+                        ->where('employee_id', $this->employee_id)
+                        ->where('quiz_id', $quizId)
+                        ->whereNotIn('status', ['completed', 'cancelled'])
+                        ->first();
+                    
+                    if ($existingAssignment) {
+                        $quiz = \App\Modules\learning_management\Models\Quiz::on('learning_management')->find($quizId);
+                        $quizTitle = $quiz ? $quiz->quiz_title : 'Unknown';
+                        $validator->errors()->add('quiz_ids', "This employee already has an active assignment for '{$quizTitle}'.");
+                        break;
+                    }
                 }
             }
         });

@@ -45,15 +45,68 @@ class CompetencyController extends Controller
             $query->orderBy('id', 'asc');
         }
 
-        $competencies = $query->get();
+        // CHANGE FROM get() TO paginate()
+        $competencies = $query->paginate(10);
 
         return view('competency_management.frameworks', compact('competencies'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $frameworks = CompetencyFramework::active()->get();
-        return view('competency_management.CompetencyCRUD.create', compact('frameworks'));
+        
+        // Fetch all competencies for assignment
+        $competencies = Competency::where('status', 'active')
+            ->orderBy('competency_name', 'asc')
+            ->get();
+        
+        // Fetch employees from the employeeApiService or database
+        try {
+            $employeeService = app(\App\Services\EmployeeApiService::class);
+            $employees = $employeeService->getEmployees() ?? [];
+        } catch (\Exception $e) {
+            // Fallback to empty array if API fails
+            $employees = [];
+        }
+        
+        // Get selected employee if provided
+        $selectedEmployee = null;
+        $employeeSkillGaps = [];
+        
+        if ($request->has('employee_id')) {
+            $employeeId = $request->get('employee_id');
+            
+            // Find the employee from the list
+            $selectedEmployee = collect($employees)->firstWhere('employee_id', $employeeId);
+            
+            // Fetch employee's current skill gap assignments
+            $employeeSkillGaps = \DB::connection('competency_management')
+                ->table('skill_gap_assignments')
+                ->where('employee_id', $employeeId)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($gap) {
+                    $competencyLabels = [
+                        'assignment_skills' => 'Assignment Skills',
+                        'job_knowledge' => 'Job Knowledge',
+                        'planning_organizing' => 'Planning & Organizing',
+                        'accountability' => 'Accountability',
+                        'efficiency_improvement' => 'Process Improvement'
+                    ];
+                    
+                    return [
+                        'competency_key' => $gap->competency_key,
+                        'competency_label' => $competencyLabels[$gap->competency_key] ?? $gap->competency_key,
+                        'action_type' => $gap->action_type,
+                        'notes' => $gap->notes,
+                        'status' => $gap->status,
+                        'created_at' => $gap->created_at,
+                    ];
+                })
+                ->toArray();
+        }
+        
+        return view('competency_management.CompetencyCRUD.create', compact('frameworks', 'competencies', 'employees', 'selectedEmployee', 'employeeSkillGaps'));
     }
 
     public function store(StoreCompetencyRequest $request)
@@ -79,7 +132,6 @@ class CompetencyController extends Controller
                 'created_at' => now(),
             ]);
 
-            // Redirect to frameworks page after successful creation
             return redirect()
                 ->route('competency.frameworks')
                 ->with('success', 'Competency created successfully!');
@@ -90,7 +142,7 @@ class CompetencyController extends Controller
                 ->withInput()
                 ->with('error', 'An error occurred while creating the competency.');
         }
-}
+    }
 
     public function show(Competency $competency)
     {
@@ -120,7 +172,7 @@ class CompetencyController extends Controller
             ]);
 
             return redirect()
-                ->route('competency.competencies.index')
+                ->route('competency.frameworks')
                 ->with('success', 'Competency updated successfully!');
         } catch (\Exception $e) {
             return redirect()
@@ -147,7 +199,7 @@ class CompetencyController extends Controller
             ]);
 
             return redirect()
-                ->route('competency.competencies.index')
+                ->route('competency.frameworks')
                 ->with('success', 'Competency deleted successfully!');
         } catch (\Exception $e) {
             return redirect()

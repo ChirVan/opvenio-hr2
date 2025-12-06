@@ -67,6 +67,11 @@
                                 <!-- Hands-on Evaluation Form -->
                             <form method="POST" action="{{ route('assessment.results.submit-evaluation', $result->id) }}">
                                 @csrf
+                                
+                                <!-- Hidden field to pass specific result IDs for group evaluation -->
+                                @if(isset($resultIds) && $resultIds)
+                                    <input type="hidden" name="result_ids" value="{{ $resultIds }}">
+                                @endif
 
                                 <!-- Display Validation Errors -->
                                 @if($errors->any())

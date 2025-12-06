@@ -131,6 +131,35 @@
                         <!-- Job Title (Hidden field for form submission) -->
                         <input type="hidden" id="job_title" name="job_title" value="">
 
+                        <!-- Assigned Competencies Reference (Only shown when redirected from Gap Analysis) -->
+                        <div id="assignedCompetenciesSection" class="mt-6 hidden">
+                            <div class="border-t border-green-200 pt-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-medium text-gray-800 flex items-center">
+                                        <i class='bx bx-target-lock text-green-600 mr-2'></i>
+                                        Assigned Competencies Reference
+                                    </h4>
+                                    <span class="text-xs text-gray-500 bg-green-100 px-2 py-1 rounded-full">
+                                        <i class='bx bx-info-circle mr-1'></i>From Gap Analysis
+                                    </span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">
+                                    These are the competencies assigned to this employee. Use this as a reference when selecting training materials.
+                                </p>
+                                <div id="competenciesLoadingState" class="flex items-center justify-center py-4">
+                                    <i class='bx bx-loader-alt bx-spin text-green-600 text-xl mr-2'></i>
+                                    <span class="text-gray-500 text-sm">Loading competencies...</span>
+                                </div>
+                                <div id="competenciesList" class="hidden">
+                                    <!-- Competencies will be loaded here dynamically -->
+                                </div>
+                                <div id="noCompetenciesState" class="hidden text-center py-4">
+                                    <i class='bx bx-info-circle text-gray-400 text-2xl'></i>
+                                    <p class="text-gray-500 text-sm mt-1">No assigned competencies found for this employee.</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Assigned By (Read-only) -->
                         <div>
                             <label for="assigned_by" class="block text-sm font-medium text-gray-700 mb-2">
@@ -289,6 +318,43 @@
             // Store employee data for lookup
             let employeeData = {};
             
+            // Function to show API status
+            function showApiStatus(type, message) {
+                const statusIndicator = document.getElementById('apiStatusIndicator');
+                statusIndicator.style.display = 'block';
+                
+                let className, icon;
+                switch(type) {
+                    case 'success':
+                        className = 'bg-green-50 border-l-4 border-green-400 p-4';
+                        icon = 'bx-check-circle text-green-400';
+                        break;
+                    case 'warning':
+                        className = 'bg-yellow-50 border-l-4 border-yellow-400 p-4';
+                        icon = 'bx-error-circle text-yellow-400';
+                        break;
+                    case 'error':
+                        className = 'bg-red-50 border-l-4 border-red-400 p-4';
+                        icon = 'bx-x-circle text-red-400';
+                        break;
+                }
+                
+                statusIndicator.innerHTML = `
+                    <div class="${className}">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class='bx ${icon} text-xl'></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm ${type === 'success' ? 'text-green-700' : type === 'warning' ? 'text-yellow-700' : 'text-red-700'}">
+                                    <strong>Employee API Status:</strong> ${message}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
             // Load employees from external API
             function loadEmployeesFromAPI() {
                 const employeeSelect = document.getElementById('employee_id');
@@ -340,43 +406,6 @@
                     });
             }
 
-            // Function to show API status
-            function showApiStatus(type, message) {
-                const statusIndicator = document.getElementById('apiStatusIndicator');
-                statusIndicator.style.display = 'block';
-                
-                let className, icon;
-                switch(type) {
-                    case 'success':
-                        className = 'bg-green-50 border-l-4 border-green-400 p-4';
-                        icon = 'bx-check-circle text-green-400';
-                        break;
-                    case 'warning':
-                        className = 'bg-yellow-50 border-l-4 border-yellow-400 p-4';
-                        icon = 'bx-error-circle text-yellow-400';
-                        break;
-                    case 'error':
-                        className = 'bg-red-50 border-l-4 border-red-400 p-4';
-                        icon = 'bx-x-circle text-red-400';
-                        break;
-                }
-                
-                statusIndicator.innerHTML = `
-                    <div class="${className}">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <i class='bx ${icon} text-xl'></i>
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-sm ${type === 'success' ? 'text-green-700' : type === 'warning' ? 'text-yellow-700' : 'text-red-700'}">
-                                    <strong>Employee API Status:</strong> ${message}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-
             // Handle employee selection change
             document.getElementById('employee_id').addEventListener('change', function() {
                 const selectedEmployeeId = this.value;
@@ -424,6 +453,164 @@
 
             // Load employees on page load
             loadEmployeesFromAPI();
+
+            // Check for URL parameters to pre-select employee
+            const urlParams = new URLSearchParams(window.location.search);
+            const preSelectedEmployeeId = urlParams.get('employee_id');
+            const preSelectedEmployeeName = urlParams.get('employee_name');
+
+            if (preSelectedEmployeeId && preSelectedEmployeeName) {
+                // Show notification that employee was pre-selected
+                showApiStatus('success', `Employee pre-selected: ${decodeURIComponent(preSelectedEmployeeName)}`);
+                
+                // Show the assigned competencies section
+                document.getElementById('assignedCompetenciesSection').classList.remove('hidden');
+                
+                // Load assigned competencies for this employee
+                loadAssignedCompetencies(preSelectedEmployeeId);
+                
+                // Wait for employees to load, then select the employee
+                const checkAndSelectEmployee = setInterval(function() {
+                    const employeeSelect = document.getElementById('employee_id');
+                    
+                    // Check if employees are loaded (more than just the placeholder option)
+                    if (employeeSelect.options.length > 1) {
+                        // Find the employee by matching the employee_id in the stored data
+                        let foundEmployeeId = null;
+                        
+                        for (let empId in employeeData) {
+                            if (employeeData[empId].employee_id === preSelectedEmployeeId) {
+                                foundEmployeeId = empId;
+                                break;
+                            }
+                        }
+                        
+                        if (foundEmployeeId) {
+                            employeeSelect.value = foundEmployeeId;
+                            // Trigger change event to load employee info
+                            employeeSelect.dispatchEvent(new Event('change'));
+                            console.log('Auto-selected employee:', preSelectedEmployeeName);
+                        } else {
+                            console.warn('Could not find employee with ID:', preSelectedEmployeeId);
+                        }
+                        
+                        clearInterval(checkAndSelectEmployee);
+                    }
+                }, 100); // Check every 100ms
+                
+                // Clear interval after 5 seconds if employee not found
+                setTimeout(function() {
+                    clearInterval(checkAndSelectEmployee);
+                }, 5000);
+            }
+
+            // Function to load assigned competencies for an employee
+            function loadAssignedCompetencies(employeeId) {
+                const loadingState = document.getElementById('competenciesLoadingState');
+                const competenciesList = document.getElementById('competenciesList');
+                const noCompetenciesState = document.getElementById('noCompetenciesState');
+                
+                // Show loading state
+                loadingState.classList.remove('hidden');
+                competenciesList.classList.add('hidden');
+                noCompetenciesState.classList.add('hidden');
+                
+                // Fetch assigned competencies from API
+                fetch('/api/assigned-competencies')
+                    .then(response => response.json())
+                    .then(response => {
+                        loadingState.classList.add('hidden');
+                        
+                        // Check if response is successful and has data
+                        if (!response.success || !response.data) {
+                            noCompetenciesState.classList.remove('hidden');
+                            return;
+                        }
+                        
+                        const data = response.data;
+                        
+                        // Filter competencies for the selected employee
+                        const employeeCompetencies = data.find(emp => emp.employee_id === employeeId);
+                        
+                        if (employeeCompetencies && employeeCompetencies.competencies && employeeCompetencies.competencies.length > 0) {
+                            competenciesList.classList.remove('hidden');
+                            
+                            let html = '<div class="space-y-2 max-h-64 overflow-y-auto pr-2">';
+                            
+                            employeeCompetencies.competencies.forEach(comp => {
+                                const statusColors = {
+                                    'assigned': 'bg-blue-100 text-blue-700 border-blue-200',
+                                    'in_progress': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                                    'completed': 'bg-green-100 text-green-700 border-green-200',
+                                    'on_hold': 'bg-gray-100 text-gray-700 border-gray-200'
+                                };
+                                
+                                const priorityIcons = {
+                                    'critical': '🔴',
+                                    'high': '🟠',
+                                    'medium': '🟡',
+                                    'low': '🔵'
+                                };
+                                
+                                const statusClass = statusColors[comp.status] || 'bg-gray-100 text-gray-700 border-gray-200';
+                                const priorityIcon = priorityIcons[comp.priority] || '⚪';
+                                
+                                html += `
+                                    <div class="flex items-center justify-between p-3 ${statusClass} rounded-lg border">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-medium text-sm">${comp.competency_name}</span>
+                                                <span class="text-xs">${priorityIcon}</span>
+                                            </div>
+                                            <div class="text-xs opacity-75 mt-1">
+                                                ${comp.framework_name || 'General'} • Progress: ${comp.progress_percentage || 0}%
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs px-2 py-1 rounded-full bg-white bg-opacity-50 capitalize">
+                                                ${comp.status.replace('_', ' ')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            
+                            html += '</div>';
+                            
+                            // Add summary
+                            const totalCount = employeeCompetencies.competencies.length;
+                            const completedCount = employeeCompetencies.competencies.filter(c => c.status === 'completed').length;
+                            const inProgressCount = employeeCompetencies.competencies.filter(c => c.status === 'in_progress').length;
+                            
+                            html += `
+                                <div class="mt-3 pt-3 border-t border-green-200 flex items-center justify-between text-xs text-gray-600">
+                                    <div class="flex items-center gap-4">
+                                        <span><strong>${totalCount}</strong> Total</span>
+                                        <span class="text-green-600"><strong>${completedCount}</strong> Completed</span>
+                                        <span class="text-yellow-600"><strong>${inProgressCount}</strong> In Progress</span>
+                                    </div>
+                                    <a href="{{ route('competency.gap-analysis') }}?employee_id=${employeeId}" 
+                                       class="text-green-600 hover:text-green-700 font-medium flex items-center">
+                                        View Full Details <i class='bx bx-link-external ml-1'></i>
+                                    </a>
+                                </div>
+                            `;
+                            
+                            competenciesList.innerHTML = html;
+                        } else {
+                            noCompetenciesState.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading assigned competencies:', error);
+                        loadingState.classList.add('hidden');
+                        noCompetenciesState.classList.remove('hidden');
+                        noCompetenciesState.innerHTML = `
+                            <i class='bx bx-error-circle text-red-400 text-2xl'></i>
+                            <p class="text-red-500 text-sm mt-1">Error loading competencies. Please try again.</p>
+                        `;
+                    });
+            }
 
             // Training catalog change handler (for loading materials)
             const catalogSelect = document.getElementById('training_catalog_id');

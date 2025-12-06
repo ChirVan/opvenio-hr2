@@ -38,8 +38,29 @@ class CompetencyFrameworkController extends Controller
                   ->orWhere('description', 'like', "%{$searchTerm}%");
             });
         }
+
+        // Category filter
+        if ($request->filled('category')) {
+            $competenciesQuery->whereHas('framework', function($q) use ($request) {
+                $q->where('framework_name', $request->category);
+            });
+        }
+
+        // Status filter
+        if ($request->filled('status')) {
+            $competenciesQuery->where('status', $request->status);
+        }
+
+        // Sorting
+        if ($request->sort_name === 'az') {
+            $competenciesQuery->orderBy('competency_name', 'asc');
+        } elseif ($request->sort_name === 'za') {
+            $competenciesQuery->orderBy('competency_name', 'desc');
+        } else {
+            $competenciesQuery->orderBy('id', 'asc');
+        }
         
-        $competencies = $competenciesQuery->orderBy('id', 'asc')->get();
+        $competencies = $competenciesQuery->paginate(5);
 
         return view('competency_management.frameworks', compact('frameworks', 'competencies'));
     }

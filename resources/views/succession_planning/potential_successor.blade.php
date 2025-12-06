@@ -10,11 +10,17 @@
     @endsection
 
     <div class="py-6 px-4">
-        <div class="bg-gradient-to-r from-green-600 to-green-800 rounded-t-lg shadow-lg p-6 text-white">
+        <div class="bg-gradient-to-r from-blue-600 to-purple-700 rounded-t-lg shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold mb-2">Potential Successors</h1>
-                    <p class="text-green-100">Approved Employees Overview</p>
+                    <h1 class="text-3xl font-bold mb-2"><i class='bx bx-trophy mr-2'></i>Potential Successors - Expert Level</h1>
+                    <p class="text-blue-100">Employees with 80%+ evaluation scores qualified for succession pipeline</p>
+                </div>
+                <div class="text-right">
+                    <div class="bg-blue-800 bg-opacity-50 rounded-lg p-3 border border-blue-400">
+                        <div class="text-2xl font-bold text-white">{{ $approvedEmployees->count() }}</div>
+                        <div class="text-sm text-blue-100">Expert Candidates</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -25,76 +31,223 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
+
             <div class="p-6">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 shadow-sm">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full divide-y divide-gray-200 shadow-sm" id="successorsTable">
+                        <thead class="bg-gradient-to-r from-blue-50 to-purple-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Employee ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Email</th>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Position</th>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Potential Job</th>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Action</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Employee Profile</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Current Role</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Performance Metrics</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Leadership Readiness</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Succession Target</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Risk Assessment</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-100">
                             @forelse ($approvedEmployees as $employee)
+                                @php
+                                    // Use pre-calculated values from route
+                                    $performanceScore = $employee->evaluation_score_percent ?? 0;
+                                    $leadershipReadiness = $employee->leadership_score ?? 0;
+                                    
+                                    // Use pre-calculated criteria from route
+                                    $pipelineReadyCriteria = $employee->criteria ?? [];
+                                    $pipelineReadyCount = $employee->ready_count ?? 0;
+                                    $isPipelineReady = $pipelineReadyCount >= 3;
+                                    
+                                    // Determine readiness level based on evaluation score
+                                    $readinessLevel = 'Developing';
+                                    $readinessColor = 'bg-yellow-100 text-yellow-800';
+                                    $readinessIcon = 'bx-trending-up';
+                                    
+                                    $evalScore = $employee->evaluation_score ?? 0;
+                                    if ($evalScore >= 4.5) {
+                                        $readinessLevel = 'Ready Now';
+                                        $readinessColor = 'bg-green-100 text-green-800';
+                                        $readinessIcon = 'bx-check-circle';
+                                    } elseif ($evalScore >= 3.5) {
+                                        $readinessLevel = 'High Potential';
+                                        $readinessColor = 'bg-blue-100 text-blue-800';
+                                        $readinessIcon = 'bx-star';
+                                    } elseif ($evalScore >= 3.0) {
+                                        $readinessLevel = 'Moderate Potential';
+                                        $readinessColor = 'bg-indigo-100 text-indigo-800';
+                                        $readinessIcon = 'bx-bar-chart-alt-2';
+                                    }
+                                    
+                                    // Risk assessment from route
+                                    $riskLevel = str_replace(' Risk', '', $employee->risk_level ?? 'Medium');
+                                    $riskColor = 'bg-green-100 text-green-700';
+                                    if ($riskLevel == 'High') {
+                                        $riskColor = 'bg-red-100 text-red-700';
+                                    } elseif ($riskLevel == 'Medium') {
+                                        $riskColor = 'bg-yellow-100 text-yellow-700';
+                                    }
+                                    
+                                    // Leadership stars
+                                    $stars = floor($leadershipReadiness);
+                                    $hasHalfStar = ($leadershipReadiness - $stars) >= 0.5;
+                                @endphp
+                                
                                 <form method="POST" action="{{ route('succession.promote') }}">
                                     @csrf
-                                    <tr class="hover:bg-green-50 transition">
-                                        <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-700">
+                                    <tr class="hover:bg-blue-50 transition-all duration-200" data-score="{{ $performanceScore }}" data-category="{{ strtolower(str_replace(' ', '-', $readinessLevel)) }}">
+                                        <!-- Employee Profile -->
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center space-x-4">
+                                                <div class="flex-shrink-0">
+                                                    <div class="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                                                        {{ strtoupper(substr($employee->full_name, 0, 2)) }}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-bold text-gray-900">{{ $employee->full_name }}</div>
+                                                    <div class="text-xs text-gray-500">{{ $employee->employee_id }}</div>
+                                                    <div class="text-xs text-gray-500">{{ $employee->email ?? 'N/A' }}</div>
+                                                </div>
+                                            </div>
                                             <input type="hidden" name="employee_id" value="{{ $employee->employee_id }}">
-                                            {{ $employee->employee_id }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-900 font-semibold">
                                             <input type="hidden" name="employee_name" value="{{ $employee->full_name }}">
-                                            {{ $employee->full_name }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700">
                                             <input type="hidden" name="employee_email" value="{{ $employee->email ?? '' }}">
-                                            {{ $employee->email ?? '' }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700">
+
+                                        <!-- Current Role -->
+                                        <td class="px-6 py-4">
+                                            <div class="text-sm font-medium text-gray-900">{{ $employee->job_title }}</div>
+                                            <div class="text-xs text-gray-500">Current Position</div>
                                             <input type="hidden" name="job_title" value="{{ $employee->job_title }}">
-                                            {{ $employee->job_title }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700">
-                                            <select name="potential_job" class="border rounded px-2 py-1 w-full" required>
-                                                <option value="">Select Potential Job</option>
-                                                <option value="HR Manager">HR Manager</option>
-                                                <option value="Payroll Administrator">Payroll Administrator</option>
-                                                <option value="Senior IT Specialist">Senior IT Specialist</option>
-                                                <option value="Software Engineer">Software Engineer</option>
+
+                                        <!-- Performance Metrics -->
+                                        <td class="px-6 py-4">
+                                            <div class="space-y-2">
+                                                <div>
+                                                    <div class="flex justify-between text-xs">
+                                                        <span class="font-medium">Evaluation Score</span>
+                                                        <span class="font-bold">{{ $employee->evaluation_score ?? 0 }}/5.0 ({{ $performanceScore }}%)</span>
+                                                    </div>
+                                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                                        <div class="h-2 rounded-full {{ $performanceScore >= 80 ? 'bg-green-500' : ($performanceScore >= 70 ? 'bg-yellow-500' : 'bg-red-500') }}" 
+                                                             style="width: {{ $performanceScore }}%"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="text-xs text-gray-500">
+                                                    Assessments: 
+                                                    <span class="font-medium text-blue-600">
+                                                        {{ $employee->assessment_count ?? 1 }} completed
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <!-- Leadership Readiness -->
+                                        <td class="px-6 py-4 text-center">
+                                            <div class="space-y-2">
+                                                <div class="flex justify-center space-x-1">
+                                                    @for($i = 1; $i <= 5; $i++)
+                                                        @if($i <= $stars)
+                                                            <i class="bx bxs-star text-yellow-400 text-lg"></i>
+                                                        @elseif($i == $stars + 1 && $hasHalfStar)
+                                                            <i class="bx bxs-star-half text-yellow-400 text-lg"></i>
+                                                        @else
+                                                            <i class="bx bx-star text-gray-300 text-lg"></i>
+                                                        @endif
+                                                    @endfor
+                                                </div>
+                                                <div class="text-xs font-medium text-gray-600">{{ number_format($leadershipReadiness, 1) }}/5.0</div>
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $readinessColor }}">
+                                                    <i class="bx {{ $readinessIcon }} mr-1"></i>
+                                                    {{ $readinessLevel }}
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Succession Target -->
+                                        <td class="px-6 py-4">
+                                            <select name="potential_job" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                                <option value="">Select Target Role</option>
+                                                <optgroup label="Management Roles">
+                                                    <option value="Department Manager">Department Manager</option>
+                                                    <option value="Operations Manager">Operations Manager</option>
+                                                    <option value="Project Manager">Project Manager</option>
+                                                </optgroup>
+                                                <optgroup label="Senior Specialist Roles">
+                                                    <option value="Senior HR Specialist">Senior HR Specialist</option>
+                                                    <option value="Senior IT Specialist">Senior IT Specialist</option>
+                                                    <option value="Senior Software Engineer">Senior Software Engineer</option>
+                                                    <option value="Senior Business Analyst">Senior Business Analyst</option>
+                                                </optgroup>
+                                                <optgroup label="Administrative Roles">
+                                                    <option value="HR Manager">HR Manager</option>
+                                                    <option value="Payroll Administrator">Payroll Administrator</option>
+                                                    <option value="Training Coordinator">Training Coordinator</option>
+                                                </optgroup>
                                             </select>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <input type="hidden" name="assessment_score" value="0.0">
-                                            <input type="hidden" name="category" value="Leadership">
-                                            <input type="hidden" name="strengths" value="">
-                                            <input type="hidden" name="recommendations" value="">
+                                            <input type="hidden" name="assessment_score" value="{{ number_format($leadershipReadiness, 1) }}">
+                                            <input type="hidden" name="category" value="Leadership Development">
+                                            <input type="hidden" name="strengths" value="High performance in assessments, demonstrated competency">
+                                            <input type="hidden" name="recommendations" value="Recommended for succession planning based on comprehensive evaluation">
                                             <input type="hidden" name="status" value="pending">
-                                            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold {{ $employee->status == 'passed' ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-                                                {{ ucfirst($employee->status) }}
-                                            </span>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            @if(in_array($employee->employee_id, $promotedIds))
-                                                <button type="button" class="px-4 py-2 bg-gray-400 text-white rounded-lg font-semibold text-xs shadow transition flex items-center gap-2" disabled>
-                                                    <i class='bx bx-check-circle text-white'></i> Sent
+
+                                        <!-- Risk Assessment -->
+                                        <td class="px-6 py-4 text-center">
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {{ $riskColor }}">
+                                                {{ $riskLevel }} Risk
+                                            </span>
+                                            <div class="text-xs text-gray-500 mt-1">
+                                                @if($riskLevel == 'Low')
+                                                    Strong succession candidate
+                                                @elseif($riskLevel == 'Medium')
+                                                    Moderate development needed
+                                                @else
+                                                    Requires significant development
+                                                @endif
+                                            </div>
+                                        </td>
+
+                                        <!-- Action -->
+                                        <td class="px-6 py-4">
+                                            <div class="space-y-2">
+                                                @if(in_array($employee->employee_id, $promotedIds))
+                                                    <button type="button" class="w-full px-4 py-2 bg-gray-400 text-white rounded-lg font-medium text-xs shadow transition flex items-center justify-center gap-2" disabled>
+                                                        <i class='bx bx-check-circle'></i> In Pipeline
+                                                    </button>
+                                                @else
+                                                    @if($isPipelineReady)
+                                                        <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium text-xs shadow-md transition-all duration-200 flex items-center justify-center gap-2">
+                                                            <i class='bx bx-trending-up'></i> Add to Pipeline
+                                                        </button>
+                                                    @elseif($performanceScore >= 60)
+                                                        <button type="button" onclick="showPipelineReadiness('{{ $employee->employee_id }}', {{ json_encode($pipelineReadyCriteria) }}, {{ $pipelineReadyCount }})" class="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium text-xs shadow-md transition-all duration-200 flex items-center justify-center gap-2">
+                                                            <i class='bx bx-time-five'></i> Pipeline Assessment
+                                                        </button>
+                                                    @else
+                                                        <button type="button" onclick="showDevelopmentOptions('{{ $employee->employee_id }}', '{{ $employee->full_name }}', {{ $performanceScore }}, '{{ $employee->status }}')" class="w-full px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium text-xs shadow-md transition-all duration-200 flex items-center justify-center gap-2">
+                                                            <i class='bx bx-trending-up'></i> Start Development
+                                                        </button>
+                                                    @endif
+                                                @endif
+                                                
+                                                <button type="button" onclick="viewPipelineReadiness('{{ $employee->employee_id }}', '{{ $employee->full_name }}', {{ json_encode($pipelineReadyCriteria) }}, {{ $pipelineReadyCount }})" class="w-full px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md font-medium text-xs transition-all duration-200 flex items-center justify-center gap-1">
+                                                    <i class='bx bx-bar-chart-alt-2 text-sm'></i> Readiness Check
                                                 </button>
-                                            @else
-                                                <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-xs shadow transition flex items-center gap-2">
-                                                    <i class='bx bx-upload text-white'></i> Promote
-                                                </button>
-                                            @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 </form>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">No approved employees found.</td>
+                                    <td colspan="7" class="px-6 py-12 text-center">
+                                        <div class="text-gray-400">
+                                            <i class="bx bx-trophy text-6xl mb-4 text-yellow-400"></i>
+                                            <div class="text-lg font-medium text-gray-500">No Expert-Level Candidates Yet</div>
+                                            <div class="text-sm text-gray-400">Employees with 80%+ evaluation scores will appear here as potential successors</div>
+                                        </div>
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -104,32 +257,655 @@
         </div>
     </div>
 
+    <!-- Development Needed Section -->
+    @if(isset($developmentNeeded) && $developmentNeeded->count() > 0)
+    <div class="py-6 px-4">
+        <div class="bg-gradient-to-r from-orange-500 to-amber-600 rounded-t-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-2"><i class='bx bx-trending-up mr-2'></i>Skills Development Required</h2>
+                    <p class="text-orange-100">Employees who need skill improvement before becoming potential successors</p>
+                </div>
+                <div class="text-right">
+                    <div class="bg-orange-800 bg-opacity-50 rounded-lg p-3 border border-orange-300">
+                        <span class="text-3xl font-bold text-white">{{ $developmentNeeded->count() }}</span>
+                        <span class="block text-sm text-orange-100">Needs Development</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-b-lg shadow-lg">
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 shadow-sm" id="developmentTable">
+                        <thead class="bg-gradient-to-r from-orange-50 to-amber-50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Employee Profile</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Current Role</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Current Score</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Gap to Expert</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Development Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-100">
+                            @foreach ($developmentNeeded as $employee)
+                                @php
+                                    $evalScore = $employee->evaluation_score ?? 0;
+                                    $evalPercent = $employee->evaluation_score_percent ?? 0;
+                                    $gapToExpert = 80 - $evalPercent; // Expert threshold is 80%
+                                    $gapScore = 4.0 - $evalScore; // Expert threshold is 4.0/5.0
+                                    
+                                    // Determine development priority
+                                    if ($evalPercent >= 70) {
+                                        $devPriority = 'Almost Ready';
+                                        $devColor = 'bg-blue-100 text-blue-800';
+                                        $devIcon = 'bx-target-lock';
+                                    } elseif ($evalPercent >= 60) {
+                                        $devPriority = 'Moderate Gap';
+                                        $devColor = 'bg-yellow-100 text-yellow-800';
+                                        $devIcon = 'bx-trending-up';
+                                    } else {
+                                        $devPriority = 'Significant Gap';
+                                        $devColor = 'bg-orange-100 text-orange-800';
+                                        $devIcon = 'bx-error-circle';
+                                    }
+                                @endphp
+                                
+                                <tr class="hover:bg-orange-50 transition-all duration-200">
+                                    <!-- Employee Profile -->
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="flex-shrink-0">
+                                                <div class="h-12 w-12 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white font-bold text-lg">
+                                                    {{ strtoupper(substr($employee->full_name, 0, 2)) }}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-bold text-gray-900">{{ $employee->full_name }}</div>
+                                                <div class="text-xs text-gray-500">{{ $employee->employee_id }}</div>
+                                                <div class="text-xs text-gray-500">{{ $employee->email ?? 'N/A' }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Current Role -->
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ $employee->job_title }}</div>
+                                        <div class="text-xs text-gray-500">Current Position</div>
+                                    </td>
+
+                                    <!-- Current Score -->
+                                    <td class="px-6 py-4">
+                                        <div class="space-y-2">
+                                            <div>
+                                                <div class="flex justify-between text-xs">
+                                                    <span class="font-medium">Evaluation Score</span>
+                                                    <span class="font-bold {{ $evalPercent >= 70 ? 'text-blue-600' : 'text-orange-600' }}">{{ $evalScore }}/5.0 ({{ $evalPercent }}%)</span>
+                                                </div>
+                                                <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                                    <div class="h-2 rounded-full {{ $evalPercent >= 70 ? 'bg-blue-500' : ($evalPercent >= 60 ? 'bg-yellow-500' : 'bg-orange-500') }}" 
+                                                         style="width: {{ $evalPercent }}%"></div>
+                                                </div>
+                                            </div>
+                                            <div class="text-xs text-gray-500">
+                                                Level: <span class="font-medium {{ $evalPercent >= 70 ? 'text-blue-600' : 'text-orange-600' }}">{{ $employee->potential_level }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Gap to Expert -->
+                                    <td class="px-6 py-4 text-center">
+                                        <div class="space-y-2">
+                                            <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-red-100 text-red-700">
+                                                <i class='bx bx-minus-circle mr-1'></i> {{ number_format($gapScore, 1) }} pts
+                                            </div>
+                                            <div class="text-xs text-gray-500">
+                                                Need <span class="font-bold text-green-600">{{ $gapToExpert }}%</span> more to reach Expert
+                                            </div>
+                                            <div class="w-full bg-gray-200 rounded-full h-1">
+                                                <div class="h-1 rounded-full bg-green-500" style="width: {{ $evalPercent }}%"></div>
+                                                <div class="text-xs text-gray-400 mt-1">Target: 80%</div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Development Status -->
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $devColor }}">
+                                            <i class='bx {{ $devIcon }} mr-1'></i>
+                                            {{ $devPriority }}
+                                        </span>
+                                        <div class="text-xs text-gray-500 mt-2">
+                                            Risk: <span class="font-medium {{ $employee->risk_level == 'High Risk' ? 'text-red-600' : 'text-yellow-600' }}">{{ $employee->risk_level }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Pipeline Readiness Assessment Modal -->
+    <div id="pipelineModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-lg">
+                <h3 class="text-xl font-bold">Pipeline Readiness Assessment</h3>
+                <p class="text-blue-100 text-sm mt-1">Comprehensive evaluation for succession pipeline eligibility</p>
+            </div>
+            
+            <div class="p-6">
+                <div id="modalContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+                
+                <div class="mt-6 flex gap-3">
+                    <button onclick="closePipelineModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+                        Close
+                    </button>
+                    <button id="addToPipelineBtn" onclick="addToPipeline()" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                        Add to Pipeline
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Development Modal -->
+    <div id="developmentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h3 id="developmentTitle" class="text-xl font-semibold text-gray-800">Employee Development Plan</h3>
+                        <button onclick="closeDevelopmentModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="bx bx-x text-2xl"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div id="developmentContent">
+                        <!-- Development options will be populated here -->
+                    </div>
+                </div>
+                <div class="p-6 border-t border-gray-200 bg-gray-50">
+                    <div class="flex justify-end space-x-3">
+                        <button onclick="closeDevelopmentModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+                            Close
+                        </button>
+                        <button onclick="startDevelopmentProgram()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="bx bx-play mr-2"></i>Start Development Program
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <style>
-        .table-successors th {
-            background: linear-gradient(90deg, #e0f7fa 0%, #e8f5e9 100%);
-            color: #256029;
-            font-weight: 700;
-            letter-spacing: 0.05em;
+        .active-filter {
+            background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+            color: white !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
         }
-        .table-successors td {
-            border-bottom: 1px solid #e5e7eb;
+        
+        .succession-card {
+            transition: all 0.3s ease;
         }
-        .table-successors tr:hover {
-            background-color: #e6ffe6;
+        
+        .succession-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
-        .table-successors .badge {
-            padding: 0.4em 0.8em;
-            border-radius: 999px;
-            font-size: 0.85em;
-            font-weight: 600;
+        
+        /* Progress bar animations */
+        .progress-bar {
+            transition: width 0.8s ease-in-out;
         }
-        .table-successors .badge-approved {
-            background: #bbf7d0;
-            color: #166534;
+        
+        /* Star rating hover effects */
+        .bx-star:hover, .bxs-star:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
         }
-        .table-successors .badge-pending {
-            background: #fef9c3;
-            color: #92400e;
+        
+        /* Button hover effects */
+        button:hover {
+            transform: translateY(-1px);
+        }
+        
+        /* Table row hover effects */
+        tbody tr:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
     </style>
+
+    <!-- BoxIcons CDN -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Filter candidates based on readiness level
+        function filterCandidates(category) {
+            const rows = document.querySelectorAll('#successorsTable tbody tr');
+            const buttons = document.querySelectorAll('.p-6.bg-gray-50 button');
+            
+            // Update active button
+            buttons.forEach(btn => {
+                btn.classList.remove('active-filter', 'bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            event.target.classList.add('active-filter');
+            event.target.classList.remove('bg-gray-200', 'text-gray-700');
+            
+            rows.forEach(row => {
+                if (row.children.length < 2) return; // Skip empty rows
+                
+                const score = parseFloat(row.getAttribute('data-score') || 0);
+                const rowCategory = row.getAttribute('data-category');
+                let show = false;
+                
+                switch(category) {
+                    case 'all':
+                        show = true;
+                        break;
+                    case 'ready-now':
+                        show = score >= 90;
+                        break;
+                    case 'high-potential':
+                        show = score >= 80 && score < 90;
+                        break;
+                    case 'developing':
+                        show = score < 80;
+                        break;
+                }
+                
+                if (show) {
+                    row.style.display = '';
+                    row.style.animation = 'fadeIn 0.5s ease-in-out';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Create development plan for low-scoring candidates
+        function createDevelopmentPlan(employeeId) {
+            if (confirm('Create a personalized development plan for this employee? This will identify skill gaps and recommend training programs.')) {
+                // In real implementation, this would redirect to development planning module
+                alert('Development planning module will create a comprehensive growth plan including:\n\n• Skill gap analysis\n• Training recommendations\n• Mentorship programs\n• Performance milestones\n• Career progression timeline');
+            }
+        }
+
+        // View pipeline readiness assessment
+        function viewPipelineReadiness(employeeId, employeeName, criteria, readyCount) {
+            const modal = document.getElementById('pipelineModal');
+            const content = document.getElementById('modalContent');
+            const addBtn = document.getElementById('addToPipelineBtn');
+            
+            // Store current employee data
+            window.currentEmployee = { id: employeeId, name: employeeName };
+            
+            const criteriaLabels = {
+                'performance': 'Performance Score (≥75%)',
+                'assessment_passed': 'Assessment Status (Passed)',
+                'leadership_score': 'Leadership Readiness (≥3.5/5.0)'
+            };
+            
+            const isReady = readyCount >= 3;
+            
+            let html = `
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800">${employeeName}</h4>
+                    <p class="text-sm text-gray-600">Employee ID: ${employeeId}</p>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="font-medium text-gray-700">Pipeline Readiness Score</h5>
+                        <div class="text-right">
+                            <span class="text-2xl font-bold ${isReady ? 'text-green-600' : 'text-orange-600'}">${readyCount}/3</span>
+                            <div class="text-xs text-gray-500">Criteria Met</div>
+                        </div>
+                    </div>
+                    
+                    <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
+                        <div class="h-3 rounded-full ${isReady ? 'bg-green-500' : 'bg-orange-500'}" style="width: ${(readyCount/3)*100}%"></div>
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${isReady ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}">
+                            <i class="bx ${isReady ? 'bx-check-circle' : 'bx-time-five'} mr-2"></i>
+                            ${isReady ? 'Ready for Pipeline' : 'Needs Development'}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <h5 class="font-medium text-gray-700 mb-3">Readiness Criteria</h5>
+            `;
+            
+            Object.entries(criteria).forEach(([key, met]) => {
+                html += `
+                    <div class="flex items-center justify-between p-3 rounded-lg ${met ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}">
+                        <div class="flex items-center">
+                            <i class="bx ${met ? 'bx-check-circle text-green-600' : 'bx-x-circle text-red-600'} text-xl mr-3"></i>
+                            <span class="font-medium ${met ? 'text-green-800' : 'text-red-800'}">${criteriaLabels[key]}</span>
+                        </div>
+                        <span class="text-sm font-medium ${met ? 'text-green-600' : 'text-red-600'}">
+                            ${met ? 'Met' : 'Not Met'}
+                        </span>
+                    </div>
+                `;
+            });
+            
+            if (!isReady) {
+                html += `
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h6 class="font-medium text-blue-800 mb-2">Development Recommendations:</h6>
+                        <ul class="text-sm text-blue-700 space-y-1">
+                `;
+                
+                if (!criteria.performance) {
+                    html += '<li>• Focus on improving assessment performance through targeted training</li>';
+                }
+                if (!criteria.assessment_passed) {
+                    html += '<li>• Complete required assessments with passing scores</li>';
+                }
+                if (!criteria.leadership_score) {
+                    html += '<li>• Participate in leadership development programs</li>';
+                }
+                
+                html += `
+                        </ul>
+                        <div class="mt-4">
+                            <button onclick="showDevelopmentPlan('${employeeId}', '${employeeName.replace(/'/g, "\\'")}', ${readyCount})" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="bx bx-book mr-2"></i>Create Development Plan
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            
+            content.innerHTML = html;
+            addBtn.disabled = !isReady;
+            addBtn.textContent = isReady ? 'Add to Pipeline' : 'Create Development Plan';
+            
+            // Change button behavior for non-ready employees
+            if (!isReady) {
+                addBtn.onclick = function() {
+                    showDevelopmentPlan(window.currentEmployee.id, window.currentEmployee.name, readyCount);
+                };
+                addBtn.disabled = false;
+                addBtn.className = addBtn.className.replace('bg-green-600', 'bg-blue-600').replace('hover:bg-green-700', 'hover:bg-blue-700');
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        // Show pipeline readiness for action button
+        function showPipelineReadiness(employeeId, criteria, readyCount) {
+            // This is a simplified version for the action button
+            viewPipelineReadiness(employeeId, `Employee ${employeeId}`, criteria, readyCount);
+        }
+
+        // Close pipeline modal
+        function closePipelineModal() {
+            document.getElementById('pipelineModal').classList.add('hidden');
+        }
+        
+        // Close development modal
+        function closeDevelopmentModal() {
+            document.getElementById('developmentModal').style.display = 'none';
+        }
+        
+        function startDevelopmentProgram() {
+            if (window.currentEmployee) {
+                alert(`Development Program Started for ${window.currentEmployee.name}!\n\nProgram Initiated:\n• Comprehensive development plan created\n• Assessment retake opportunities scheduled\n• Training programs enrolled\n• Mentoring assignments made\n• Progress tracking activated\n\nThe employee will be notified of their development opportunities and can begin improving their pipeline readiness immediately.`);
+                closeDevelopmentModal();
+                // In real implementation, this would create development records and notify the employee
+                // location.reload(); // Refresh to show updated development status
+            }
+        }
+
+        function showDevelopmentPlan(employeeId, employeeName, criteriaCount) {
+            const modal = document.getElementById('developmentModal');
+            const content = modal.querySelector('#developmentContent');
+            const title = modal.querySelector('#developmentTitle');
+            
+            title.textContent = `Development Plan for ${employeeName}`;
+            
+            let html = `
+                <div class="mb-6">
+                    <h4 class="font-semibold text-gray-800 mb-3">Available Development Options:</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer" onclick="selectDevelopmentOption('assessment', '${employeeId}')">
+                            <div class="flex items-center mb-2">
+                                <i class="bx bx-clipboard text-blue-600 text-xl mr-3"></i>
+                                <h5 class="font-semibold">Retake Assessments</h5>
+                            </div>
+                            <p class="text-sm text-gray-600">Improve scores by retaking failed or low-scoring assessments</p>
+                            <div class="mt-2">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Immediate Impact</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer" onclick="selectDevelopmentOption('training', '${employeeId}')">
+                            <div class="flex items-center mb-2">
+                                <i class="bx bx-book-open text-green-600 text-xl mr-3"></i>
+                                <h5 class="font-semibold">Training Programs</h5>
+                            </div>
+                            <p class="text-sm text-gray-600">Enroll in targeted training programs to build missing skills</p>
+                            <div class="mt-2">
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Skill Building</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer" onclick="selectDevelopmentOption('mentoring', '${employeeId}')">
+                            <div class="flex items-center mb-2">
+                                <i class="bx bx-user-plus text-purple-600 text-xl mr-3"></i>
+                                <h5 class="font-semibold">Mentoring Program</h5>
+                            </div>
+                            <p class="text-sm text-gray-600">Pair with senior employees for guidance and knowledge transfer</p>
+                            <div class="mt-2">
+                                <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">Leadership Development</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer" onclick="selectDevelopmentOption('project', '${employeeId}')">
+                            <div class="flex items-center mb-2">
+                                <i class="bx bx-briefcase text-orange-600 text-xl mr-3"></i>
+                                <h5 class="font-semibold">Special Projects</h5>
+                            </div>
+                            <p class="text-sm text-gray-600">Assign challenging projects to develop leadership and technical skills</p>
+                            <div class="mt-2">
+                                <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">Hands-on Experience</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h5 class="font-semibold text-yellow-800 mb-2">
+                        <i class="bx bx-info-circle mr-2"></i>Recommended Development Path
+                    </h5>
+                    <div class="text-sm text-yellow-700">
+                        <p class="mb-2">Based on current readiness criteria (${criteriaCount}/6 met), we recommend:</p>
+                        <ol class="list-decimal list-inside space-y-1">
+                            <li>Start with <strong>Assessment Retakes</strong> for immediate score improvement</li>
+                            <li>Enroll in <strong>Training Programs</strong> for skill gaps identified in assessments</li>
+                            <li>Join <strong>Mentoring Program</strong> for leadership development</li>
+                            <li>Take on <strong>Special Projects</strong> to demonstrate improved capabilities</li>
+                        </ol>
+                    </div>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+            modal.style.display = 'block';
+        }
+        
+        function selectDevelopmentOption(option, employeeId) {
+            switch(option) {
+                case 'assessment':
+                    showAssessmentRetakeOptions(employeeId);
+                    break;
+                case 'training':
+                    showTrainingPrograms(employeeId);
+                    break;
+                case 'mentoring':
+                    showMentoringOptions(employeeId);
+                    break;
+                case 'project':
+                    showProjectAssignments(employeeId);
+                    break;
+            }
+        }
+        
+        function showAssessmentRetakeOptions(employeeId) {
+            // Close the development modal first
+            document.getElementById('developmentModal').style.display = 'none';
+            
+            // Show assessment retake options
+            alert(`Assessment Retake Options for Employee ${employeeId}\n\nAvailable Options:\n• Retake failed assessments (score < 70%)\n• Improve low-scoring assessments (70-80%)\n• Take additional assessments for skill gaps\n• Schedule comprehensive re-evaluation\n\nNext: This would redirect to assessment retake page where employee can:\n1. View their current assessment scores\n2. Select which assessments to retake\n3. Schedule retake sessions\n4. Track improvement progress`);
+            
+            // In real implementation, redirect to assessment retake page
+            // window.location.href = `/learning-management/assessment-retake/${employeeId}`;
+        }
+
+        // Schedule re-assessment for employees needing development
+        function scheduleReassessment(employeeId, employeeName) {
+            Swal.fire({
+                title: 'Schedule Re-Assessment',
+                html: `
+                    <div class="text-left">
+                        <p class="text-sm text-gray-600 mb-4">Schedule a new assessment for <strong>${employeeName}</strong> to re-evaluate their competency level.</p>
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Assessment Type</label>
+                            <select id="reassessmentType" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                <option value="competency">Competency Assessment</option>
+                                <option value="skills">Skills Evaluation</option>
+                                <option value="leadership">Leadership Assessment</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Scheduled Date</label>
+                            <input type="date" id="reassessmentDate" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" min="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                            <textarea id="reassessmentNotes" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" rows="2" placeholder="Optional notes..."></textarea>
+                        </div>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Schedule Assessment',
+                confirmButtonColor: '#3B82F6',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    const date = document.getElementById('reassessmentDate').value;
+                    if (!date) {
+                        Swal.showValidationMessage('Please select a date');
+                        return false;
+                    }
+                    return {
+                        type: document.getElementById('reassessmentType').value,
+                        date: date,
+                        notes: document.getElementById('reassessmentNotes').value
+                    };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Assessment Scheduled!',
+                        html: `Re-assessment for <strong>${employeeName}</strong> has been scheduled for <strong>${result.value.date}</strong>.<br><br>The employee will be notified and can complete the assessment to improve their evaluation score.`,
+                        icon: 'success',
+                        confirmButtonColor: '#10B981'
+                    });
+                }
+            });
+        }
+        
+        function showTrainingPrograms(employeeId) {
+            // Close the development modal first
+            document.getElementById('developmentModal').style.display = 'none';
+            
+            alert(`Training Programs for Employee ${employeeId}\n\nAvailable Programs:\n• Leadership Development Course\n• Technical Skills Enhancement\n• Communication & Interpersonal Skills\n• Project Management Certification\n• Compliance & Safety Training\n\nNext: This would redirect to training enrollment page.`);
+        }
+        
+        function showMentoringOptions(employeeId) {
+            // Close the development modal first
+            document.getElementById('developmentModal').style.display = 'none';
+            
+            alert(`Mentoring Program for Employee ${employeeId}\n\nProgram Features:\n• Pairing with senior leadership\n• Monthly mentoring sessions\n• Career development planning\n• Goal setting and tracking\n• Knowledge transfer sessions\n\nNext: This would show available mentors and enrollment options.`);
+        }
+        
+        function showProjectAssignments(employeeId) {
+            // Close the development modal first
+            document.getElementById('developmentModal').style.display = 'none';
+            
+            alert(`Special Projects for Employee ${employeeId}\n\nAvailable Assignments:\n• Cross-functional team leadership\n• Process improvement initiatives\n• New technology implementation\n• Client relationship management\n• Training program development\n\nNext: This would show project assignment interface.`);
+        }
+
+        // Add employee to pipeline
+        function addToPipeline() {
+            if (window.currentEmployee) {
+                if (confirm(`Add ${window.currentEmployee.name} to the succession pipeline? This will mark them as ready for leadership development.`)) {
+                    // In real implementation, this would make an API call to update the employee's pipeline status
+                    alert(`${window.currentEmployee.name} has been added to the succession pipeline!\n\nNext Steps:\n• Assigned to leadership development track\n• Scheduled for advanced training\n• Regular progress reviews\n• Mentorship program enrollment`);
+                    closePipelineModal();
+                    // Refresh the page to show updated status
+                    location.reload();
+                }
+            }
+        }
+
+        // View detailed succession profile
+        function viewSuccessionProfile(employeeId) {
+            // In real implementation, this would open a detailed modal or redirect to profile page
+            alert(`Detailed succession profile for Employee ${employeeId} will show:\n\n• Complete assessment history\n• Competency analysis\n• Leadership potential matrix\n• Development recommendations\n• Succession timeline\n• Risk assessment details`);
+        }
+
+        // Add loading states to forms
+        document.addEventListener('DOMContentLoaded', function() {
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function() {
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn && !submitBtn.disabled) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="bx bx-loader-alt animate-spin"></i> Processing...';
+                    }
+                });
+            });
+        });
+
+        // Add CSS animation keyframes
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .animate-spin {
+                animation: spin 1s linear infinite;
+            }
+            
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
 </x-app-layout>

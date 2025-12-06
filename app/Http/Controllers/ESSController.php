@@ -33,6 +33,7 @@ class ESSController extends Controller
     public function lms()
     {
         $user = Auth::user();
+        \Log::info("ESS LMS accessed by user: " . $user->name . " (" . $user->email . ")");
         
         // Get user's training assignments
         $trainingAssignments = $this->getUserTrainingAssignments($user);
@@ -52,23 +53,55 @@ class ESSController extends Controller
     private function getUserTrainingAssignments($user)
     {
         try {
-            // Get employee data from API
-            $employees = $this->employeeApiService->getEmployees();
-            $employeeData = collect($employees)->firstWhere('email', $user->email);
+            // Try multiple approaches to find the user's employee ID
+            $employeeIds = [];
             
-            if (!$employeeData) {
-                \Log::info("No employee data found for email: " . $user->email);
+            // Method 1: Try to get from Employee API by email
+            $employees = $this->employeeApiService->getEmployees();
+            if ($employees) {
+                $employeeData = collect($employees)->firstWhere('email', $user->email);
+                if ($employeeData) {
+                    // Add both API id and employee_id to search list
+                    if (isset($employeeData['id'])) {
+                        $employeeIds[] = $employeeData['id'];
+                    }
+                    if (isset($employeeData['employee_id'])) {
+                        $employeeIds[] = $employeeData['employee_id'];
+                    }
+                }
+            }
+
+            // Method 2: Try to get from users table (if available)
+            $userRecord = DB::table('users')->where('email', $user->email)->first();
+            if ($userRecord && $userRecord->employee_id) {
+                $employeeIds[] = $userRecord->employee_id;
+            }
+
+            // Method 3: Check course_requests table for this user's email
+            $courseRequests = DB::connection('training_management')
+                ->table('course_requests')
+                ->where('employee_email', $user->email)
+                ->pluck('employee_id')
+                ->unique()
+                ->toArray();
+            $employeeIds = array_merge($employeeIds, $courseRequests);
+
+            // Remove duplicates and null values
+            $employeeIds = array_unique(array_filter($employeeIds));
+            
+            \Log::info("Employee IDs found for user {$user->email}: " . implode(', ', $employeeIds));
+
+            if (empty($employeeIds)) {
+                \Log::info("No employee IDs found for email: " . $user->email);
                 return collect([]);
             }
 
-            \Log::info("Employee data found", $employeeData);
-
-            // Get training assignments for this employee using API id (not employee_id)
+            // Get training assignments for this employee using any of the found IDs
             $assignments = DB::connection('training_management')
                 ->table('training_assignment_employees as tae')
                 ->join('training_assignments as ta', 'tae.training_assignment_id', '=', 'ta.id')
                 ->join('training_catalogs as tc', 'ta.training_catalog_id', '=', 'tc.id')
-                ->where('tae.employee_id', $employeeData['id']) // Use API 'id' not 'employee_id'
+                ->whereIn('tae.employee_id', $employeeIds) // Use any of the found employee IDs
                 ->select([
                     'ta.id as assignment_id',
                     'ta.assignment_title',
@@ -119,7 +152,17 @@ class ESSController extends Controller
                     'started_at' => $assignment->started_at,
                     'completed_at' => $assignment->completed_at,
                     'materials' => $materials,
+                    'is_expired' => $assignment->due_date ? now('Asia/Manila')->gt($assignment->due_date) : false,
+                    'is_due_soon' => $assignment->due_date ? now('Asia/Manila')->diffInDays($assignment->due_date, false) <= 3 && now('Asia/Manila')->diffInDays($assignment->due_date, false) >= 0 : false,
+                    'days_until_due' => $assignment->due_date ? now('Asia/Manila')->diffInDays($assignment->due_date, false) : null,
+                    'time_until_due' => $assignment->due_date ? $this->formatTimeUntilDue($assignment->due_date) : null,
                 ];
+            })->filter(function ($assignment) {
+                // Hide courses that are expired (past due date) and not completed
+                if ($assignment['is_expired'] && $assignment['status'] !== 'completed') {
+                    return false;
+                }
+                return true;
             });
 
         } catch (\Exception $e) {
@@ -134,21 +177,75 @@ class ESSController extends Controller
     private function getUserAssessmentAssignments($user)
     {
         try {
-            // Get employee data from API
-            $employees = $this->employeeApiService->getEmployees();
-            $employeeData = collect($employees)->firstWhere('email', $user->email);
+            // Try multiple approaches to find the user's employee ID (same as training assignments)
+            $employeeIds = [];
             
-            if (!$employeeData) {
-                \Log::info("No employee data found for email: " . $user->email);
+            // Method 1: Try to get from Employee API by email
+            $employees = $this->employeeApiService->getEmployees();
+            if ($employees) {
+                $employeeData = collect($employees)->firstWhere('email', $user->email);
+                if ($employeeData) {
+                    // Add both API id and employee_id to search list
+                    if (isset($employeeData['id'])) {
+                        $employeeIds[] = (string)$employeeData['id'];
+                    }
+                    if (isset($employeeData['employee_id'])) {
+                        $employeeIds[] = (string)$employeeData['employee_id'];
+                    }
+                }
+            }
+
+            // Method 2: Try to get from users table (if available)
+            $userRecord = DB::table('users')->where('email', $user->email)->first();
+            if ($userRecord && $userRecord->employee_id) {
+                $employeeIds[] = (string)$userRecord->employee_id;
+            }
+
+            // Remove duplicates and null values
+            $employeeIds = array_unique(array_filter($employeeIds));
+            
+            if (empty($employeeIds)) {
                 return collect([]);
             }
 
-            // Get assessment assignments for this employee using API id as string
-            $assignments = DB::connection('learning_management')
+            // Get assessment assignments for this employee using multiple methods
+            $assignments = collect();
+            
+            // Method 1: Try to find by employee_id
+            if (!empty($employeeIds)) {
+                $assignmentsByIds = DB::connection('learning_management')
+                    ->table('assessment_assignments as aa')
+                    ->leftJoin('assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
+                    ->leftJoin('quizzes as q', 'aa.quiz_id', '=', 'q.id')
+                    ->whereIn('aa.employee_id', $employeeIds)
+                    ->select([
+                        'aa.id',
+                        'aa.due_date',
+                        'aa.status',
+                        'aa.attempts_used',
+                        'aa.max_attempts',
+                        'aa.score',
+                        'aa.started_at',
+                        'aa.completed_at',
+                        'aa.duration',
+                        'aa.quiz_id',
+                        'aa.employee_name',
+                        'aa.employee_email',
+                        'ac.category_name as category_name',
+                        'ac.category_slug as category_slug',
+                        'q.quiz_title as quiz_title'
+                    ])
+                    ->get();
+                
+                $assignments = $assignments->merge($assignmentsByIds);
+            }
+            
+            // Method 2: Try to find by email as fallback
+            $assignmentsByEmail = DB::connection('learning_management')
                 ->table('assessment_assignments as aa')
-                ->join('assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
-                ->join('quizzes as q', 'aa.quiz_id', '=', 'q.id')
-                ->where('aa.employee_id', (string)$employeeData['id']) // Use API 'id' as string
+                ->leftJoin('assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
+                ->leftJoin('quizzes as q', 'aa.quiz_id', '=', 'q.id')
+                ->where('aa.employee_email', $user->email)
                 ->select([
                     'aa.id',
                     'aa.due_date',
@@ -159,14 +256,69 @@ class ESSController extends Controller
                     'aa.started_at',
                     'aa.completed_at',
                     'aa.duration',
-                    'ac.category_name as category_name', // Correct field name
+                    'aa.quiz_id',
+                    'aa.employee_name',
+                    'aa.employee_email',
+                    'ac.category_name as category_name',
                     'ac.category_slug as category_slug',
-                    'q.quiz_title as quiz_title' // Correct field name
+                    'q.quiz_title as quiz_title'
                 ])
                 ->get();
-
-            \Log::info("Assessment assignments found: " . $assignments->count());
-            \Log::info("Assessment assignments data", $assignments->toArray());
+            
+            $assignments = $assignments->merge($assignmentsByEmail);
+            
+            // Method 3: Try to find by name if email doesn't work
+            if ($assignments->isEmpty()) {
+                $assignmentsByName = DB::connection('learning_management')
+                    ->table('assessment_assignments as aa')
+                    ->leftJoin('assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
+                    ->leftJoin('quizzes as q', 'aa.quiz_id', '=', 'q.id')
+                    ->where('aa.employee_name', 'LIKE', '%' . $user->name . '%')
+                    ->select([
+                        'aa.id',
+                        'aa.due_date',
+                        'aa.status',
+                        'aa.attempts_used',
+                        'aa.max_attempts',
+                        'aa.score',
+                        'aa.started_at',
+                        'aa.completed_at',
+                        'aa.duration',
+                        'aa.quiz_id',
+                        'aa.employee_name',
+                        'aa.employee_email',
+                        'ac.category_name as category_name',
+                        'ac.category_slug as category_slug',
+                        'q.quiz_title as quiz_title'
+                    ])
+                    ->get();
+                
+                $assignments = $assignments->merge($assignmentsByName);
+            }
+            
+            // Remove duplicates based on assignment ID
+            $assignments = $assignments->unique('id');
+            
+            // Enhanced debug logging
+            \Log::info("=== ASSESSMENT ASSIGNMENT DEBUG ===");
+            \Log::info("User Details: " . $user->name . " (" . $user->email . ")");
+            \Log::info("Employee IDs found: " . (empty($employeeIds) ? 'NONE' : implode(', ', $employeeIds)));
+            \Log::info("Total assignments found: " . $assignments->count());
+            
+            if ($assignments->count() > 0) {
+                foreach ($assignments as $assignment) {
+                    \Log::info("Found Assignment - ID: {$assignment->id}, Employee: {$assignment->employee_name}, Email: {$assignment->employee_email}, Quiz: {$assignment->quiz_title}, Status: {$assignment->status}");
+                }
+            } else {
+                \Log::info("NO ASSIGNMENTS FOUND - Checking what exists in database...");
+                $allAssignments = DB::connection('learning_management')->table('assessment_assignments')
+                    ->select(['id', 'employee_id', 'employee_name', 'employee_email', 'status'])
+                    ->get();
+                foreach ($allAssignments as $dbAssignment) {
+                    \Log::info("DB Assignment - ID: {$dbAssignment->id}, EmployeeID: {$dbAssignment->employee_id}, Name: {$dbAssignment->employee_name}, Email: {$dbAssignment->employee_email}");
+                }
+            }
+            \Log::info("=== END ASSESSMENT DEBUG ===");
 
             return $assignments->map(function ($assignment) {
                 return [
@@ -187,7 +339,6 @@ class ESSController extends Controller
             });
 
         } catch (\Exception $e) {
-            \Log::error('Error fetching user assessment assignments: ' . $e->getMessage());
             return collect([]);
         }
     }
@@ -234,6 +385,37 @@ class ESSController extends Controller
     }
 
     /**
+     * Format time until due date in a human-readable format
+     */
+    private function formatTimeUntilDue($dueDate)
+    {
+        $now = now('Asia/Manila');
+        $due = \Carbon\Carbon::parse($dueDate)->setTimezone('Asia/Manila');
+        
+        if ($now->gt($due)) {
+            return 'Overdue';
+        }
+        
+        $diff = $now->diff($due);
+        
+        if ($diff->days > 0) {
+            if ($diff->h > 0) {
+                return $diff->days . ' day' . ($diff->days > 1 ? 's' : '') . ' ' . $diff->h . ' hour' . ($diff->h > 1 ? 's' : '');
+            } else {
+                return $diff->days . ' day' . ($diff->days > 1 ? 's' : '');
+            }
+        } elseif ($diff->h > 0) {
+            if ($diff->i > 0) {
+                return $diff->h . ' hour' . ($diff->h > 1 ? 's' : '') . ' ' . $diff->i . ' minute' . ($diff->i > 1 ? 's' : '');
+            } else {
+                return $diff->h . ' hour' . ($diff->h > 1 ? 's' : '');
+            }
+        } else {
+            return $diff->i . ' minute' . ($diff->i > 1 ? 's' : '');
+        }
+    }
+
+    /**
      * Show assessment taking page
      */
     public function takeAssessment($id)
@@ -254,6 +436,7 @@ class ESSController extends Controller
                 'aa.max_attempts',
                 'aa.score',
                 'aa.duration',
+                'aa.started_at',
                 'ac.category_name',
                 'q.quiz_title',
                 'q.id as quiz_id'
@@ -267,6 +450,36 @@ class ESSController extends Controller
         // Check if user can take this assessment
         if ($assessment->attempts_used >= $assessment->max_attempts && $assessment->status !== 'completed') {
             return redirect()->route('ess.lms')->with('error', 'Maximum attempts reached for this assessment.');
+        }
+
+        // Calculate remaining time
+        $remainingSeconds = 0;
+        if ($assessment->duration) {
+            $now = now();
+            
+            if ($assessment->started_at) {
+                // Assessment already started - calculate remaining time
+                $startedAt = \Carbon\Carbon::parse($assessment->started_at);
+                $totalDurationSeconds = (int) ($assessment->duration * 60);
+                $elapsedSeconds = (int) $startedAt->diffInSeconds($now);
+                $remainingSeconds = max(0, $totalDurationSeconds - $elapsedSeconds);
+                
+                // If time has expired, auto-submit or redirect
+                if ($remainingSeconds <= 0) {
+                    return redirect()->route('ess.lms')->with('error', 'Time has expired for this assessment.');
+                }
+            } else {
+                // First time accessing - set started_at and use full duration
+                DB::connection('learning_management')
+                    ->table('assessment_assignments')
+                    ->where('id', $id)
+                    ->update([
+                        'started_at' => $now,
+                        'status' => 'in_progress'
+                    ]);
+                
+                $remainingSeconds = (int) ($assessment->duration * 60);
+            }
         }
 
         // Get quiz questions directly from quiz_questions table
@@ -283,7 +496,7 @@ class ESSController extends Controller
             ->orderBy('question_order')
             ->get();
 
-        return view('ess.take-assessment', compact('assessment', 'questions'));
+        return view('ess.take-assessment', compact('assessment', 'questions', 'remainingSeconds'));
     }
 
     /**

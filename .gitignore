@@ -42,3 +42,10 @@ Thumbs.db
 Homestead.json
 Homestead.yaml
 /.vagrant
+
+# Test and debug files
+check_*.php
+debug_*.php
+fix_*.php
+test_*.php
+test-*.html

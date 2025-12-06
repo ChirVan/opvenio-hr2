@@ -81,6 +81,7 @@ class AssessmentAssignmentController extends Controller
 
     /**
      * Store a newly created assessment assignment.
+     * Handles multiple quiz assignments at once.
      */
     public function store(StoreAssessmentAssignmentRequest $request): RedirectResponse
     {
@@ -95,42 +96,74 @@ class AssessmentAssignmentController extends Controller
                             ->withInput();
             }
 
-            // Get quiz details for additional validation
-            $quiz = Quiz::on('learning_management')->with('category')->findOrFail($request->quiz_id);
+            $quizIds = $request->quiz_ids;
+            $categoryIds = $request->category_ids;
+            $createdAssignments = [];
+            
+            // Determine assignment source and build notes
+            $source = $request->input('source', 'self_request');
+            $baseNotes = $request->notes ?? '';
+            
+            // Add source identifier to notes for proper assignment type detection
+            if ($source === 'gap_analysis') {
+                $sourceNote = '[Source: Competency Gap Analysis - Skill Gap Requirement]';
+            } else {
+                $sourceNote = '[Source: Self Assessment Request]';
+            }
+            
+            // Combine source note with user notes
+            $finalNotes = trim($sourceNote . ($baseNotes ? "\n\n" . $baseNotes : ''));
 
-            // Create the assessment assignment
-            $assignment = AssessmentAssignment::create([
-                'assessment_category_id' => $request->assessment_category,
-                'quiz_id' => $request->quiz_id,
-                'employee_id' => $request->employee_id,
-                'employee_name' => $employeeDetails['full_name'] ?? 'Unknown',
-                'employee_email' => $employeeDetails['email'] ?? null,
-                'duration' => $request->duration,
-                'start_date' => $request->start_date,
-                'due_date' => $request->due_date,
-                'max_attempts' => $request->max_attempts,
-                'notes' => $request->notes,
-                'assignment_metadata' => [
-                    'employee_details' => $employeeDetails,
-                    'quiz_details' => [
-                        'title' => $quiz->quiz_title,
-                        'category' => $quiz->category->category_name,
-                        'total_questions' => $quiz->total_questions,
-                        'total_points' => $quiz->total_points,
+            // Create an assignment for each selected quiz
+            foreach ($quizIds as $index => $quizId) {
+                $categoryId = $categoryIds[$index] ?? null;
+                
+                // Get quiz details
+                $quiz = Quiz::on('learning_management')->with('category')->findOrFail($quizId);
+
+                // Create the assessment assignment
+                $assignment = AssessmentAssignment::create([
+                    'assessment_category_id' => $categoryId ?? $quiz->category_id,
+                    'quiz_id' => $quizId,
+                    'employee_id' => $request->employee_id,
+                    'employee_name' => $employeeDetails['full_name'] ?? 'Unknown',
+                    'employee_email' => $employeeDetails['email'] ?? null,
+                    'duration' => $quiz->time_limit ?? 60, // Use quiz's time limit or default 60 min
+                    'start_date' => $request->start_date,
+                    'due_date' => $request->due_date,
+                    'max_attempts' => $request->max_attempts,
+                    'notes' => $finalNotes,
+                    'assignment_metadata' => [
+                        'employee_details' => $employeeDetails,
+                        'quiz_details' => [
+                            'title' => $quiz->quiz_title,
+                            'category' => $quiz->category->category_name ?? 'Unknown',
+                            'total_questions' => $quiz->total_questions,
+                            'total_points' => $quiz->total_points,
+                        ],
+                        'assigned_at' => now()->toISOString(),
+                        'batch_assignment' => count($quizIds) > 1,
+                        'assignment_source' => $source, // Store source in metadata too
                     ],
-                    'assigned_at' => now()->toISOString(),
-                ],
-                'assigned_by' => Auth::id(),
-                'status' => 'pending'
-            ]);
+                    'assigned_by' => Auth::id(),
+                    'status' => 'pending'
+                ]);
+
+                $createdAssignments[] = $assignment;
+            }
 
             DB::connection('learning_management')->commit();
 
             // TODO: Send notification email to employee
-            // $this->sendAssignmentNotification($assignment);
+            // $this->sendAssignmentNotification($createdAssignments);
+
+            $assignmentCount = count($createdAssignments);
+            $message = $assignmentCount === 1 
+                ? "Assessment successfully assigned to {$employeeDetails['full_name']}"
+                : "{$assignmentCount} assessments successfully assigned to {$employeeDetails['full_name']}";
 
             return redirect()->route('learning.hub')
-                           ->with('success', 'Assessment successfully assigned to ' . $employeeDetails['full_name']);
+                           ->with('success', $message);
 
         } catch (\Exception $e) {
             DB::connection('learning_management')->rollBack();
@@ -308,5 +341,115 @@ class AssessmentAssignmentController extends Controller
     {
         // This would typically send an email notification to the employee
         // Implementation depends on your notification system
+    }
+
+    /**
+     * Auto-reassign failed assessments to give employee another attempt.
+     * Instead of creating new assignments, reset the existing one and increment attempt counter.
+     */
+    public function reassign(Request $request): RedirectResponse
+    {
+        try {
+            $employeeId = $request->employee_id;
+            $resultIds = $request->result_ids ? explode(',', $request->result_ids) : [];
+
+            if (empty($employeeId)) {
+                return redirect()->route('assessment.results')
+                    ->with('error', 'Employee ID is required for reassignment.');
+            }
+
+            // Get the failed assessment results for this employee
+            $failedResults = DB::connection('ess')
+                ->table('assessment_results')
+                ->where('employee_id', $employeeId)
+                ->where('evaluation_status', 'failed');
+
+            // If specific result IDs provided, filter by them
+            if (!empty($resultIds)) {
+                $failedResults->whereIn('id', $resultIds);
+            }
+
+            $failedResults = $failedResults->get();
+
+            if ($failedResults->isEmpty()) {
+                return redirect()->route('assessment.results')
+                    ->with('error', 'No failed assessments found for this employee.');
+            }
+
+            DB::connection('learning_management')->beginTransaction();
+            DB::connection('ess')->beginTransaction();
+
+            $updatedAssignments = 0;
+            $employeeName = '';
+
+            foreach ($failedResults as $result) {
+                // Get the original assignment details
+                $originalAssignment = AssessmentAssignment::on('learning_management')
+                    ->with(['quiz', 'assessmentCategory'])
+                    ->find($result->assignment_id);
+
+                if (!$originalAssignment) {
+                    continue;
+                }
+
+                $employeeName = $originalAssignment->employee_name;
+
+                // Check if max attempts reached
+                $currentAttempts = $originalAssignment->attempts_used ?? 0;
+                $maxAttempts = $originalAssignment->max_attempts ?? 3;
+
+                if ($currentAttempts >= $maxAttempts) {
+                    continue; // Skip if max attempts already reached
+                }
+
+                // Update the existing assignment to allow another attempt
+                $originalAssignment->update([
+                    'status' => 'pending', // Reset status to pending
+                    'started_at' => null, // Clear so timer resets on new attempt
+                    'completed_at' => null, // Clear completion timestamp
+                    'due_date' => now()->addDays(7), // Give 7 days to complete
+                    'notes' => ($originalAssignment->notes ?? '') . "\n[Retry allowed on " . now()->format('M d, Y') . " - Previous attempt failed with score: " . ($result->score ?? 0) . "%]",
+                    'updated_at' => now()
+                ]);
+
+                // Mark the old result as a previous attempt (keep for history)
+                DB::connection('ess')
+                    ->table('assessment_results')
+                    ->where('id', $result->id)
+                    ->update([
+                        'status' => 'retried', // Mark as retried so it's not shown as active
+                        'updated_at' => now()
+                    ]);
+
+                $updatedAssignments++;
+            }
+
+            DB::connection('learning_management')->commit();
+            DB::connection('ess')->commit();
+
+            if ($updatedAssignments === 0) {
+                return redirect()->route('assessment.results')
+                    ->with('error', 'No assessments could be reassigned. Max attempts may have been reached.');
+            }
+
+            $message = $updatedAssignments === 1 
+                ? "Reassessment successfully assigned to {$employeeName}. They have 7 days to complete."
+                : "{$updatedAssignments} reassessments successfully assigned to {$employeeName}. They have 7 days to complete.";
+
+            return redirect()->route('assessment.results')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::connection('learning_management')->rollBack();
+            DB::connection('ess')->rollBack();
+            
+            \Log::error('Assessment reassignment failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request_data' => $request->all()
+            ]);
+            
+            return redirect()->route('assessment.results')
+                ->with('error', 'Failed to reassign assessment. Please try again.');
+        }
     }
 }

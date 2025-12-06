@@ -74,6 +74,149 @@
                 </div>
             @endif
 
+            <!-- Employee Assessment Integration -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Employee Assessment Integration</h3>
+                        <p class="text-sm text-gray-600">Sync employee data and manage competency assessments</p>
+                    </div>
+                    <button onclick="syncEmployees()" 
+                            class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow transition-all duration-200">
+                        <i class='bx bx-sync mr-2'></i>
+                        Sync Employees
+                    </button>
+                </div>
+
+                <!-- Employee Stats Dashboard -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class='bx bx-user text-2xl text-blue-600'></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-blue-800">Total Employees</p>
+                                <p class="text-2xl font-bold text-blue-900" id="totalEmployees">
+                                    {{ $apiStatus ? count($apiStatus) : 0 }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class='bx bx-check-circle text-2xl text-green-600'></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-green-800">Assessed</p>
+                                <p class="text-2xl font-bold text-green-900" id="assessedEmployees">
+                                    {{ $gapAnalyses->unique('employee_id_display')->count() }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-200">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class='bx bx-time text-2xl text-yellow-600'></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-yellow-800">Pending</p>
+                                <p class="text-2xl font-bold text-yellow-900" id="pendingEmployees">
+                                    {{ $apiStatus ? count($apiStatus) - $gapAnalyses->unique('employee_id_display')->count() : 0 }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-200">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class='bx bx-trending-up text-2xl text-purple-600'></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-purple-800">Coverage</p>
+                                <p class="text-2xl font-bold text-purple-900" id="coveragePercentage">
+                                    {{ $apiStatus && count($apiStatus) > 0 ? round(($gapAnalyses->unique('employee_id_display')->count() / count($apiStatus)) * 100) : 0 }}%
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Imports & Quick Actions -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Recent Employee Imports -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="text-sm font-semibold text-gray-900 mb-3">Recent Employee Imports</h4>
+                        <div class="space-y-2" id="recentImports">
+                            <div class="text-xs text-gray-500">No recent imports available</div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Assessment Creation -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="text-sm font-semibold text-gray-900 mb-3">Quick Assessment</h4>
+                        <form id="quickAssessmentForm" class="space-y-3">
+                            @csrf
+                            <div class="grid grid-cols-2 gap-3">
+                                <select name="employee_id" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <option value="">Select Employee</option>
+                                    @if($apiStatus)
+                                        @foreach($apiStatus as $employee)
+                                            <option value="{{ $employee['employee_id'] }}">
+                                                {{ $employee['full_name'] }} ({{ $employee['employee_id'] }})
+                                            </option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <select name="competency_id" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <option value="">Select Competency</option>
+                                    <!-- This would be populated from competencies table -->
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <select name="proficiency_level" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <option value="">Proficiency Level</option>
+                                    <option value="1">Basic</option>
+                                    <option value="2">Intermediate</option>
+                                    <option value="3">Expert</option>
+                                </select>
+                                <button type="submit" 
+                                        class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors">
+                                    <i class='bx bx-plus mr-1'></i> Add Assessment
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Role-Based Gap Analysis Banner -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class='bx bx-target-lock text-2xl text-blue-600'></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-semibold text-blue-800">New! Role-Based Gap Analysis Available</h3>
+                            <p class="text-xs text-blue-700">Compare employee skills against role requirements automatically. More accurate than manual assessments.</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <a href="{{ route('competency.gap-analysis') }}" 
+                           class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow transition-all duration-200">
+                            <i class='bx bx-chart-pie mr-2'></i>
+                            Try Role-Based Analysis
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Action Bar -->
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
   <form method="GET" action="{{ route('competency.gapanalysis') }}" class="flex flex-wrap items-center justify-between gap-4">
@@ -316,6 +459,146 @@
                         }
                     });
                 });
+            });
+        });
+
+        // Employee Sync Functionality
+        function syncEmployees() {
+            const syncButton = document.querySelector('button[onclick="syncEmployees()"]');
+            const originalText = syncButton.innerHTML;
+            
+            // Show loading state
+            syncButton.disabled = true;
+            syncButton.innerHTML = '<i class="bx bx-loader-alt bx-spin mr-2"></i> Syncing...';
+            
+            // Make AJAX request to sync employees
+            fetch('/competency/employees/sync', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Sync Complete!',
+                        text: `Successfully synced ${data.count} employees from API`,
+                        icon: 'success',
+                        confirmButtonColor: '#10b981'
+                    }).then(() => {
+                        updateEmployeeStats(data);
+                        updateRecentImports(data.recent_imports);
+                    });
+                } else {
+                    throw new Error(data.message || 'Sync failed');
+                }
+            })
+            .catch(error => {
+                console.error('Sync error:', error);
+                Swal.fire({
+                    title: 'Sync Failed',
+                    text: 'Unable to sync employee data. Please try again.',
+                    icon: 'error',
+                    confirmButtonColor: '#ef4444'
+                });
+            })
+            .finally(() => {
+                // Reset button state
+                syncButton.disabled = false;
+                syncButton.innerHTML = originalText;
+            });
+        }
+
+        // Update employee statistics on page
+        function updateEmployeeStats(data) {
+            if (data.stats) {
+                document.getElementById('totalEmployees').textContent = data.stats.total || 0;
+                document.getElementById('assessedEmployees').textContent = data.stats.assessed || 0;
+                document.getElementById('pendingEmployees').textContent = data.stats.pending || 0;
+                document.getElementById('coveragePercentage').textContent = (data.stats.coverage || 0) + '%';
+            }
+        }
+
+        // Update recent imports list
+        function updateRecentImports(imports) {
+            const importsContainer = document.getElementById('recentImports');
+            if (imports && imports.length > 0) {
+                importsContainer.innerHTML = imports.map(item => 
+                    `<div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-700">${item.name} (${item.employee_id})</span>
+                        <span class="text-gray-500">${item.imported_at}</span>
+                    </div>`
+                ).join('');
+            } else {
+                importsContainer.innerHTML = '<div class="text-xs text-gray-500">No recent imports available</div>';
+            }
+        }
+
+        // Quick Assessment Form Handler
+        document.getElementById('quickAssessmentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            
+            // Validate form
+            if (!formData.get('employee_id') || !formData.get('competency_id') || !formData.get('proficiency_level')) {
+                Swal.fire({
+                    title: 'Missing Information',
+                    text: 'Please fill in all fields before submitting.',
+                    icon: 'warning',
+                    confirmButtonColor: '#f59e0b'
+                });
+                return;
+            }
+            
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="bx bx-loader-alt bx-spin mr-1"></i> Adding...';
+            
+            // Make AJAX request to create assessment
+            fetch('/competency/assessments/quick-create', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Assessment Added!',
+                        text: 'Competency assessment has been successfully created.',
+                        icon: 'success',
+                        confirmButtonColor: '#10b981'
+                    }).then(() => {
+                        // Reset form and refresh page
+                        this.reset();
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to create assessment');
+                }
+            })
+            .catch(error => {
+                console.error('Assessment creation error:', error);
+                Swal.fire({
+                    title: 'Creation Failed',
+                    text: 'Unable to create assessment. Please try again.',
+                    icon: 'error',
+                    confirmButtonColor: '#ef4444'
+                });
+            })
+            .finally(() => {
+                // Reset button state
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
             });
         });
 

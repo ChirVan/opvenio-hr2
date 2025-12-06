@@ -33,6 +33,8 @@
                         <option value="Cashier" {{ old('role_name') == 'cashier' ? 'selected' : '' }}>Cashier</option>
                         <option value="Book keeper" {{ old('role_name') == 'bookkeeper' ? 'selected' : '' }}>Book Keeper</option>
                         <option value="Treasurer" {{ old('role_name') == 'treasurer' ? 'selected' : '' }}>Treasurer</option>
+                        <option value="Payroll Specialist" {{ old('role_name') == 'payroll_pecialist' ? 'selected' : '' }}>Payroll Specialist</option>
+                        <option value="HR Officer" {{ old('role_name') == 'hr_officer' ? 'selected' : '' }}>HR Officer</option>
                     </select>
                 </div>
 

@@ -36,9 +36,8 @@
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Email</th>
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Current Job</th>
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Potential Job</th>
-								
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
-
+									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider no-print">Action</th>
 								</tr>
 							</thead>
 							<tbody class="bg-white divide-y divide-gray-100">
@@ -48,18 +47,42 @@
 										<td class="px-6 py-4 whitespace-nowrap text-gray-900 font-semibold">{{ $promotion->employee_name }}</td>
 										<td class="px-6 py-4 whitespace-nowrap text-gray-700"><span class="inline-flex items-center gap-2"><i class='bx bx-envelope text-green-600'></i>{{ $promotion->employee_email }}</span></td>
 										<td class="px-6 py-4 whitespace-nowrap text-gray-700">{{ $promotion->job_title }}</td>
-										<td class="px-6 py-4 whitespace-nowrap text-gray-700">{{ $promotion->potential_job }}</td>
-									
+										<td class="px-6 py-4 whitespace-nowrap text-gray-700 font-semibold text-green-700">{{ $promotion->potential_job }}</td>
 										<td class="px-6 py-4 whitespace-nowrap">
-											<span class="inline-block px-3 py-1 rounded-full text-xs font-bold {{ $promotion->status == 'approved' ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-												{{ ucfirst($promotion->status) }}
-											</span>
+											@if($promotion->status == 'promoted')
+												<span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-blue-200 text-blue-800">
+													<i class='bx bx-check-double mr-1'></i>Promoted
+												</span>
+											@elseif($promotion->status == 'approved')
+												<span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-green-200 text-green-800">
+													<i class='bx bx-check mr-1'></i>Approved
+												</span>
+											@else
+												<span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">
+													{{ ucfirst($promotion->status) }}
+												</span>
+											@endif
 										</td>
-
+										<td class="px-6 py-4 whitespace-nowrap no-print">
+											@if($promotion->status == 'promoted')
+												<span class="inline-flex items-center px-3 py-1 text-xs text-gray-500">
+													<i class='bx bx-check-circle text-blue-500 mr-1'></i> Completed
+												</span>
+											@elseif($promotion->status == 'approved')
+												<button 
+													onclick="executePromotion({{ $promotion->id }}, '{{ $promotion->employee_name }}', '{{ $promotion->potential_job }}')"
+													class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-semibold text-xs shadow-md transition-all duration-200 flex items-center gap-2"
+												>
+													<i class='bx bx-rocket'></i> Execute Promotion
+												</button>
+											@else
+												<span class="text-xs text-gray-400">Pending approval</span>
+											@endif
+										</td>
 									</tr>
 								@empty
 									<tr>
-										<td colspan="8" class="px-6 py-4 text-center text-gray-500">No promotions found.</td>
+										<td colspan="7" class="px-6 py-4 text-center text-gray-500">No promotions found.</td>
 									</tr>
 								@endforelse
 							</tbody>
@@ -70,7 +93,94 @@
 		
 	</div>
 
+	<!-- SweetAlert2 CDN -->
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	
+	<script>
+		function executePromotion(promotionId, employeeName, newJobTitle) {
+			Swal.fire({
+				title: 'Execute Promotion',
+				html: `
+					<div class="text-left">
+						<p class="text-gray-600 mb-4">Are you sure you want to promote <strong>${employeeName}</strong> to <strong>${newJobTitle}</strong>?</p>
+						<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+							<p class="text-sm text-yellow-700">
+								<i class="bx bx-info-circle mr-1"></i>
+								This action will update the employee's job title in the HR system and cannot be undone.
+							</p>
+						</div>
+						<div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+							<p class="text-sm text-blue-700">
+								<strong>New Position:</strong> ${newJobTitle}
+							</p>
+						</div>
+					</div>
+				`,
+				icon: 'question',
+				showCancelButton: true,
+				confirmButtonText: '<i class="bx bx-rocket mr-1"></i> Execute Promotion',
+				confirmButtonColor: '#7C3AED',
+				cancelButtonText: 'Cancel',
+				showLoaderOnConfirm: true,
+				preConfirm: async () => {
+					try {
+						const response = await fetch(`/succession-planning/promotion/${promotionId}/execute`, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+								'Accept': 'application/json'
+							}
+						});
+						
+						const data = await response.json();
+						
+						if (!data.success) {
+							throw new Error(data.message || 'Failed to execute promotion');
+						}
+						
+						return data;
+					} catch (error) {
+						Swal.showValidationMessage(`Error: ${error.message}`);
+					}
+				},
+				allowOutsideClick: () => !Swal.isLoading()
+			}).then((result) => {
+				if (result.isConfirmed && result.value) {
+					Swal.fire({
+						title: 'Promotion Successful!',
+						html: `
+							<div class="text-left">
+								<p class="text-gray-600 mb-3">${result.value.message}</p>
+								<div class="bg-green-50 border border-green-200 rounded-lg p-4">
+									<div class="flex items-center mb-2">
+										<i class="bx bx-check-circle text-green-500 text-2xl mr-2"></i>
+										<span class="font-semibold text-green-800">Job Title Updated</span>
+									</div>
+									<p class="text-sm text-green-700">
+										<strong>${result.value.data.employee_name}</strong> has been promoted from 
+										<span class="line-through text-gray-500">${result.value.data.old_job_title}</span> 
+										to <strong class="text-green-600">${result.value.data.new_job_title}</strong>
+									</p>
+								</div>
+							</div>
+						`,
+						icon: 'success',
+						confirmButtonText: 'Great!',
+						confirmButtonColor: '#10B981'
+					}).then(() => {
+						// Reload page to reflect changes
+						location.reload();
+					});
+				}
+			});
+		}
+	</script>
+
 	<style>
+		.no-print {
+			/* Action column visible normally */
+		}
 		@media print {
 			.print-area {
 				width: 100vw !important;
@@ -89,6 +199,9 @@
 				white-space: normal !important;
 				word-break: break-word !important;
 				padding: 8px !important;
+			}
+			.no-print {
+				display: none !important;
 			}
 		}
 		@media print {
@@ -117,7 +230,8 @@
 			}
 			.print-area .flex.justify-end,
 			.print-area .alert,
-			.print-area .export-btn {
+			.print-area .export-btn,
+			.print-area .no-print {
 				display: none !important;
 			}
 		}
@@ -150,42 +264,3 @@
 		}
 	</style>
 </x-app-layout>
-@php
-	$promotions = \App\Modules\succession_planning\Models\Promotion::all();
-@endphp
-
-<div class="container mt-4">
-	<h2>Successors (Promotions)</h2>
-	<table class="table table-bordered table-striped mt-3">
-		<thead>
-			<tr>
-				<th>ID</th>
-				<th>Employee Name</th>
-				<th>Email</th>
-				<th>Current Job</th>
-				<th>Potential Job</th>
-				<th>Score</th>
-				<th>Category</th>
-				<th>Status</th>
-			</tr>
-		</thead>
-		<tbody>
-			@forelse ($promotions as $promotion)
-				<tr>
-					<td>{{ $promotion->id }}</td>
-					<td>{{ $promotion->employee_name }}</td>
-					<td>{{ $promotion->employee_email }}</td>
-					<td>{{ $promotion->job_title }}</td>
-					<td>{{ $promotion->potential_job }}</td>
-					<td>{{ $promotion->assessment_score }}</td>
-					<td>{{ $promotion->category }}</td>
-					<td>{{ $promotion->status }}</td>
-				</tr>
-			@empty
-				<tr>
-					<td colspan="8" class="text-center">No promotions found.</td>
-				</tr>
-			@endforelse
-		</tbody>
-	</table>
-</div>
