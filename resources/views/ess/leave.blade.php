@@ -128,23 +128,9 @@
                                     </tr>
                                 </thead>
                                 <tbody id="leaveHistory">
+                                    <!-- Leave history will be loaded from database -->
                                     <tr>
-                                        <td>Vacation</td>
-                                        <td>Oct 21 - Oct 23, 2025</td>
-                                        <td><span class="badge bg-warning text-dark">Pending</span></td>
-                                        <td>Awaiting approval</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Sick</td>
-                                        <td>Oct 10, 2025</td>
-                                        <td><span class="badge bg-success">Approved</span></td>
-                                        <td>Take care!</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Personal</td>
-                                        <td>Sept 15, 2025</td>
-                                        <td><span class="badge bg-danger">Rejected</span></td>
-                                        <td>Exceeded limit</td>
+                                        <td colspan="4" class="text-center text-muted">Loading...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -159,7 +145,62 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        document.getElementById('leaveForm').addEventListener('submit', function(e) {
+        // Load leave history on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLeaveHistory();
+        });
+
+        // Fetch and display leave history from database
+        async function loadLeaveHistory() {
+            try {
+                const userEmail = '{{ Auth::user()->email ?? "" }}';
+                const response = await fetch(`/api/leaves?employee_email=${encodeURIComponent(userEmail)}`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    const tbody = document.getElementById('leaveHistory');
+                    tbody.innerHTML = '';
+
+                    result.data.forEach(leave => {
+                        const startDate = new Date(leave.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const endDate = new Date(leave.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        
+                        let statusBadge = '';
+                        switch(leave.status) {
+                            case 'approved':
+                                statusBadge = '<span class="badge bg-success">Approved</span>';
+                                break;
+                            case 'rejected':
+                                statusBadge = '<span class="badge bg-danger">Rejected</span>';
+                                break;
+                            default:
+                                statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+                        }
+
+                        const row = `
+                            <tr>
+                                <td>${leave.leave_type}</td>
+                                <td>${startDate} - ${endDate}</td>
+                                <td>${statusBadge}</td>
+                                <td>${leave.remarks || leave.reason}</td>
+                            </tr>
+                        `;
+                        tbody.insertAdjacentHTML('beforeend', row);
+                    });
+                } else {
+                    document.getElementById('leaveHistory').innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No leave requests found</td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading leave history:', error);
+            }
+        }
+
+        // Submit leave request to API
+        document.getElementById('leaveForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const type = document.getElementById('leaveType').value;
@@ -172,19 +213,44 @@
                 return;
             }
 
-            const newRow = `
-                <tr>
-                    <td>${type}</td>
-                    <td>${new Date(start).toLocaleDateString()} - ${new Date(end).toLocaleDateString()}</td>
-                    <td><span class="badge bg-warning text-dark">Pending</span></td>
-                    <td>${reason}</td>
-                </tr>
-            `;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin me-1"></i>Submitting...';
 
-            document.getElementById('leaveHistory').insertAdjacentHTML('afterbegin', newRow);
-            this.reset();
+            try {
+                const response = await fetch('/api/leaves', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        employee_id: '{{ Auth::user()->employee_id ?? Auth::user()->id }}',
+                        employee_name: '{{ Auth::user()->name ?? "Unknown" }}',
+                        employee_email: '{{ Auth::user()->email ?? "" }}',
+                        leave_type: type,
+                        start_date: start,
+                        end_date: end,
+                        reason: reason
+                    })
+                });
 
-            alert('✅ Leave request submitted successfully!');
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Leave request submitted successfully!');
+                    this.reset();
+                    loadLeaveHistory(); // Reload the table from database
+                } else {
+                    alert('❌ Failed to submit leave request: ' + (result.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error submitting leave:', error);
+                alert('❌ An error occurred while submitting your leave request.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bx bx-send me-1"></i>Submit Request';
+            }
         });
     </script>
 </body>
