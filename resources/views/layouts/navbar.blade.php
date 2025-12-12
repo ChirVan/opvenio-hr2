@@ -37,7 +37,7 @@
 
                 <a href="{{ route('profile.show') }}#two-factor" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-black">
                     <i class="bx bx-cog"></i>
-                    <span>Security Settings</span>
+                    <span>Settings</span>
                 </a>
                 <a href="{{ route('audit.logs') }}" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-black">
                     <i class="bx bx-history"></i>
@@ -48,7 +48,7 @@
                     @csrf
                     <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-black">
                         <i class="bx bx-power-off"></i>
-                        <span>Logout</span>
+                        <span>Log out</span>
                     </button>
                 </form>
             </div>
