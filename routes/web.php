@@ -88,7 +88,12 @@ Route::middleware('auth')->group(function () {
         $identifiedSuccessors = DB::connection('succession_planning')->table('promotions')->count();
 
         // Fetch approved employees for potential successors table
-        $results = DB::connection('ess')->table('assessment_results')->where('status', 'passed')->get();
+        $results = DB::connection('ess')
+            ->table('assessment_results')
+            ->where('status', 'passed')
+            ->orderBy('evaluated_at', 'desc') // ensure latest is first in group
+            ->get();
+
         $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
             ->get('https://hr4.microfinancial-1.com/allemployees');
         $employeesApi = $apiResponse->json();
@@ -102,15 +107,21 @@ Route::middleware('auth')->group(function () {
             ->mapWithKeys(function ($employee) {
                 return [trim((string)$employee['employee_id']) => $employee];
             });
-        $approvedEmployees = $results->map(function ($item) use ($employeeMap) {
-            $details = $employeeMap->get(trim((string)$item->employee_id));
-            return (object) array(
-                'employee_id' => $item->employee_id,
-                'full_name' => isset($details['full_name']) ? $details['full_name'] : '-',
-                'job_title' => isset($details['job_title']) ? $details['job_title'] : '-',
-                'status' => $item->status,
-            );
-        });
+        
+            $approvedEmployees = $results
+            ->groupBy('employee_id')
+            ->map(function ($group, $employeeId) use ($employeeMap) {
+                $item = $group->first(); // latest for this employee
+                $details = $employeeMap->get(trim((string)$employeeId));
+                return (object) [
+                    'employee_id' => $employeeId,
+                    'full_name'   => $details['full_name'] ?? '-',
+                    'job_title'   => $details['job_title'] ?? '-',
+                    'status'      => $item->status,
+                ];
+            })
+            ->values();
+            
         $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
 
         return view('dashboard', compact(
