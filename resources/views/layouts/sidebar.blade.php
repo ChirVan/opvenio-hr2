@@ -9,7 +9,7 @@
     // Server-side active detection for succession planning submenu
     $isSuccessionOpen = request()->routeIs('succession.*');
 @endphp
-<aside id="sidebar" class="fixed left-0 shadow-card p-4 z-40 overflow-y-auto active" 
+<aside id="sidebar" class="fixed left-0 shadow-card z-40 overflow-y-auto active" 
        style="background: var(--color-primary); 
               border-color: var(--color-primary); 
               top: var(--navbar-height); 
@@ -153,7 +153,7 @@
     /* Responsive adjustments */
     @media (max-width: 768px) {
         #sidebar {
-            width: 280px; /* Slightly wider on mobile */
+            width: 200px; /* Slightly wider on mobile */
         }
     }
 
@@ -191,24 +191,24 @@
         }
         
         // Competency dropdown elements
-    const competencyToggle = document.getElementById('competencyToggle');
-    const competencyMenu = document.getElementById('competencyMenu');
-    const competencyChevron = document.getElementById('competencyChevron');
+        const competencyToggle = document.getElementById('competencyToggle');
+        const competencyMenu = document.getElementById('competencyMenu');
+        const competencyChevron = document.getElementById('competencyChevron');
         
         // Training dropdown elements
-    const trainingToggle = document.getElementById('trainingToggle');
-    const trainingMenu = document.getElementById('trainingMenu');
-    const trainingChevron = document.getElementById('trainingChevron');
+        const trainingToggle = document.getElementById('trainingToggle');
+        const trainingMenu = document.getElementById('trainingMenu');
+        const trainingChevron = document.getElementById('trainingChevron');
         
         // Learning dropdown elements
-    const learningToggle = document.getElementById('learningToggle');
-    const learningMenu = document.getElementById('learningMenu');
-    const learningChevron = document.getElementById('learningChevron');
+        const learningToggle = document.getElementById('learningToggle');
+        const learningMenu = document.getElementById('learningMenu');
+        const learningChevron = document.getElementById('learningChevron');
         
         // Succession Planning dropdown elements
-    const successionToggle = document.getElementById('successionToggle');
-    const successionMenu = document.getElementById('successionMenu');
-    const successionChevron = document.getElementById('successionChevron');
+        const successionToggle = document.getElementById('successionToggle');
+        const successionMenu = document.getElementById('successionMenu');
+        const successionChevron = document.getElementById('successionChevron');
         
         // Optional: Add keyboard navigation
         document.addEventListener('keydown', function(e) {
