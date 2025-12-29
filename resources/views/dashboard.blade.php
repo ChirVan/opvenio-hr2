@@ -28,7 +28,16 @@
         <!-- Dashboard Header -->
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+
             <p class="text-gray-600 mt-1">Welcome back! Here's what's happening with your HR system.</p>
+
+            {{-- Sync with HR4 Button --}}
+            <form id="syncForm" method="POST" action="javascript:void(0);">
+                @csrf
+                <button id="syncBtn" type="button" class="px-4 py-2 bg-indigo-600 text-white rounded">
+                    🔄 Sync Employees (HR4)
+                </button>
+            </form>
         </div>
 
         <!-- Dashboard Grid -->
@@ -163,4 +172,60 @@
             </div>
         </div>
     </div>
+<script>
+document.getElementById('syncBtn').addEventListener('click', async () => {
+    if (!confirm('Sync employees from HR4? This will update/create accounts.')) return;
+
+    // Use AbortController to guard against calls hanging
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000); // 25s client-side timeout
+
+    try {
+        const res = await fetch('/api/ess/syncdb', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}' // include if using session auth
+            },
+            signal: controller.signal,
+        });
+
+        clearTimeout(timeout);
+
+        if (!res.ok) {
+            const text = await res.text();
+            alert('Sync failed: ' + res.status + '\\n' + text);
+            window.location.href = '/dashboard';
+            return;
+        }
+
+        const data = await res.json();
+
+        if (!data.success) {
+            alert('Sync failed: ' + (data.message || 'Unknown error'));
+            window.location.href = '/dashboard';
+            return;
+        }
+
+        // Build a simple summary message
+        let msg = 'Sync finished.\\n';
+        if (data.no_changes) {
+            msg += 'No changes — database already synchronized.\\n';
+        } else {
+            msg += `Created: ${data.created || 0}\\nUpdated: ${data.updated || 0}\\nSkipped: ${data.skipped || 0}\\nErrors: ${data.errors || 0}\\n`;
+        }
+
+        alert(msg);
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            alert('Sync timed out (client). Please try again.');
+        } else {
+            alert('Sync error: ' + (err.message || 'Unknown error'));
+        }
+    } finally {
+        // Always go back to dashboard after alert
+        window.location.href = '/dashboard';
+    }
+});
+</script>
 </x-app-layout>
