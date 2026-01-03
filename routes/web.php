@@ -18,6 +18,9 @@ use App\Modules\training_management\Controllers\TrainingMaterialController;
 use App\Modules\training_management\Controllers\GrantRequestController;
 use App\Http\Controllers\Auth\TwoFactorController;
 
+// PRISM TEST ROUTE -天使
+Route::get('/prism/test', [\App\Http\Controllers\PrismTestController::class, 'quickTest']);
+
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect()->route('dashboard');

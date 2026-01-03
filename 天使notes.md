@@ -1,12 +1,30 @@
 
-# 📢🔗🛠️🎚️⛔🆕 NEW COMMIT
+# 📢🔗🛠️🎚️⛔🚧🆕 NEW COMMIT 01/03/26
+# 🆕 Installed Prism and Connected OpenAI -天使
+
+- 📢 NEW PACKAGE INSTALLED: Prism 📢
+
+- 🆕 New File: For the instruction prompts: 12/31/25-23:56-resources/prompts/recommendation_template.txt
+
+- 🆕 New File: All database that are locally stored are now in the repo too: 12/31/25-17:52-storage/sql_backup/*.sql
+
+- 🆕 New File: for testing the AI, Line 16 is the prompt: 12/31/25-17:52-app/Http/Controllers/PrismTestController.php
+
+- 🆕 New File: for connecting to the AI: 12/31/25-17:52-app\Services\AIService.php
+
+- 🚧 IN-DEV: A Controller recommendation using AI: 12/31/25-17:52-app\Services\AIService.php
+
+
+# LAST COMMIT 12/29/25-23:49
+# NEW: Added syncing db with hr4, success -天使
+
 - 🆕 Added new Syncing database logic from HR4 API employee data 12/23/25-00:15-routes/api.php-line:23-118
 
-- 🆕 Added button for the syncing in 12/23/25-11:16-resources/views/dashboard.blade.php-line:35-40
+- 🆕 Added button for the syncing in 12/23/25-23:16-resources/views/dashboard.blade.php-line:35-40
 
-- 🆕 Added migrations file for adding employee_status column to opvenio_hr2-users for Syncing database logic 2025_12_27_222525_add_employment_status_to_users_table.php
+- 🆕 Added migrations file for adding employee_status column to opvenio_hr2-users for Syncing database logic 12/23/25-23:16-2025_12_27_222525_add_employment_status_to_users_table.php
 
-- 🆕 Added 'employment_status' for writable 12/23/25-11:16-app/Models/User.php-line:34
+- 🆕 Added 'employment_status' for writable 12/23/25-23:16-app/Models/User.php-line:34
 
 
 ~~線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線~~
@@ -45,7 +63,7 @@
 ## TODO 📝
 > Find bugs and fix
 
-> Sync HR4's db to our db: Make the api calling instantly create accounts based on the employee information retrieved, also update existing accounts 
+✅ Sync HR4's db to our db: Make the api calling instantly create accounts based on the employee information retrieved, also update existing accounts 
 
 > Prepare for the integration of AI(OpenAI)
 
@@ -60,94 +78,35 @@
 Put code snippets here you don't want to lose
 
 
-# Working sync hr4 db logic(no delete) -天使
+# How to prompt to AI, sample controller -天使
 ```
-Route::post('/syncdb', function (Request $request) {
+// app/Http/Controllers/AiRecommendationController.php
+<?php
+namespace App\Http\Controllers;
 
-    $created = $updated = $skipped = $errors = 0;
+use Illuminate\Http\Request;
+use App\Services\AIService;
 
-    try{
-        $response = Http::timeout(30)
-            ->withOptions(['verify' => false])
-            ->get('https://hr4.microfinancial-1.com/allemployees');
+class AiRecommendationController extends Controller
+{
+    public function recommend(Request $request, AIService $ai)
+    {
+        $payload = $request->input('payload'); // accept employee payload as JSON
+        $template = resource_path('prompts/recommendation_template.txt');
 
-        if (! $response->successful()) {
-            return redirect()->back()->with('sync_result', 'Failed to fetch employee data from HR4.');
+        try {
+            $result = $ai->recommendFromPayload($payload, $template);
+            return response()->json(['success' => true, 'result' => $result]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
-
-        $employees = $response->json();
-
-        foreach ($employees as $employee) {
-            try{
-                // skip if no employee_id
-                if (empty($employee['employee_id'])) {
-                    $skipped++;
-                    continue;
-                }
-
-                $employee_id = $employee['employee_id'];
-                $name = $employee['full_name'] ?? ($employee['firstname'] ?? null);
-                $email = $employee['email'] ?? null;
-                $status = $employee['employment_status'] ?? null; // e.g. "Active" or "Terminated"
-
-                $user = User::where('employee_id', $employee_id)->first();
-
-                if ($user) {
-                    // UPDATE safe fields and employment_status (do not overwrite password or role)
-                    $dirty = false;
-
-                    if ($name && $name !== $user->name) {
-                        $user->name = $name;
-                        $dirty = true;
-                    }
-
-                    if ($email && $email !== $user->email) {
-                        $user->email = $email;
-                        $dirty = true;
-                    }
-
-                    // update employment_status if changed
-                    if (!is_null($status) && $status !== $user->employment_status) {
-                        $user->employment_status = $status;
-                        $dirty = true;
-                    }
-
-                    if ($dirty) {
-                        $user->save();
-                        $updated++;
-                    }
-                } else {
-                    // CREATE user; set employment_status on create
-                    $password = '12345678'; // test default (ok for now)
-                    $user = User::create([
-                        'employee_id' => $employee_id,
-                        'name' => $name,
-                        'email' => $email,
-                        'role' => 'employee', // set only on create
-                        'password' => Hash::make($password),
-                        'employment_status' => $status,
-                    ]);
-                    $created++;
-                }
-            }catch(\Throwable $ex){
-                $errors++;
-                Log::error("HR4 sync error for employee {$employee['employee_id']}: " . $ex->getMessage(), [
-                    'employee' => $employee,
-                    'exception' => $ex,
-                ]);
-                continue;
-            }
-        }
-
-        $message = "Sync finished — Created: {$created}, Updated: {$updated}, Skipped: {$skipped}, Errors: {$errors}";
-        return redirect()->back()->with('sync_result', $message);
-        
-    } catch (\Exception $e) {
-        Log::error('HR4 sync fatal error: '.$e->getMessage());
-        return redirect()->back()->with('sync_result', 'Sync failed: API connection error.');
     }
-    
-});
+}
+
+```
+# Its Route:
+```
+Route::post('/ai/recommend', [\App\Http\Controllers\AiRecommendationController::class,'recommend'])->middleware('auth');
 ```
 
 # description
@@ -160,4 +119,4 @@ Route::post('/syncdb', function (Request $request) {
 
 ## </end>
 
-天使 - tenshi, meaning angel :)
+天使 or てん◦し read as 'ten-shi' meaning angel :)

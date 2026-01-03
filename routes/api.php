@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Http\Controllers\AiRecommendationController;
+
+
+// AI Job Recommendation API -天使
+Route::post('/ai/recommend', [AiRecommendationController::class, 'recommend']);
 
 Route::get('/user', function (Request $request) {
     return $request->user();
