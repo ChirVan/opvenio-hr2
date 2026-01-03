@@ -33,7 +33,7 @@
 								<tr>
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Employee ID</th>
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Employee Name</th>
-									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Email</th>
+									{{-- <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Email</th> --}}
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Current Job</th>
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Potential Job</th>
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
@@ -45,7 +45,7 @@
 									<tr class="hover:bg-green-50 transition">
 										<td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-700">{{ $promotion->employee_id }}</td>
 										<td class="px-6 py-4 whitespace-nowrap text-gray-900 font-semibold">{{ $promotion->employee_name }}</td>
-										<td class="px-6 py-4 whitespace-nowrap text-gray-700"><span class="inline-flex items-center gap-2"><i class='bx bx-envelope text-green-600'></i>{{ $promotion->employee_email }}</span></td>
+										{{-- <td class="px-6 py-4 whitespace-nowrap text-gray-700"><span class="inline-flex items-center gap-2"><i class='bx bx-envelope text-green-600'></i>{{ $promotion->employee_email }}</span></td> --}}
 										<td class="px-6 py-4 whitespace-nowrap text-gray-700">{{ $promotion->job_title }}</td>
 										<td class="px-6 py-4 whitespace-nowrap text-gray-700 font-semibold text-green-700">{{ $promotion->potential_job }}</td>
 										<td class="px-6 py-4 whitespace-nowrap">

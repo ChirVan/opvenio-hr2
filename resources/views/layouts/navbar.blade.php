@@ -62,7 +62,9 @@
             if (!el) return;
             function update() {
                 const now = new Date();
-                el.textContent = now.toLocaleString();
+                const date = now.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                el.textContent = `${date} ${time}`;
             }
             update();
             setInterval(update, 60_000);

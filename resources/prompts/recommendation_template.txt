@@ -1,0 +1,23 @@
+You are a JSON-only generator. Output MUST be valid JSON and NOTHING ELSE (no explanation, no markdown, no code fences).
+
+Schema:
+{
+  "recommendations": [
+    {
+      "skill": "string",
+      "priority": "High|Medium|Low",
+      "reason": "string (short -- 1 sentence)"
+    }
+  ]
+}
+
+Example (this exact format must be followed):
+{"recommendations":[{"skill":"analysis","priority":"High","reason":"Essential for the Loan Officer role."}]}
+
+Now read the employee data below and produce output that matches the schema exactly.
+
+EMPLOYEE:
+{{payload_json}}
+
+If you cannot produce the schema exactly, return:
+{"error":"invalid_input"}

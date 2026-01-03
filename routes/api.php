@@ -5,15 +5,124 @@ use Illuminate\Support\Facades\Route;
 use App\Modules\competency_management\Controllers\CompetencyGapAnalysisController;
 use App\Http\Controllers\Api\LeaveApiController;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use App\Http\Controllers\AiRecommendationController;
+
+
+// AI Job Recommendation API -天使
+Route::post('/ai/recommend', [AiRecommendationController::class, 'recommend']);
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
-
 // ============================================================
 // ======= Employee API Proxy (for ESS pages) =================
 // ============================================================
 Route::prefix('ess')->group(function () {
+
+    // Sync HR4 employees to local users table
+    Route::post('/syncdb', function (Request $request) {
+        $created = $updated = $skipped = $errors = 0;
+
+        try {
+            $response = Http::timeout(20)
+                ->withOptions(['verify' => false])
+                ->get('https://hr4.microfinancial-1.com/allemployees');
+
+            if (! $response->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to fetch employee data from HR4.'
+                ], 500);
+            }
+
+            $employees = $response->json();
+
+            foreach ($employees as $employee) {
+                try {
+                    if (empty($employee['employee_id'])) {
+                        $skipped++;
+                        continue;
+                    }
+
+                    $employee_id = $employee['employee_id'];
+                    $name = $employee['full_name'] ?? ($employee['firstname'] ?? null);
+                    $email = $employee['email'] ?? null;
+                    $status = $employee['employment_status'] ?? null;
+
+                    $user = User::where('employee_id', $employee_id)->first();
+
+                    if ($user) {
+                        $dirty = false;
+
+                        if ($name && $name !== $user->name) {
+                            $user->name = $name;
+                            $dirty = true;
+                        }
+
+                        if ($email && $email !== $user->email) {
+                            $user->email = $email;
+                            $dirty = true;
+                        }
+
+                        if (!is_null($status) && $status !== $user->employment_status) {
+                            $user->employment_status = $status;
+                            $dirty = true;
+                        }
+
+                        if ($dirty) {
+                            $user->save();
+                            $updated++;
+                        }
+
+                    } else {
+                        // Create
+                        $user = User::create([
+                            'employee_id' => $employee_id,
+                            'name' => $name,
+                            'email' => $email,
+                            'role' => 'employee',
+                            'password' => Hash::make('12345678'),
+                            'employment_status' => $status,
+                        ]);
+                        $created++;
+                    }
+                } catch (\Throwable $e) {
+                    $errors++;
+                    Log::error("HR4 sync error for employee {$employee['employee_id']}: " . $ex->getMessage(), [
+                        'employee' => $employee,
+                        'exception' => $ex,
+                    ]);
+                    continue;
+                }
+            }
+
+            $noChanges = ($created === 0 && $updated === 0);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Sync finished",
+                'created' => $created,
+                'updated' => $updated,
+                'skipped' => $skipped,
+                'errors' => $errors,
+                'no_changes' => $noChanges,
+            ]);
+
+        } catch (\Exception $e){
+            Log::error('HR4 sync fatal error: '.$e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Sync failed: API connection error.'
+            ], 500);
+        }
+        
+    });
+    
+
     // Get current employee by email
     Route::get('/employee/by-email/{email}', function ($email) {
         try {
