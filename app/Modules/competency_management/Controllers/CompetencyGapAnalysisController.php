@@ -1032,6 +1032,105 @@ class CompetencyGapAnalysisController extends Controller
     }
 
     /**
+     * Update skill gap assignment status
+     */
+    public function updateSkillGapStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required',
+            'competency_key' => 'required|string',
+            'assignment_type' => 'required|in:development,gap_closure,skill_enhancement,mandatory',
+            'priority' => 'nullable|in:low,medium,high,critical',
+            'notes' => 'nullable|string',
+            'status' => 'required|in:assigned,in_progress,completed,cancelled'
+        ]);
+
+        try {
+            // Get external employee data
+            $allEmployees = $this->employeeApiService->getEmployees();
+            $employee = collect($allEmployees)->firstWhere('employee_id', $validated['employee_id']);
+            
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee not found'
+                ], 404);
+            }
+
+            // Try to update in assigned_competencies table first (new table)
+            $updatedNew = DB::connection('competency_management')
+                ->table('assigned_competencies')
+                ->where('employee_id', $validated['employee_id'])
+                ->where(function($query) use ($validated) {
+                    // Match by competency name (from join with competencies table)
+                    $query->whereExists(function($subquery) use ($validated) {
+                        $subquery->select(DB::raw(1))
+                            ->from('competencies')
+                            ->whereColumn('competencies.id', 'assigned_competencies.competency_id')
+                            ->where('competencies.competency_name', $validated['competency_key']);
+                    });
+                })
+                ->update([
+                    'assignment_type' => $validated['assignment_type'],
+                    'priority' => $validated['priority'] ?? 'medium',
+                    'notes' => $validated['notes'],
+                    'status' => $validated['status'],
+                    'updated_at' => now()
+                ]);
+
+            // Also try to update in skill_gap_assignments table (old table)
+            $updatedOld = DB::connection('competency_management')
+                ->table('skill_gap_assignments')
+                ->where('employee_id', $validated['employee_id'])
+                ->where('competency_key', $validated['competency_key'])
+                ->update([
+                    'action_type' => $validated['assignment_type'],
+                    'notes' => $validated['notes'],
+                    'status' => $validated['status'] === 'assigned' ? 'pending' : $validated['status'],
+                    'updated_at' => now()
+                ]);
+
+            if (!$updatedNew && !$updatedOld) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No matching skill gap assignment found'
+                ], 404);
+            }
+
+            // Log activity
+            ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user() ? Auth::user()->name : 'System',
+                'activity' => 'update_skill_gap_status',
+                'details' => "Updated skill gap status for {$employee['full_name']} - Competency: {$validated['competency_key']}, Status: {$validated['status']}",
+                'status' => 'Success',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Skill gap assignment updated successfully',
+                'data' => [
+                    'employee' => $employee['full_name'],
+                    'competency' => $validated['competency_key'],
+                    'status' => $validated['status'],
+                    'updated_tables' => [
+                        'assigned_competencies' => $updatedNew > 0,
+                        'skill_gap_assignments' => $updatedOld > 0
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error updating skill gap status: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update skill gap status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Create development plan for employee
      */
     public function createDevelopmentPlan(Request $request)

@@ -317,6 +317,7 @@ Route::middleware('auth')->group(function () {
     
     // Skill Gap Management Actions - Using CompetencyGapAnalysisController for new assigned_competencies table
     Route::post('/competency/skill-gaps/assign', [CompetencyGapAnalysisController::class, 'assignSkillGap'])->name('competency.skill-gaps.assign');
+    Route::post('/competency/skill-gaps/update-status', [CompetencyGapAnalysisController::class, 'updateSkillGapStatus'])->name('competency.skill-gaps.update-status');
     Route::post('/competency/development-plan/create', [GapAnalysisController::class, 'createDevelopmentPlan'])->name('competency.development-plan.create');
     Route::post('/competency/assessment/schedule', [GapAnalysisController::class, 'scheduleAssessment'])->name('competency.assessment.schedule');
     Route::get('/competency/gap-analysis/export/{employee}', [GapAnalysisController::class, 'exportGapAnalysis'])->name('competency.gap-analysis.export');

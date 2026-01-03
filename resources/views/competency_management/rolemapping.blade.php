@@ -613,6 +613,59 @@
             @endforeach
         };
 
+        // Competency key to ID mapping (maps frontend keys to database IDs)
+        const competencyKeyToId = {
+            @foreach($allCompetencies as $comp)
+                @php
+                    // Create a key from competency name (lowercase, replace spaces with underscores)
+                    $key = strtolower(str_replace([' ', '&', '-'], ['_', '', '_'], $comp->competency_name));
+                    $key = preg_replace('/[^a-z0-9_]/', '', $key);
+                    $key = preg_replace('/_+/', '_', $key);
+                @endphp
+                {!! json_encode($key) !!}: {{ $comp->id }},
+            @endforeach
+            // Map hardcoded frontend keys to closest matching database competencies
+            // These are approximations - adjust IDs based on your actual competency database
+            'assignment_skills': competencyNameToId['Project Planning'] || competencyNameToId['Stakeholder Management'] || Object.values(competencyNameToId)[0],
+            'job_knowledge': competencyNameToId['Product Knowledge'] || competencyNameToId['Regulatory Knowledge'] || Object.values(competencyNameToId)[0],
+            'planning_organizing': competencyNameToId['Project Planning'] || competencyNameToId['Strategic Thinking'] || Object.values(competencyNameToId)[0],
+            'accountability': competencyNameToId['Ethics & Integrity'] || competencyNameToId['Performance Management'] || Object.values(competencyNameToId)[0],
+            'efficiency_improvement': competencyNameToId['Innovation Management'] || competencyNameToId['Technology Adoption'] || Object.values(competencyNameToId)[0],
+            'process_improvement': competencyNameToId['Innovation Management'] || competencyNameToId['Technology Adoption'] || Object.values(competencyNameToId)[0]
+        };
+
+        // Function to find competency ID by key or label
+        function findCompetencyId(key, label) {
+            // Try direct key lookup first
+            if (competencyKeyToId[key]) {
+                return competencyKeyToId[key];
+            }
+            
+            // Try label lookup
+            if (competencyNameToId[label]) {
+                return competencyNameToId[label];
+            }
+            
+            // Try to find by partial match in competency names
+            const labelLower = label.toLowerCase();
+            for (const [name, id] of Object.entries(competencyNameToId)) {
+                if (name.toLowerCase().includes(labelLower) || labelLower.includes(name.toLowerCase())) {
+                    return id;
+                }
+            }
+            
+            // Try normalized key match
+            const normalizedKey = key.replace(/_/g, '').toLowerCase();
+            for (const [name, id] of Object.entries(competencyNameToId)) {
+                const normalizedName = name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                if (normalizedName.includes(normalizedKey) || normalizedKey.includes(normalizedName)) {
+                    return id;
+                }
+            }
+            
+            return null;
+        }
+
         // Real data from backend
         const employeeData = {
             @foreach($employeeGapAnalysis as $employee)
@@ -675,13 +728,31 @@
             const actionColors = {
                 'critical': 'border-red-300 bg-red-50 text-red-800',
                 'training': 'border-blue-300 bg-blue-50 text-blue-800',
-                'mentoring': 'border-green-300 bg-green-50 text-green-800'
+                'mentoring': 'border-green-300 bg-green-50 text-green-800',
+                'gap_closure': 'border-red-300 bg-red-50 text-red-800',
+                'development': 'border-blue-300 bg-blue-50 text-blue-800',
+                'skill_enhancement': 'border-purple-300 bg-purple-50 text-purple-800',
+                'mandatory': 'border-orange-300 bg-orange-50 text-orange-800'
             };
             
             const actionIcons = {
                 'critical': 'bx-error-circle',
                 'training': 'bx-book-reader',
-                'mentoring': 'bx-user-voice'
+                'mentoring': 'bx-user-voice',
+                'gap_closure': 'bx-error-circle',
+                'development': 'bx-book-reader',
+                'skill_enhancement': 'bx-trending-up',
+                'mandatory': 'bx-badge-check'
+            };
+            
+            const actionLabels = {
+                'critical': 'Critical',
+                'training': 'Training',
+                'mentoring': 'Mentoring',
+                'gap_closure': 'Gap Closure',
+                'development': 'Development',
+                'skill_enhancement': 'Enhancement',
+                'mandatory': 'Mandatory'
             };
 
             // Update active skill gaps section
@@ -690,37 +761,53 @@
                 const actionBadges = {
                     'critical': 'bg-red-100 text-red-800 border-red-300',
                     'training': 'bg-blue-100 text-blue-800 border-blue-300',
-                    'mentoring': 'bg-green-100 text-green-800 border-green-300'
+                    'mentoring': 'bg-green-100 text-green-800 border-green-300',
+                    'gap_closure': 'bg-red-100 text-red-800 border-red-300',
+                    'development': 'bg-blue-100 text-blue-800 border-blue-300',
+                    'skill_enhancement': 'bg-purple-100 text-purple-800 border-purple-300',
+                    'mandatory': 'bg-orange-100 text-orange-800 border-orange-300',
+                    'assigned': 'bg-yellow-100 text-yellow-800 border-yellow-300'
                 };
                 
                 const statusBadges = {
                     'pending': 'bg-yellow-100 text-yellow-800',
                     'in_progress': 'bg-blue-100 text-blue-800',
-                    'completed': 'bg-green-100 text-green-800'
+                    'completed': 'bg-green-100 text-green-800',
+                    'assigned': 'bg-yellow-100 text-yellow-800'
                 };
                 
                 let tableRows = '';
-                employee.skill_gap_assignments.forEach(gap => {
+                employee.skill_gap_assignments.forEach((gap, index) => {
                     const actionBadge = actionBadges[gap.action_type] || 'bg-gray-100 text-gray-800 border-gray-300';
                     const actionIcon = actionIcons[gap.action_type] || 'bx-target-lock';
+                    const actionLabel = actionLabels[gap.action_type] || gap.action_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                     const compLabel = competencyLabels[gap.competency_key] || gap.competency_key;
                     const assignedDate = new Date(gap.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                     const statusBadge = statusBadges[gap.status] || 'bg-gray-100 text-gray-800';
                     const statusLabel = gap.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    
+                    // Encode gap data for the assign button
+                    const gapData = encodeURIComponent(JSON.stringify({
+                        competency_key: gap.competency_key,
+                        competency_label: compLabel,
+                        action_type: gap.action_type,
+                        notes: gap.notes,
+                        status: gap.status
+                    }));
                     
                     tableRows += `
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${actionBadge}">
                                     <i class='bx ${actionIcon} mr-1'></i>
-                                    ${gap.action_type.charAt(0).toUpperCase() + gap.action_type.slice(1)}
+                                    ${actionLabel}
                                 </span>
                             </td>
                             <td class="px-4 py-3">
                                 <div class="text-sm font-medium text-gray-900">${compLabel}</div>
                             </td>
                             <td class="px-4 py-3">
-                                <div class="text-sm text-gray-600">${gap.notes || '-'}</div>
+                                <div class="text-sm text-gray-600 max-w-xs truncate" title="${gap.notes || '-'}">${gap.notes || '-'}</div>
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusBadge}">
@@ -729,6 +816,13 @@
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                                 ${assignedDate}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <button onclick="assignTrainingToGap('${employee.employee_id}', '${employee.employee_name}', '${gapData}')" 
+                                    class="inline-flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors">
+                                    <i class='bx bx-edit text-sm'></i>
+                                    Update
+                                </button>
                             </td>
                         </tr>
                     `;
@@ -760,6 +854,7 @@
                                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Assigned Date</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -855,8 +950,9 @@
 
         // Direct skill gap assignment with confirmation - adds to improvement plans
         function assignSkillGapDirect(employeeId, employeeName, skillGapKey, skillGapLabel, priority) {
-            // Map priority to action type
-            const actionType = priority === 'High' ? 'critical' : 'training';
+            // Map priority to valid assignment type (gap_closure, development, skill_enhancement, mandatory)
+            const actionType = priority === 'High' ? 'gap_closure' : 'development';
+            const actionLabel = priority === 'High' ? 'Gap Closure (Immediate)' : 'Development (Training)';
             
             Swal.fire({
                 title: 'Add to Improvement Plan',
@@ -878,7 +974,7 @@
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Action Type:</span>
-                                <span class="font-medium">${priority === 'High' ? 'Critical - Immediate Action' : 'Training - Development'}</span>
+                                <span class="font-medium">${actionLabel}</span>
                             </div>
                         </div>
                         <p class="mt-3 text-xs text-gray-500">
@@ -911,6 +1007,20 @@
                     
                     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
                     
+                    // Get competency ID using the smart lookup function
+                    const competencyId = findCompetencyId(skillGapKey, skillGapLabel);
+                    
+                    if (!competencyId) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: `Could not find competency ID for "${skillGapLabel}" (key: ${skillGapKey}). Please use the modal form instead.`,
+                            confirmButtonColor: '#ef4444',
+                            customClass: { popup: 'text-sm' }
+                        });
+                        return;
+                    }
+                    
                     fetch('/competency/skill-gaps/assign', {
                         method: 'POST',
                         headers: {
@@ -920,8 +1030,8 @@
                         },
                         body: JSON.stringify({
                             employee_id: employeeId,
-                            competency_key: skillGapKey,
-                            action_type: actionType,
+                            competency_id: competencyId,
+                            assignment_type: actionType,
                             notes: `${skillGapLabel} - ${priority} priority skill gap identified from Role Mapping analysis`
                         })
                     })
@@ -961,6 +1071,190 @@
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Failed to Add',
+                                text: data.message || 'An error occurred.',
+                                confirmButtonColor: '#ef4444',
+                                customClass: { popup: 'text-sm' }
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.message || 'An error occurred.',
+                            confirmButtonColor: '#ef4444',
+                            customClass: { popup: 'text-sm' }
+                        });
+                    });
+                }
+            });
+        }
+
+        function assignTrainingToGap(employeeId, employeeName, gapDataEncoded) {
+            const gapData = JSON.parse(decodeURIComponent(gapDataEncoded));
+            const actionTypeLabels = {
+                'gap_closure': 'Gap Closure (Immediate)',
+                'development': 'Development (Training)',
+                'skill_enhancement': 'Skill Enhancement',
+                'mandatory': 'Mandatory Compliance',
+                'critical': 'Critical',
+                'training': 'Training',
+                'mentoring': 'Mentoring'
+            };
+            const actionLabel = actionTypeLabels[gapData.action_type] || gapData.action_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            Swal.fire({
+                title: '<i class="bx bx-target-lock text-green-600 mr-2"></i> Assign Competency to Skill Gap',
+                html: `
+                    <div class="text-left space-y-4">
+                        <div class="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                    <span class="text-gray-500">Employee:</span>
+                                    <p class="font-semibold text-gray-900">${employeeName}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Skill Gap:</span>
+                                    <p class="font-semibold text-gray-900">${gapData.competency_label}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Action Type:</span>
+                                    <p class="font-semibold text-orange-600">${actionLabel}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Status:</span>
+                                    <p class="font-semibold text-yellow-600">${gapData.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t pt-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">
+                                <i class='bx bx-check-circle text-green-500 mr-1'></i>
+                                Confirm Assignment Details
+                            </h4>
+                            
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Assignment Type</label>
+                                    <select id="gapAssignmentType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                        <option value="gap_closure" ${gapData.action_type === 'gap_closure' ? 'selected' : ''}>Gap Closure (Immediate Action)</option>
+                                        <option value="development" ${gapData.action_type === 'development' ? 'selected' : ''}>Development (Training)</option>
+                                        <option value="skill_enhancement" ${gapData.action_type === 'skill_enhancement' ? 'selected' : ''}>Skill Enhancement</option>
+                                        <option value="mandatory" ${gapData.action_type === 'mandatory' ? 'selected' : ''}>Mandatory Compliance</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Priority</label>
+                                    <select id="gapPriority" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                        <option value="critical">Critical</option>
+                                        <option value="high" selected>High</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Additional Notes</label>
+                                    <textarea id="gapNotes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Add any additional notes...">${gapData.notes || ''}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p class="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                            <i class='bx bx-info-circle mr-1'></i>
+                            This will update the skill gap assignment and mark it for competency development tracking.
+                        </p>
+                    </div>
+                `,
+                icon: null,
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: '<i class="bx bx-check mr-1"></i> Confirm Assignment',
+                cancelButtonText: 'Cancel',
+                customClass: { 
+                    popup: 'text-sm',
+                    htmlContainer: 'text-left'
+                },
+                preConfirm: () => {
+                    return {
+                        assignment_type: document.getElementById('gapAssignmentType').value,
+                        priority: document.getElementById('gapPriority').value,
+                        notes: document.getElementById('gapNotes').value
+                    };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const formData = result.value;
+                    
+                    // Show loading
+                    Swal.fire({
+                        title: 'Updating Assignment...',
+                        html: 'Please wait while we process your request.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+                    
+                    // Update the skill gap assignment status
+                    fetch('/competency/skill-gaps/update-status', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            employee_id: employeeId,
+                            competency_key: gapData.competency_key,
+                            assignment_type: formData.assignment_type,
+                            priority: formData.priority,
+                            notes: formData.notes,
+                            status: 'in_progress'
+                        })
+                    })
+                    .then(async response => {
+                        const text = await response.text();
+                        try {
+                            const jsonData = JSON.parse(text);
+                            if (!response.ok) {
+                                if (jsonData.errors) {
+                                    const errorMessages = Object.values(jsonData.errors).flat().join('\n');
+                                    throw new Error(errorMessages);
+                                }
+                                throw new Error(jsonData.message || `HTTP error! status: ${response.status}`);
+                            }
+                            return jsonData;
+                        } catch (e) {
+                            if (e.message) throw e;
+                            throw new Error('Invalid response from server');
+                        }
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Assignment Updated!',
+                                html: `
+                                    <div class="text-sm">
+                                        <p><strong>${gapData.competency_label}</strong> skill gap for <strong>${employeeName}</strong> has been updated.</p>
+                                        <p class="mt-2 text-gray-600">Status changed to: <span class="font-semibold text-blue-600">In Progress</span></p>
+                                    </div>
+                                `,
+                                confirmButtonColor: '#10b981',
+                                customClass: { popup: 'text-sm' }
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Update Failed',
                                 text: data.message || 'An error occurred.',
                                 confirmButtonColor: '#ef4444',
                                 customClass: { popup: 'text-sm' }

@@ -328,7 +328,7 @@ class GapAnalysisController extends Controller
         // Convert to collection and take top employees
         $employeeGapAnalysis = collect(array_values($employeeGapAnalysis))->take(20);
         
-        // Get skill gap assignments for all employees
+        // Get skill gap assignments for all employees (from OLD skill_gap_assignments table)
         $employeeIds = $employeeGapAnalysis->pluck('employee_id')->toArray();
         $skillGapAssignments = DB::connection('competency_management')
             ->table('skill_gap_assignments')
@@ -339,11 +339,39 @@ class GapAnalysisController extends Controller
             ->get()
             ->groupBy('employee_id');
         
-        // Add skill gap assignments to each employee
-        $employeeGapAnalysis = $employeeGapAnalysis->map(function($employee) use ($skillGapAssignments) {
-            $employee['skill_gap_assignments'] = $skillGapAssignments->get($employee['employee_id'], collect())->map(function($gap) {
+        // Get NEW assigned competencies (from assigned_competencies table)
+        $assignedCompetencies = DB::connection('competency_management')
+            ->table('assigned_competencies as ac')
+            ->join('competencies as c', 'ac.competency_id', '=', 'c.id')
+            ->whereIn('ac.employee_id', $employeeIds)
+            ->whereIn('ac.status', ['assigned', 'in_progress'])
+            ->select(
+                'ac.employee_id', 
+                'c.competency_name as competency_key', 
+                'ac.assignment_type as action_type', 
+                'ac.notes', 
+                'ac.status', 
+                'ac.assigned_at', 
+                'ac.created_at'
+            )
+            ->orderBy('ac.created_at', 'desc')
+            ->get()
+            ->groupBy('employee_id');
+        
+        // Add skill gap assignments to each employee (merge both old and new tables)
+        $employeeGapAnalysis = $employeeGapAnalysis->map(function($employee) use ($skillGapAssignments, $assignedCompetencies) {
+            // Get assignments from old table
+            $oldAssignments = $skillGapAssignments->get($employee['employee_id'], collect())->map(function($gap) {
                 return (array) $gap;
             })->toArray();
+            
+            // Get assignments from new table
+            $newAssignments = $assignedCompetencies->get($employee['employee_id'], collect())->map(function($gap) {
+                return (array) $gap;
+            })->toArray();
+            
+            // Merge both sets of assignments
+            $employee['skill_gap_assignments'] = array_merge($oldAssignments, $newAssignments);
             $employee['has_active_gaps'] = count($employee['skill_gap_assignments']) > 0;
             return $employee;
         });
