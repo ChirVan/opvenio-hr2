@@ -223,11 +223,13 @@ class SelfAssessController extends Controller
             if (!$employeeDetails) {
                 try {
                     $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
+                        ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
                         ->get('https://hr4.microfinancial-1.com/allemployees');
-                    $employeesApi = $apiResponse->json();
+                    $responseData = $apiResponse->json();
+                    $employeesApi = $responseData['data'] ?? $responseData['employees'] ?? $responseData;
                     
-                    if (isset($employeesApi['employees'])) {
-                        $employee = collect($employeesApi['employees'])
+                    if (is_array($employeesApi)) {
+                        $employee = collect($employeesApi)
                             ->firstWhere('id', $employeeId);
                         
                         if ($employee) {

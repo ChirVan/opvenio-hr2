@@ -34,13 +34,14 @@ class EmployeeApiService
                     ->withOptions([
                         'verify' => false, // Disable SSL verification for external API
                     ])
+                    ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
                     ->get($url);
 
                 if ($response->successful()) {
                     $data = $response->json();
 
-                    // Some APIs return {"employees": [...]}, others return [...]
-                    $employees = $data['employees'] ?? $data;
+                    // API returns {"status":"success","data":[...]} or {"employees":[...]} or [...]
+                    $employees = $data['data'] ?? $data['employees'] ?? $data;
 
                     return collect($employees)->map(function ($employee) {
                         return [

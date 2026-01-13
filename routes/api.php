@@ -30,6 +30,7 @@ Route::prefix('ess')->group(function () {
         try {
             $response = Http::timeout(20)
                 ->withOptions(['verify' => false])
+                ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
                 ->get('https://hr4.microfinancial-1.com/allemployees');
 
             if (! $response->successful()) {
@@ -39,7 +40,8 @@ Route::prefix('ess')->group(function () {
                 ], 500);
             }
 
-            $employees = $response->json();
+            $responseData = $response->json();
+            $employees = $responseData['data'] ?? $responseData;
 
             foreach ($employees as $employee) {
                 try {
@@ -128,10 +130,12 @@ Route::prefix('ess')->group(function () {
         try {
             $response = Http::timeout(30)
                 ->withOptions(['verify' => false])
+                ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
                 ->get('https://hr4.microfinancial-1.com/allemployees');
             
             if ($response->successful()) {
-                $employees = $response->json();
+                $responseData = $response->json();
+                $employees = $responseData['data'] ?? $responseData;
                 $employee = collect($employees)->firstWhere('email', $email);
                 
                 if ($employee) {
@@ -164,6 +168,7 @@ Route::prefix('ess')->group(function () {
         try {
             $response = Http::timeout(30)
                 ->withOptions(['verify' => false])
+                ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
                 ->get("https://hr4.microfinancial-1.com/allemployees/{$id}");
             
             if ($response->successful()) {

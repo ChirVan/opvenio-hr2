@@ -98,11 +98,10 @@ Route::middleware('auth')->group(function () {
             ->get();
 
         $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
+            ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
             ->get('https://hr4.microfinancial-1.com/allemployees');
-        $employeesApi = $apiResponse->json();
-        if (isset($employeesApi['employees'])) {
-            $employeesApi = $employeesApi['employees'];
-        }
+        $responseData = $apiResponse->json();
+        $employeesApi = $responseData['data'] ?? $responseData['employees'] ?? $responseData;
         $employeeMap = collect($employeesApi)
             ->filter(function ($employee) {
                 return isset($employee['employee_id']);
@@ -199,11 +198,10 @@ Route::middleware('auth')->group(function () {
 
             // Fetch employees from API
             $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
+                ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
                 ->get('https://hr4.microfinancial-1.com/allemployees');
-            $employeesApi = $apiResponse->json();
-            if (isset($employeesApi['employees'])) {
-                $employeesApi = $employeesApi['employees'];
-            }
+            $responseData = $apiResponse->json();
+            $employeesApi = $responseData['data'] ?? $responseData['employees'] ?? $responseData;
             $employeeMap = collect($employeesApi)
                 ->filter(function ($employee) {
                     return isset($employee['employee_id']);
@@ -419,10 +417,11 @@ Route::middleware('auth')->group(function () {
                         // Try to get employees from cache first
                         $employees = \Illuminate\Support\Facades\Cache::remember('external_employees', 60 * 10, function () {
                             $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
+                                ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
                                 ->get('https://hr4.microfinancial-1.com/allemployees');
-                            $employeesApi = $apiResponse->json();
-                            // The API returns array directly, not wrapped in 'employees' key
-                            return is_array($employeesApi) ? $employeesApi : ($employeesApi['employees'] ?? []);
+                            $responseData = $apiResponse->json();
+                            // The API returns {"status":"success","data":[...]}
+                            return $responseData['data'] ?? $responseData['employees'] ?? $responseData;
                         });
                         return response()->json([
                             'success' => true,

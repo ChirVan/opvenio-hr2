@@ -81,6 +81,7 @@ class PromotionController
             $apiUrl = "https://hr4.microfinancial-1.com/updateemployee/{$promotion->employee_id}";
             
             $response = Http::withOptions(['verify' => false])
+                ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
                 ->put($apiUrl, [
                     'job_title' => $promotion->potential_job,
                     'promoted_from' => $promotion->job_title,
