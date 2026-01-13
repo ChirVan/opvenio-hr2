@@ -220,12 +220,30 @@ Route::prefix('ess')->group(function () {
                 $idPath = $request->file('valid_id')->store('payroll/valid_ids', 'public');
             }
 
+            // Get user_id by looking up the user from email
+            $user = \App\Models\User::where('email', $validated['email'])->first();
+            $userId = $user ? $user->id : null;
+
+            // If user not found by email, try to get from session/auth
+            if (!$userId && auth()->check()) {
+                $userId = auth()->id();
+            }
+
+            // If still no user_id, return error
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User account not found for this email. Please contact HR.',
+                ], 404);
+            }
+
             // Check if employee already has a registration
             $existing = \App\Models\PayrollRegistration::where('email', $validated['email'])->first();
 
             if ($existing) {
                 // Update existing registration
                 $existing->update([
+                    'user_id' => $userId,
                     'employee_id' => $validated['employee_id'] ?? $existing->employee_id,
                     'employee_name' => $validated['employee_name'],
                     'payment_method' => $validated['payment_method'],
@@ -253,7 +271,7 @@ Route::prefix('ess')->group(function () {
 
             // Create new registration
             $registration = \App\Models\PayrollRegistration::create([
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
                 'employee_id' => $validated['employee_id'],
                 'email' => $validated['email'],
                 'employee_name' => $validated['employee_name'],
