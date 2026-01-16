@@ -44,13 +44,16 @@ class EmployeeApiService
                     $employees = $data['data'] ?? $data['employees'] ?? $data;
 
                     return collect($employees)->map(function ($employee) {
+                        // Job title is nested in the 'job' object, not at the top level
+                        $jobTitle = $employee['job']['job_title'] ?? $employee['job_title'] ?? '';
+                        
                         return [
                             'id' => $employee['id'] ?? null,
                             'employee_id' => $employee['employee_id'] ?? '',
                             'full_name' => $employee['full_name'] ?? '',
                             'email' => $employee['email'] ?? '',
                             'employment_status' => $employee['employment_status'] ?? '',
-                            'job_title' => $employee['job_title'] ?? '',
+                            'job_title' => $jobTitle,
                         ];
                     })->toArray();
                 }
@@ -86,10 +89,14 @@ class EmployeeApiService
                 ->withOptions([
                     'verify' => false,
                 ])
+                ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
                 ->get($url);
 
             if ($response->successful()) {
                 $employee = $response->json();
+                
+                // Job title is nested in the 'job' object, not at the top level
+                $jobTitle = $employee['job']['job_title'] ?? $employee['job_title'] ?? '';
 
                 return [
                     'id' => $employee['id'] ?? null,
@@ -97,7 +104,7 @@ class EmployeeApiService
                     'full_name' => $employee['full_name'] ?? '',
                     'email' => $employee['email'] ?? '',
                     'employment_status' => $employee['employment_status'] ?? '',
-                    'job_title' => $employee['job_title'] ?? '',
+                    'job_title' => $jobTitle,
                 ];
             }
 

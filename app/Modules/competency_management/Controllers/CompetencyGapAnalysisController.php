@@ -128,7 +128,7 @@ class CompetencyGapAnalysisController extends Controller
         foreach ($externalEmployees as $emp) {
             if (stripos($emp['full_name'], 'Juan') !== false) {
                 $juanInExternal = true;
-                \Log::info("JUAN in external API - ID: {$emp['employee_id']}, Name: {$emp['full_name']}, Job: {$emp['job_title']}");
+                \Log::info("JUAN in external API - ID: {$emp['employee_id']}, Name: {$emp['full_name']}, Job: " . ($emp['job_title'] ?? 'N/A'));
                 break;
             }
         }
@@ -1400,17 +1400,20 @@ class CompetencyGapAnalysisController extends Controller
                 }
                 
                 // Get all competency details for expandable view
-                $competencies = $employeeAssignments->map(function ($assignment) {
+                $competencies = $employeeAssignments->map(function ($assignment) use ($hasEvaluatedAssessment, $evaluationScore) {
                     return [
                         'id' => $assignment->id,
                         'competency_name' => $assignment->competency ? $assignment->competency->competency_name : 'N/A',
                         'framework_name' => $assignment->framework ? $assignment->framework->framework_name : 'N/A',
                         'assignment_type' => $assignment->assignment_type,
                         'priority' => $assignment->priority,
-                        'status' => $assignment->status,
+                        'status' => $hasEvaluatedAssessment ? 'completed' : $assignment->status,
                         'progress_percentage' => $assignment->progress_percentage,
                         'target_date' => $assignment->target_date ? $assignment->target_date->format('Y-m-d') : null,
                         'assigned_at' => $assignment->assigned_at ? $assignment->assigned_at->format('Y-m-d H:i:s') : null,
+                        // Add evaluation data to each competency
+                        'is_evaluated' => $hasEvaluatedAssessment,
+                        'evaluation_score' => $hasEvaluatedAssessment ? $evaluationScore : null,
                     ];
                 })->toArray();
 

@@ -154,7 +154,7 @@
                             <option value="">All Employees</option>
                             @foreach($employees as $employee)
                                 <option value="{{ $employee->id }}" {{ request('employee_id') == $employee->id ? 'selected' : '' }}>
-                                    {{ $employee->full_name }} - {{ $employee->job_title }}
+                                    {{ $employee->full_name }} - {{ $employee->job_title ?? 'N/A' }}
                                 </option>
                             @endforeach
                         </select>
@@ -1285,183 +1285,117 @@
                 return;
             }
 
-            let competenciesHtml = employeeData.competencies.map((comp, index) => `
-                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="flex-1">
-                            <h4 class="font-semibold text-gray-900">${index + 1}. ${comp.competency_name}</h4>
-                            <p class="text-xs text-gray-500 mt-1">${comp.framework_name}</p>
-                        </div>
-                        ${getStatusBadge(comp.status)}
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
-                        <div>
-                            <span class="text-gray-600">Type:</span>
-                            ${getAssignmentTypeBadge(comp.assignment_type)}
-                        </div>
-                        <div>
-                            <span class="text-gray-600">Priority:</span>
-                            ${getPriorityBadge(comp.priority)}
-                        </div>
-                        <div>
-                            <span class="text-gray-600">Progress:</span>
-                            <span class="font-medium">${comp.progress_percentage}%</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-600">Target:</span>
-                            <span class="font-medium">${comp.target_date ? formatDate(comp.target_date) : 'Not set'}</span>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-1.5 mt-3">
-                        <div class="bg-gradient-to-r from-green-400 to-green-600 h-1.5 rounded-full" style="width: ${comp.progress_percentage}%"></div>
-                    </div>
-                </div>
-            `).join('');
+            // Compact competencies table - check for evaluated status
+            let competenciesHtml = `
+                <table class="w-full text-xs">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-2 py-1.5 text-left font-semibold text-gray-700">Competency</th>
+                            <th class="px-2 py-1.5 text-center font-semibold text-gray-700">Status</th>
+                            <th class="px-2 py-1.5 text-center font-semibold text-gray-700">Priority</th>
+                            <th class="px-2 py-1.5 text-center font-semibold text-gray-700">Score</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        ${employeeData.competencies.map(comp => {
+                            // Check if this competency has been evaluated
+                            const isEvaluated = comp.is_evaluated || comp.evaluation_score || comp.status === 'completed';
+                            const displayStatus = isEvaluated ? 'completed' : comp.status;
+                            const score = comp.evaluation_score || comp.score || null;
+                            
+                            return `
+                            <tr class="hover:bg-gray-50 ${isEvaluated ? 'bg-green-50/50' : ''}">
+                                <td class="px-2 py-1.5">
+                                    <div class="font-medium text-gray-900">${comp.competency_name}</div>
+                                </td>
+                                <td class="px-2 py-1.5 text-center">
+                                    ${isEvaluated ? 
+                                        '<span class="px-1.5 py-0.5 text-[10px] rounded bg-emerald-100 text-emerald-700">✓ Evaluated</span>' : 
+                                        getCompactStatusBadge(comp.status)
+                                    }
+                                </td>
+                                <td class="px-2 py-1.5 text-center">${getCompactPriorityBadge(comp.priority)}</td>
+                                <td class="px-2 py-1.5 text-center">
+                                    ${score ? 
+                                        `<span class="font-bold text-emerald-700">${score}/5.0</span>` : 
+                                        `<span class="text-gray-400">-</span>`
+                                    }
+                                </td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            `;
 
-            // Build Training Materials Section
-            const trainingAssignments = employeeData.training_assignments || [];
-            let trainingHtml = '';
-            if (trainingAssignments.length > 0) {
-                trainingHtml = `
-                    <div class="mt-6 pt-4 border-t border-gray-200">
-                        <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <i class='bx bx-book-content text-blue-600'></i>
-                            Assigned Training Materials (${trainingAssignments.length})
-                        </h3>
-                        <div class="space-y-3 max-h-48 overflow-y-auto">
-                            ${trainingAssignments.map((training, index) => `
-                                <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex-1">
-                                            <h4 class="font-medium text-gray-900">${index + 1}. ${training.assignment_title}</h4>
-                                            ${training.materials && training.materials.length > 0 ? `
-                                                <div class="mt-2 space-y-1">
-                                                    ${training.materials.map(material => `
-                                                        <div class="text-xs flex items-center gap-1 text-gray-600">
-                                                            <i class='bx bx-file text-blue-500'></i>
-                                                            ${material.material_title}
-                                                            <span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">${material.material_type}</span>
-                                                        </div>
-                                                    `).join('')}
-                                                </div>
-                                            ` : ''}
-                                        </div>
-                                        <div class="text-right">
-                                            ${getTrainingStatusBadge(training.status)}
-                                            <div class="text-xs text-gray-500 mt-1">${training.progress_percentage || 0}% complete</div>
-                                        </div>
-                                    </div>
-                                    <div class="flex justify-between text-xs text-gray-500 mt-2">
-                                        <span>Assigned: ${training.assigned_at ? formatDate(training.assigned_at) : 'N/A'}</span>
-                                        <span>Due: ${training.due_date ? formatDate(training.due_date) : 'Not set'}</span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            } else {
-                trainingHtml = `
-                    <div class="mt-6 pt-4 border-t border-gray-200">
-                        <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <i class='bx bx-book-content text-blue-600'></i>
-                            Assigned Training Materials
-                        </h3>
-                        <div class="p-4 bg-gray-50 rounded-lg text-center text-gray-500">
-                            <i class='bx bx-info-circle text-2xl mb-2'></i>
-                            <p class="text-sm">No training materials assigned yet.</p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Build Assessments Section
-            const assessmentAssignments = employeeData.assessment_assignments || [];
-            let assessmentHtml = '';
-            if (assessmentAssignments.length > 0) {
-                assessmentHtml = `
-                    <div class="mt-6 pt-4 border-t border-gray-200">
-                        <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <i class='bx bx-clipboard text-purple-600'></i>
-                            Scheduled Assessments (${assessmentAssignments.length})
-                        </h3>
-                        <div class="space-y-3 max-h-48 overflow-y-auto">
-                            ${assessmentAssignments.map((assessment, index) => `
-                                <div class="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex-1">
-                                            <h4 class="font-medium text-gray-900">${index + 1}. ${assessment.quiz_title}</h4>
-                                            <p class="text-xs text-gray-500 mt-1">${assessment.category}</p>
-                                        </div>
-                                        <div class="text-right">
-                                            ${getAssessmentStatusBadge(assessment.status)}
-                                            ${assessment.score !== null ? `<div class="text-xs font-medium text-gray-700 mt-1">Score: ${assessment.score}%</div>` : ''}
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-3 gap-2 text-xs text-gray-500 mt-2">
-                                        <span><i class='bx bx-time-five'></i> ${assessment.duration} min</span>
-                                        <span><i class='bx bx-revision'></i> Attempts: ${assessment.attempts_used}/${assessment.max_attempts === 'unlimited' ? '∞' : assessment.max_attempts}</span>
-                                        <span><i class='bx bx-calendar'></i> Due: ${assessment.due_date ? formatDate(assessment.due_date) : 'Not set'}</span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            } else {
-                assessmentHtml = `
-                    <div class="mt-6 pt-4 border-t border-gray-200">
-                        <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <i class='bx bx-clipboard text-purple-600'></i>
-                            Scheduled Assessments
-                        </h3>
-                        <div class="p-4 bg-gray-50 rounded-lg text-center text-gray-500">
-                            <i class='bx bx-info-circle text-2xl mb-2'></i>
-                            <p class="text-sm">No assessments scheduled yet.</p>
-                        </div>
-                    </div>
-                `;
-            }
+            // Training & Assessment summary counts
+            const trainingCount = employeeData.training_assignments?.length || 0;
+            const assessmentCount = employeeData.assessment_assignments?.length || 0;
 
             Swal.fire({
-                title: `<div class="flex items-center gap-2"><i class='bx bx-user-circle text-green-600'></i>${employeeName}</div>`,
+                title: `<div class="flex items-center gap-2 text-base"><i class='bx bx-user-circle text-green-600'></i>${employeeName}</div>`,
                 html: `
                     <div class="text-left">
-                        <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 mb-4">
-                            <div class="grid grid-cols-4 gap-4 text-center">
-                                <div>
-                                    <div class="text-2xl font-bold text-gray-900">${employeeData.total_competencies}</div>
-                                    <div class="text-xs text-gray-600">Total</div>
-                                </div>
-                                <div>
-                                    <div class="text-2xl font-bold text-green-600">${employeeData.completed_count}</div>
-                                    <div class="text-xs text-gray-600">Completed</div>
-                                </div>
-                                <div>
-                                    <div class="text-2xl font-bold text-yellow-600">${employeeData.in_progress_count}</div>
-                                    <div class="text-xs text-gray-600">In Progress</div>
-                                </div>
-                                <div>
-                                    <div class="text-2xl font-bold text-blue-600">${employeeData.assigned_count}</div>
-                                    <div class="text-xs text-gray-600">Assigned</div>
-                                </div>
+                        <!-- Stats Row -->
+                        <div class="grid grid-cols-6 gap-2 mb-3 text-center">
+                            <div class="bg-gray-50 rounded p-2">
+                                <div class="text-lg font-bold text-gray-900">${employeeData.total_competencies}</div>
+                                <div class="text-[10px] text-gray-500">Total</div>
+                            </div>
+                            <div class="bg-green-50 rounded p-2">
+                                <div class="text-lg font-bold text-green-600">${employeeData.completed_count}</div>
+                                <div class="text-[10px] text-gray-500">Evaluated</div>
+                            </div>
+                            <div class="bg-yellow-50 rounded p-2">
+                                <div class="text-lg font-bold text-yellow-600">${employeeData.in_progress_count}</div>
+                                <div class="text-[10px] text-gray-500">Progress</div>
+                            </div>
+                            <div class="bg-blue-50 rounded p-2">
+                                <div class="text-lg font-bold text-blue-600">${employeeData.assigned_count}</div>
+                                <div class="text-[10px] text-gray-500">Assigned</div>
+                            </div>
+                            <div class="bg-indigo-50 rounded p-2">
+                                <div class="text-lg font-bold text-indigo-600">${trainingCount}</div>
+                                <div class="text-[10px] text-gray-500">Training</div>
+                            </div>
+                            <div class="bg-purple-50 rounded p-2">
+                                <div class="text-lg font-bold text-purple-600">${assessmentCount}</div>
+                                <div class="text-[10px] text-gray-500">Assess.</div>
                             </div>
                         </div>
-                        <h3 class="font-semibold text-gray-900 mb-3">Assigned Competencies:</h3>
-                        <div class="space-y-3 max-h-60 overflow-y-auto">
+                        
+                        <!-- Competencies Table -->
+                        <div class="border border-gray-200 rounded-lg overflow-hidden">
                             ${competenciesHtml}
                         </div>
-                        ${trainingHtml}
-                        ${assessmentHtml}
                     </div>
                 `,
-                width: '900px',
+                width: '550px',
                 showCloseButton: true,
-                showConfirmButton: false,
-                customClass: {
-                    popup: 'swal-wide'
-                }
+                showConfirmButton: false
             });
+        }
+
+        // Compact status badge for table
+        function getCompactStatusBadge(status) {
+            const badges = {
+                'assigned': '<span class="px-1.5 py-0.5 text-[10px] rounded bg-blue-100 text-blue-700">Assigned</span>',
+                'in_progress': '<span class="px-1.5 py-0.5 text-[10px] rounded bg-yellow-100 text-yellow-700">In Progress</span>',
+                'completed': '<span class="px-1.5 py-0.5 text-[10px] rounded bg-green-100 text-green-700">Completed</span>',
+                'on_hold': '<span class="px-1.5 py-0.5 text-[10px] rounded bg-gray-100 text-gray-700">On Hold</span>',
+                'cancelled': '<span class="px-1.5 py-0.5 text-[10px] rounded bg-red-100 text-red-700">Cancelled</span>'
+            };
+            return badges[status] || '<span class="text-[10px] text-gray-400">-</span>';
+        }
+
+        // Compact priority badge for table
+        function getCompactPriorityBadge(priority) {
+            const badges = {
+                'critical': '<span class="px-1.5 py-0.5 text-[10px] rounded bg-red-100 text-red-700">Critical</span>',
+                'high': '<span class="px-1.5 py-0.5 text-[10px] rounded bg-orange-100 text-orange-700">High</span>',
+                'medium': '<span class="px-1.5 py-0.5 text-[10px] rounded bg-yellow-100 text-yellow-700">Medium</span>',
+                'low': '<span class="px-1.5 py-0.5 text-[10px] rounded bg-blue-100 text-blue-700">Low</span>'
+            };
+            return badges[priority] || '<span class="text-[10px] text-gray-400">-</span>';
         }
 
         // Helper function for training status badge
@@ -1497,32 +1431,35 @@
                 return;
             }
 
-            // Check if employee already has training assignments
-            const hasTraining = employeeData.has_training_assignments || false;
-            const trainingCount = employeeData.training_count || 0;
+            // Get total competencies count
+            const totalCompetencies = employeeData.total_competencies || (employeeData.competencies ? employeeData.competencies.length : 0);
             
-            // Check if employee already has assessment assignments
-            const hasAssessments = employeeData.has_assessment_assignments || false;
+            // Check training assignments - only disable if ALL competencies have training assigned
+            const trainingCount = employeeData.training_count || 0;
+            const allTrainingAssigned = trainingCount >= totalCompetencies && totalCompetencies > 0;
+            
+            // Check assessment assignments - only disable if ALL competencies have assessments assigned
             const assessmentCount = employeeData.assessment_count || 0;
+            const allAssessmentsAssigned = assessmentCount >= totalCompetencies && totalCompetencies > 0;
 
             let actionsHtml = `
                 <div class="grid grid-cols-2 gap-4">
                     <button onclick="bulkAssignTraining('${employeeId}', '${employeeName}')" 
-                            class="p-4 ${hasTraining ? 'bg-gray-100 cursor-not-allowed' : 'bg-blue-50 hover:bg-blue-100'} rounded-lg border-2 ${hasTraining ? 'border-gray-200' : 'border-blue-200'} transition-all"
-                            ${hasTraining ? 'disabled' : ''}>
-                        <i class='bx bx-book-content text-3xl ${hasTraining ? 'text-gray-400' : 'text-blue-600'} mb-2'></i>
-                        <div class="font-semibold ${hasTraining ? 'text-gray-500' : 'text-gray-900'}">Assign Training</div>
-                        <div class="text-xs ${hasTraining ? 'text-gray-400' : 'text-gray-600'} mt-1">
-                            ${hasTraining ? `Already assigned (${trainingCount})` : 'For all competencies'}
+                            class="p-4 ${allTrainingAssigned ? 'bg-gray-100 cursor-not-allowed' : 'bg-blue-50 hover:bg-blue-100'} rounded-lg border-2 ${allTrainingAssigned ? 'border-gray-200' : 'border-blue-200'} transition-all"
+                            ${allTrainingAssigned ? 'disabled' : ''}>
+                        <i class='bx bx-book-content text-3xl ${allTrainingAssigned ? 'text-gray-400' : 'text-blue-600'} mb-2'></i>
+                        <div class="font-semibold ${allTrainingAssigned ? 'text-gray-500' : 'text-gray-900'}">Assign Training</div>
+                        <div class="text-xs ${allTrainingAssigned ? 'text-gray-400' : 'text-gray-600'} mt-1">
+                            ${trainingCount > 0 ? `Already assigned (${trainingCount}/${totalCompetencies})` : 'For all competencies'}
                         </div>
                     </button>
                     <button onclick="bulkScheduleAssessments('${employeeId}', '${employeeName}')" 
-                            class="p-4 ${hasAssessments ? 'bg-gray-100 cursor-not-allowed' : 'bg-purple-50 hover:bg-purple-100'} rounded-lg border-2 ${hasAssessments ? 'border-gray-200' : 'border-purple-200'} transition-all"
-                            ${hasAssessments ? 'disabled' : ''}>
-                        <i class='bx bx-clipboard text-3xl ${hasAssessments ? 'text-gray-400' : 'text-purple-600'} mb-2'></i>
-                        <div class="font-semibold ${hasAssessments ? 'text-gray-500' : 'text-gray-900'}">Schedule Assessments</div>
-                        <div class="text-xs ${hasAssessments ? 'text-gray-400' : 'text-gray-600'} mt-1">
-                            ${hasAssessments ? `Already assigned (${assessmentCount})` : 'For all competencies'}
+                            class="p-4 ${allAssessmentsAssigned ? 'bg-gray-100 cursor-not-allowed' : 'bg-purple-50 hover:bg-purple-100'} rounded-lg border-2 ${allAssessmentsAssigned ? 'border-gray-200' : 'border-purple-200'} transition-all"
+                            ${allAssessmentsAssigned ? 'disabled' : ''}>
+                        <i class='bx bx-clipboard text-3xl ${allAssessmentsAssigned ? 'text-gray-400' : 'text-purple-600'} mb-2'></i>
+                        <div class="font-semibold ${allAssessmentsAssigned ? 'text-gray-500' : 'text-gray-900'}">Schedule Assessments</div>
+                        <div class="text-xs ${allAssessmentsAssigned ? 'text-gray-400' : 'text-gray-600'} mt-1">
+                            ${assessmentCount > 0 ? `Already assigned (${assessmentCount}/${totalCompetencies})` : 'For all competencies'}
                         </div>
                     </button>
                     <button onclick="bulkUpdateProgress('${employeeId}', '${employeeName}')" 

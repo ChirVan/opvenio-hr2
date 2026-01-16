@@ -84,6 +84,139 @@ Route::middleware('auth')->group(function () {
     // Audit Logs page
     Route::get('/audit-logs', [App\Http\Controllers\HistoryController::class, 'index'])->name('audit.logs');
 
+    // HR4 Sync Employees Route (web route to avoid CORS issues)
+    Route::post('/sync-employees-hr4', function () {
+        $created = $updated = $skipped = $errors = 0;
+        $errorMessages = [];
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(20)
+                ->withOptions(['verify' => false])
+                ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
+                ->get('https://hr4.microfinancial-1.com/allemployees');
+
+            if (! $response->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to fetch employee data from HR4. Status: ' . $response->status()
+                ], 500);
+            }
+
+            $responseData = $response->json();
+            $employees = $responseData['data'] ?? $responseData;
+
+            // Log total employees received
+            Log::info('HR4 Sync: Received ' . count($employees) . ' employees from API');
+
+            if (empty($employees) || !is_array($employees)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No employee data received from HR4 API.',
+                    'raw_response' => $responseData
+                ], 500);
+            }
+
+            foreach ($employees as $employee) {
+                try {
+                    if (empty($employee['employee_id'])) {
+                        $skipped++;
+                        continue;
+                    }
+
+                    $employee_id = $employee['employee_id'];
+                    $name = $employee['full_name'] ?? ($employee['firstname'] ?? null);
+                    $email = $employee['email'] ?? null;
+                    $status = $employee['employment_status'] ?? null;
+
+                    // Skip if no name or email
+                    if (empty($name) && empty($email)) {
+                        $skipped++;
+                        Log::warning("HR4 Sync: Skipping employee {$employee_id} - no name or email");
+                        continue;
+                    }
+
+                    $user = \App\Models\User::where('employee_id', $employee_id)->first();
+
+                    if ($user) {
+                        $dirty = false;
+
+                        if ($name && $name !== $user->name) {
+                            $user->name = $name;
+                            $dirty = true;
+                        }
+
+                        if ($email && $email !== $user->email) {
+                            $user->email = $email;
+                            $dirty = true;
+                        }
+
+                        if (!is_null($status) && $status !== $user->employment_status) {
+                            $user->employment_status = $status;
+                            $dirty = true;
+                        }
+
+                        if ($dirty) {
+                            $user->save();
+                            $updated++;
+                        }
+
+                    } else {
+                        // Generate unique email if null or duplicate
+                        if (empty($email)) {
+                            $email = 'employee_' . $employee_id . '@placeholder.local';
+                        } else {
+                            // Check if email already exists for another user
+                            $existingUser = \App\Models\User::where('email', $email)->first();
+                            if ($existingUser) {
+                                $email = $employee_id . '_' . $email;
+                            }
+                        }
+
+                        // Create new user
+                        $user = \App\Models\User::create([
+                            'employee_id' => $employee_id,
+                            'name' => $name ?? 'Employee ' . $employee_id,
+                            'email' => $email,
+                            'role' => 'employee',
+                            'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
+                            'employment_status' => $status,
+                        ]);
+                        $created++;
+                        Log::info("HR4 Sync: Created user for employee {$employee_id}");
+                    }
+                } catch (\Throwable $e) {
+                    $errors++;
+                    $errorMessages[] = "Employee {$employee['employee_id']}: " . $e->getMessage();
+                    Log::error("HR4 sync error for employee {$employee['employee_id']}: " . $e->getMessage(), [
+                        'employee' => $employee,
+                        'exception' => $e,
+                    ]);
+                    continue;
+                }
+            }
+
+            $noChanges = ($created === 0 && $updated === 0 && $errors === 0);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Sync finished",
+                'created' => $created,
+                'updated' => $updated,
+                'skipped' => $skipped,
+                'errors' => $errors,
+                'error_details' => $errors > 0 ? $errorMessages : null,
+                'no_changes' => $noChanges,
+            ]);
+
+        } catch (\Exception $e){
+            Log::error('HR4 sync fatal error: '.$e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Sync failed: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('sync.employees.hr4');
+
     Route::get('/dashboard', function () {
         $totalCourses = DB::connection('training_management')->table('training_catalogs')->count();
         $availableCourses = DB::connection('training_management')->table('training_materials')->count();

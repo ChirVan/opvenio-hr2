@@ -26,6 +26,7 @@ Route::prefix('ess')->group(function () {
     // Sync HR4 employees to local users table
     Route::post('/syncdb', function (Request $request) {
         $created = $updated = $skipped = $errors = 0;
+        $errorMessages = [];
 
         try {
             $response = Http::timeout(20)
@@ -43,6 +44,17 @@ Route::prefix('ess')->group(function () {
             $responseData = $response->json();
             $employees = $responseData['data'] ?? $responseData;
 
+            // Log total employees received
+            Log::info('HR4 Sync: Received ' . count($employees) . ' employees from API');
+
+            if (empty($employees) || !is_array($employees)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No employee data received from HR4 API.',
+                    'raw_response' => $responseData
+                ], 500);
+            }
+
             foreach ($employees as $employee) {
                 try {
                     if (empty($employee['employee_id'])) {
@@ -54,6 +66,13 @@ Route::prefix('ess')->group(function () {
                     $name = $employee['full_name'] ?? ($employee['firstname'] ?? null);
                     $email = $employee['email'] ?? null;
                     $status = $employee['employment_status'] ?? null;
+
+                    // Skip if no name or email
+                    if (empty($name) && empty($email)) {
+                        $skipped++;
+                        Log::warning("HR4 Sync: Skipping employee {$employee_id} - no name or email");
+                        continue;
+                    }
 
                     $user = User::where('employee_id', $employee_id)->first();
 
@@ -81,28 +100,41 @@ Route::prefix('ess')->group(function () {
                         }
 
                     } else {
-                        // Create
+                        // Generate unique email if null or duplicate
+                        if (empty($email)) {
+                            $email = 'employee_' . $employee_id . '@placeholder.local';
+                        } else {
+                            // Check if email already exists for another user
+                            $existingUser = User::where('email', $email)->first();
+                            if ($existingUser) {
+                                $email = $employee_id . '_' . $email;
+                            }
+                        }
+
+                        // Create new user
                         $user = User::create([
                             'employee_id' => $employee_id,
-                            'name' => $name,
+                            'name' => $name ?? 'Employee ' . $employee_id,
                             'email' => $email,
                             'role' => 'employee',
                             'password' => Hash::make('12345678'),
                             'employment_status' => $status,
                         ]);
                         $created++;
+                        Log::info("HR4 Sync: Created user for employee {$employee_id}");
                     }
                 } catch (\Throwable $e) {
                     $errors++;
-                    Log::error("HR4 sync error for employee {$employee['employee_id']}: " . $ex->getMessage(), [
+                    $errorMessages[] = "Employee {$employee['employee_id']}: " . $e->getMessage();
+                    Log::error("HR4 sync error for employee {$employee['employee_id']}: " . $e->getMessage(), [
                         'employee' => $employee,
-                        'exception' => $ex,
+                        'exception' => $e,
                     ]);
                     continue;
                 }
             }
 
-            $noChanges = ($created === 0 && $updated === 0);
+            $noChanges = ($created === 0 && $updated === 0 && $errors === 0);
 
             return response()->json([
                 'success' => true,
@@ -111,6 +143,7 @@ Route::prefix('ess')->group(function () {
                 'updated' => $updated,
                 'skipped' => $skipped,
                 'errors' => $errors,
+                'error_details' => $errors > 0 ? $errorMessages : null,
                 'no_changes' => $noChanges,
             ]);
 
@@ -118,7 +151,7 @@ Route::prefix('ess')->group(function () {
             Log::error('HR4 sync fatal error: '.$e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Sync failed: API connection error.'
+                'message' => 'Sync failed: API connection error. ' . $e->getMessage()
             ], 500);
         }
         
