@@ -178,28 +178,34 @@ document.getElementById('syncBtn').addEventListener('click', async () => {
 
     // Use AbortController to guard against calls hanging
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000); // 25s client-side timeout
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30s client-side timeout
+
+    // Disable button and show loading state
+    const btn = document.getElementById('syncBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Syncing...';
 
     try {
-        const res = await fetch('/api/ess/syncdb', {
+        const res = await fetch('{{ route("sync.employees.hr4") }}', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}' // include if using session auth
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             signal: controller.signal,
         });
 
         clearTimeout(timeout);
 
+        const data = await res.json();
+
         if (!res.ok) {
-            const text = await res.text();
-            alert('Sync failed: ' + res.status + '\\n' + text);
+            alert('Sync failed: ' + res.status + '\n' + (data.message || JSON.stringify(data)));
             window.location.href = '/dashboard';
             return;
         }
-
-        const data = await res.json();
 
         if (!data.success) {
             alert('Sync failed: ' + (data.message || 'Unknown error'));
@@ -207,12 +213,20 @@ document.getElementById('syncBtn').addEventListener('click', async () => {
             return;
         }
 
-        // Build a simple summary message
-        let msg = 'Sync finished.\\n';
+        // Build a detailed summary message
+        let msg = 'Sync finished.\n';
         if (data.no_changes) {
-            msg += 'No changes — database already synchronized.\\n';
+            msg += 'No changes — database already synchronized.\n';
         } else {
-            msg += `Created: ${data.created || 0}\\nUpdated: ${data.updated || 0}\\nSkipped: ${data.skipped || 0}\\nErrors: ${data.errors || 0}\\n`;
+            msg += `Created: ${data.created || 0}\nUpdated: ${data.updated || 0}\nSkipped: ${data.skipped || 0}\nErrors: ${data.errors || 0}\n`;
+        }
+
+        // Show error details if any
+        if (data.error_details && data.error_details.length > 0) {
+            msg += '\nError details:\n' + data.error_details.slice(0, 5).join('\n');
+            if (data.error_details.length > 5) {
+                msg += '\n... and ' + (data.error_details.length - 5) + ' more errors (check logs)';
+            }
         }
 
         alert(msg);
@@ -223,7 +237,9 @@ document.getElementById('syncBtn').addEventListener('click', async () => {
             alert('Sync error: ' + (err.message || 'Unknown error'));
         }
     } finally {
-        // Always go back to dashboard after alert
+        // Restore button and refresh page
+        btn.disabled = false;
+        btn.innerHTML = originalText;
         window.location.href = '/dashboard';
     }
 });
