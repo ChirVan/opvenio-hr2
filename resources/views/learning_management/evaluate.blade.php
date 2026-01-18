@@ -12,7 +12,6 @@
     @endsection
 
     <div class="py-3">
-        <!-- Page Header -->
         <div class="mb-6">
             @if (isset($isSingleAssessment) && $isSingleAssessment)
                 <h1 class="text-3xl font-bold text-gray-900">Evaluate Single Assessment</h1>
@@ -44,8 +43,9 @@
                                 </a>
                             </div>
                         </div>
+
                         <div class="card-body">
-                            <!-- Employee Information -->
+                            <!-- Employee / Assessment summary -->
                             <div class="row mb-4">
                                 <div class="col-md-6">
                                     <h5>Employee Information</h5>
@@ -60,10 +60,6 @@
                                         </tr>
                                         @if (isset($isSingleAssessment) && $isSingleAssessment)
                                             <tr>
-                                                <td><strong>Assessment Type:</strong></td>
-                                                <td>Single Assessment Evaluation</td>
-                                            </tr>
-                                            <tr>
                                                 <td><strong>Quiz:</strong></td>
                                                 <td>{{ $assessmentData[0]->quiz_title }}</td>
                                             </tr>
@@ -76,33 +72,17 @@
                                                 <td><strong>Total Assessments:</strong></td>
                                                 <td>{{ $employeeData->total_assessments }}</td>
                                             </tr>
-                                            <tr>
-                                                <td><strong>Completed:</strong></td>
-                                                <td>{{ $employeeData->completed_assessments }}</td>
-                                            </tr>
                                         @endif
                                     </table>
                                 </div>
+
                                 <div class="col-md-6">
-                                    @if (isset($isReadOnlyMode) && $isReadOnlyMode)
-                                        <h5>Next Steps</h5>
-                                        <div class="alert alert-info">
-                                            <h6><i class="fas fa-info-circle"></i> Step 1 Complete</h6>
-                                            <p class="mb-0">All assessments have been evaluated. Use the "Step 2
-                                                Evaluation" buttons below to conduct hands-on evaluations for each
-                                                assessment individually.</p>
-                                        </div>
-                                    @elseif(isset($isSingleAssessment) && $isSingleAssessment)
+                                    @if(isset($isSingleAssessment) && $isSingleAssessment)
                                         <h5>Assessment Details</h5>
                                         <table class="table table-sm">
                                             <tr>
                                                 <td><strong>Date Taken:</strong></td>
-                                                <td>{{ \Carbon\Carbon::parse($assessmentData[0]->completed_at)->format('M d, Y H:i A') }}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Attempt:</strong></td>
-                                                <td>{{ $assessmentData[0]->attempt_number }}</td>
+                                                <td>{{ \Carbon\Carbon::parse($assessmentData[0]->completed_at)->format('M d, Y H:i A') }}</td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Current Score:</strong></td>
@@ -113,266 +93,71 @@
                                                 <td>{{ count($assessmentData[0]->questions_and_answers) }}</td>
                                             </tr>
                                         </table>
-                                    @else
-                                        <h5>Overall Status</h5>
-                                        <table class="table table-sm">
-                                            <tr>
-                                                <td><strong>Status:</strong></td>
-                                                <td>
-                                                    @if ($employeeData->overall_status == 'completed')
-                                                        <span class="badge badge-success">All Completed</span>
-                                                    @elseif($employeeData->overall_status == 'partial')
-                                                        <span class="badge badge-warning">Partially Completed</span>
-                                                    @else
-                                                        <span class="badge badge-secondary">Not Started</span>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Progress:</strong></td>
-                                                <td>
-                                                    <div class="progress">
-                                                        <div class="progress-bar"
-                                                            style="width: {{ ($employeeData->completed_assessments / $employeeData->total_assessments) * 100 }}%">
-                                                        </div>
-                                                    </div>
-                                                    {{ round(($employeeData->completed_assessments / $employeeData->total_assessments) * 100, 1) }}%
-                                                </td>
-                                            </tr>
-                                        </table>
                                     @endif
                                 </div>
                             </div>
 
-                            <!-- Assessment Results Display -->
-                            @if (isset($isReadOnlyMode) && $isReadOnlyMode)
-                                <!-- Read-only Assessment Summary -->
-                                <div class="row">
-                                    <div class="col-12">
-                                        <h5><i class="fas fa-chart-bar"></i> Assessment Summary</h5>
-                                        <p class="text-muted">Below are the completed assessment results for this
-                                            employee:</p>
-                                    </div>
-                                </div>
-
-                                @foreach ($assessmentData as $assessmentIndex => $assessment)
-                                    <div class="card mb-4 border-success">
-                                        <div class="card-header bg-success text-white">
-                                            <h5 class="mb-0">
-                                                <i class="fas fa-clipboard-check"></i>
-                                                {{ $assessment->quiz_title }}
-                                                <small>({{ $assessment->category_name }})</small>
-                                            </h5>
-                                            <div class="row mt-2">
-                                                <div class="col-md-3">
-                                                    <small><strong>Date Taken:</strong>
-                                                        {{ \Carbon\Carbon::parse($assessment->completed_at)->format('M d, Y H:i A') }}</small>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <small><strong>Total Questions:</strong>
-                                                        {{ $assessment->total_questions }}</small>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <small><strong>Correct Answers:</strong>
-                                                        {{ $assessment->correct_answers }}</small>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <small><strong>Final Score:</strong>
-                                                        {{ $assessment->score_percentage }}%</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="row">
-                                                <div class="col-md-8">
-                                                    <div class="progress mb-2">
-                                                        <div class="progress-bar bg-success" role="progressbar"
-                                                            style="width: {{ $assessment->score_percentage }}%"
-                                                            aria-valuenow="{{ $assessment->score_percentage }}"
-                                                            aria-valuemin="0" aria-valuemax="100">
-                                                            {{ $assessment->score_percentage }}%
-                                                        </div>
-                                                    </div>
-                                                    <small class="text-muted">
-                                                        Assessment Status:
-                                                        @if ($assessment->manually_graded == $assessment->total_questions)
-                                                            <span class="badge badge-success">Fully Evaluated</span>
-                                                        @elseif($assessment->manually_graded > 0)
-                                                            <span class="badge badge-warning">Partially Evaluated
-                                                                ({{ $assessment->manually_graded }}/{{ $assessment->total_questions }})</span>
-                                                        @else
-                                                            <span class="badge badge-secondary">Not Evaluated</span>
-                                                        @endif
-                                                    </small>
-                                                </div>
-                                                <div class="col-md-4 text-right">
-                                                    <div class="score-display">
-                                                        <h4 class="text-success mb-0">
-                                                            {{ $assessment->correct_answers }}/{{ $assessment->total_questions }}
-                                                        </h4>
-                                                        <small class="text-muted">Correct Answers</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-
-                                <!-- Hands-on Evaluation Section -->
-                                <div class="row mt-5">
-                                    <div class="col-12">
-                                        <div class="card border-primary">
-                                            <div class="card-header bg-primary text-white">
-                                                <h5 class="mb-0">
-                                                    <i class="fas fa-hand-paper"></i> Hands-on Evaluation
-                                                </h5>
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="row">
-                                                    <div class="col-md-8">
-                                                        <h6><strong>Step 2: Practical Skills Assessment</strong></h6>
-                                                        <p class="text-muted mb-3">
-                                                            After reviewing the quiz results above, proceed to evaluate
-                                                            the employee's practical skills and competencies through
-                                                            hands-on assessment.
-                                                        </p>
-                                                        <div class="alert alert-info">
-                                                            <h6><i class="fas fa-info-circle"></i> What's Next?</h6>
-                                                            <ul class="mb-0">
-                                                                <li>Evaluate 5 core competency areas</li>
-                                                                <li>Provide detailed feedback and comments</li>
-                                                                <li>Make final pass/fail decision</li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-4 text-center">
-                                                        <div class="evaluation-action">
-                                                            <h6 class="text-primary"><strong>Ready to Proceed?</strong>
-                                                            </h6>
-                                                            <button type="button" class="btn btn-primary btn-lg"
-                                                                onclick="proceedToHandsOnEvaluation()">
-                                                                <i class="fas fa-clipboard-check"></i> Start Hands-on
-                                                                Evaluation
-                                                            </button>
-                                                            <small class="d-block mt-2 text-muted">This will take you to
-                                                                the competency evaluation form</small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @else
-                                <!-- Interactive Assessment Form -->
-                                <form id="assessmentScoringForm" method="POST"
-                                    action="{{ route('assessment.results.update-scoring') }}">
+                            <!-- Interactive Assessment Form -->
+                            @if(!(isset($isReadOnlyMode) && $isReadOnlyMode))
+                                <form id="assessmentScoringForm" method="POST" action="{{ route('assessment.results.update-scoring') }}">
                                     @csrf
                                     <input type="hidden" name="employee_id" value="{{ $employeeData->employee_id }}">
 
                                     @foreach ($assessmentData as $assessmentIndex => $assessment)
                                         <input type="hidden" name="result_ids[]" value="{{ $assessment->result_id }}">
 
-                                        <!-- Assessment Card -->
                                         <div class="card mb-4 border-primary">
                                             <div class="card-header bg-primary text-white">
-                                                <h5 class="mb-0">
-                                                    <i class="fas fa-clipboard-check"></i>
-                                                    {{ $assessment->quiz_title }}
-                                                    <small>({{ $assessment->category_name }})</small>
-                                                </h5>
-                                                <div class="row mt-2">
-                                                    <div class="col-md-4">
-                                                        <small><strong>Date Taken:</strong>
-                                                            {{ \Carbon\Carbon::parse($assessment->completed_at)->format('M d, Y H:i A') }}</small>
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <small><strong>Questions:</strong>
-                                                            {{ count($assessment->questions_and_answers) }}</small>
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <small><strong>Current Score:</strong> <span
-                                                                id="assessment_score_{{ $assessmentIndex }}">{{ $assessment->score ?? 0 }}%</span></small>
-                                                    </div>
-                                                </div>
+                                                <h5 class="mb-0">{{ $assessment->quiz_title }} <small>({{ $assessment->category_name }})</small></h5>
                                             </div>
                                             <div class="card-body">
-                                                <!-- Questions and Manual Scoring -->
                                                 @foreach ($assessment->questions_and_answers as $questionIndex => $qa)
-                                                    <div class="card mb-3 question-card"
-                                                        data-assessment="{{ $assessmentIndex }}"
-                                                        data-question="{{ $questionIndex }}">
-                                                        <div
-                                                            class="card-header d-flex justify-content-between align-items-center">
-                                                            <h6 class="mb-0">Question {{ $questionIndex + 1 }}</h6>
+                                                    <div class="card mb-3 question-card border-secondary" data-question-number="{{ $qa->question_number ?? ($loop->index+1) }}" data-user-answer-id="{{ $qa->user_answer_row_id ?? $qa->id }}">
+                                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                                            <h6 class="mb-0">Question {{ $qa->question_number ?? ($questionIndex+1) }}</h6>
                                                             <div class="scoring-controls">
                                                                 <div class="form-check form-check-inline">
-                                                                    <input class="form-check-input question-score"
-                                                                        type="radio"
-                                                                        name="question_scores[{{ $qa->id }}][is_correct]"
-                                                                        id="correct_{{ $qa->id }}"
-                                                                        value="1"
-                                                                        {{ $qa->manually_graded && $qa->is_correct ? 'checked' : ($qa->is_correct && !$qa->manually_graded ? 'checked' : '') }}
-                                                                        onchange="updateQuestionScore({{ $assessmentIndex }}, {{ $questionIndex }}, '{{ $qa->id }}')">
-                                                                    <label class="form-check-label text-success"
-                                                                        for="correct_{{ $qa->id }}">
-                                                                        <i class="fas fa-check"></i> Correct
-                                                                    </label>
+                                                                    <input class="form-check-input question-score border-secondary" type="radio" name="question_scores[{{ $qa->user_answer_row_id ?? $qa->id }}][is_correct]" id="correct_{{ $qa->user_answer_row_id ?? $qa->id }}" value="1">
+                                                                    <label class="form-check-label text-success" for="correct_{{ $qa->user_answer_row_id ?? $qa->id }}"><i class="fas fa-check"></i> Correct</label>
                                                                 </div>
                                                                 <div class="form-check form-check-inline">
-                                                                    <input class="form-check-input question-score"
-                                                                        type="radio"
-                                                                        name="question_scores[{{ $qa->id }}][is_correct]"
-                                                                        id="incorrect_{{ $qa->id }}"
-                                                                        value="0"
-                                                                        {{ $qa->manually_graded && !$qa->is_correct ? 'checked' : (!$qa->is_correct && !$qa->manually_graded ? 'checked' : '') }}
-                                                                        onchange="updateQuestionScore({{ $assessmentIndex }}, {{ $questionIndex }}, '{{ $qa->id }}')">
-                                                                    <label class="form-check-label text-danger"
-                                                                        for="incorrect_{{ $qa->id }}">
-                                                                        <i class="fas fa-times"></i> Incorrect
-                                                                    </label>
+                                                                    <input class="form-check-input question-score border-secondary" type="radio" name="question_scores[{{ $qa->user_answer_row_id ?? $qa->id }}][is_correct]" id="incorrect_{{ $qa->user_answer_row_id ?? $qa->id }}" value="0">
+                                                                    <label class="form-check-label text-danger" for="incorrect_{{ $qa->user_answer_row_id ?? $qa->id }}"><i class="fas fa-times"></i> Incorrect</label>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                         <div class="card-body">
                                                             <div class="row">
-                                                                <div class="col-12 mb-3">
+                                                                <div class="col-12 mb-3 border-secondary">
                                                                     <strong>Question:</strong>
                                                                     <p class="mt-2">{{ $qa->question_text }}</p>
                                                                 </div>
+
                                                                 <div class="col-md-6">
                                                                     <strong>Employee's Answer:</strong>
-                                                                    <div class="p-2 bg-light border rounded mt-2">
-                                                                        {{ $qa->user_answer ?: 'No answer provided' }}
+                                                                    <div class="p-2 bg-light border-secondary rounded mt-2">
+                                                                        {{ $qa->employee_answer ?? $qa->user_answer ?? 'No answer provided' }}
                                                                     </div>
                                                                 </div>
+
                                                                 <div class="col-md-6">
                                                                     <strong>Correct Answer:</strong>
-                                                                    <div
-                                                                        class="p-2 bg-success text-white border rounded mt-2">
-                                                                        {{ $qa->correct_answer }}
+                                                                    <div class="p-2 bg-success text-white border rounded mt-2">
+                                                                        {{ $qa->correct_answer ?? 'N/A' }}
                                                                     </div>
                                                                 </div>
                                                             </div>
 
-                                                            <!-- Manual Comments -->
                                                             <div class="row mt-3">
                                                                 <div class="col-md-12">
-                                                                    <label class="form-label"><strong>Evaluator
-                                                                            Comments:</strong></label>
-                                                                    <textarea class="form-control form-control-sm" name="question_scores[{{ $qa->id }}][comments]" rows="2"
-                                                                        placeholder="Optional comments...">{{ $qa->evaluator_comments }}</textarea>
+                                                                    <label class="form-label"><strong>Evaluator Comments:</strong></label>
+                                                                    <textarea class="form-control form-control-sm border-secondary" name="question_scores[{{ $qa->user_answer_row_id ?? $qa->id }}][comments]" rows="2" placeholder="Optional comments...">{{ $qa->evaluator_comments ?? '' }}</textarea>
                                                                 </div>
                                                             </div>
 
-                                                            @if ($qa->manually_graded)
+                                                            @if(!empty($qa->manually_graded) && $qa->manually_graded)
                                                                 <div class="mt-2">
-                                                                    <small class="text-info">
-                                                                        <i class="fas fa-info-circle"></i>
-                                                                        Previously graded by
-                                                                        {{ $qa->grader_name ?? 'Admin' }} on
-                                                                        {{ \Carbon\Carbon::parse($qa->graded_at)->format('M d, Y H:i A') }}
-                                                                    </small>
+                                                                    <small class="text-info">Previously graded on {{ \Carbon\Carbon::parse($qa->graded_at ?? now())->format('M d, Y H:i A') }}</small>
                                                                 </div>
                                                             @endif
                                                         </div>
@@ -382,20 +167,37 @@
                                         </div>
                                     @endforeach
 
-                                    <!-- Action Buttons -->
                                     <div class="row mt-4">
                                         <div class="col-12 text-center">
-                                            <button type="submit" class="btn btn-success btn-lg"
-                                                id="saveScoringBtn">
-                                                <i class="fas fa-check"></i> Approve
-                                            </button>
-                                            <button type="button" class="btn btn-danger btn-lg ml-2"
-                                                onclick="rejectAssessment()">
-                                                <i class="fas fa-times"></i> Reject
-                                            </button>
+                                            <button type="submit" class="btn btn-success btn-lg" id="saveScoringBtn"><i class="fas fa-check"></i> Approve</button>
+                                            <button type="button" class="btn btn-danger btn-lg ml-2" onclick="rejectAssessment()"><i class="fas fa-times"></i> Reject</button>
+
+                                            @if(isset($isSingleAssessment) && $isSingleAssessment && isset($resultId))
+                                                <button id="ai-check-btn" class="btn btn-info btn-lg ml-2">֎ Auto-check with AI</button>
+                                            @endif
                                         </div>
                                     </div>
                                 </form>
+
+                                <!-- Inline AI Result Panel -->
+                                <div id="ai-result-panel" class="mt-4" style="display:none;">
+                                    <div class="card border-info">
+                                        <div class="card-header bg-info text-white">
+                                            <h5 class="mb-0">AI Automatic Evaluation</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="ai-result-content" class="mb-3"></div>
+
+                                            <div id="ai-result-actions" style="display:none;">
+                                                <button id="aiApproveBtnInline" class="btn btn-success mr-2">Approve AI Result</button>
+                                                <button id="aiRejectBtnInline" class="btn btn-secondary">Dismiss</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <!-- Read-only mode: display summary only -->
+                                <div class="alert alert-info">Read-only mode — results displayed above.</div>
                             @endif
                         </div>
                     </div>
@@ -404,103 +206,216 @@
         </div>
     </div>
 
-    <!-- JavaScript for Dynamic Scoring -->
+    <!-- Scripts -->
     <script>
-        function updateQuestionScore(assessmentIndex, questionIndex, answerId) {
-            // This function can be used for real-time score calculation
-            // For now, we'll handle scoring on form submission
-            console.log('Updating score for assessment:', assessmentIndex, 'question:', questionIndex, 'answer:', answerId);
-        }
-
-        document.getElementById('assessmentScoringForm').addEventListener('submit', function(e) {
+        // Basic form submit handling (unchanged behavior)
+        (function(){
+            const form = document.getElementById('assessmentScoringForm');
+            if (form) {
+                form.addEventListener('submit', function(e){
                     e.preventDefault();
+                    if (!confirm('Are you sure you want to approve this assessment?')) return;
 
-                    if (!confirm('Are you sure you want to approve this assessment?')) {
+                    const btn = document.getElementById('saveScoringBtn');
+                    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        }
+                    }).then(r => r.json()).then(json => {
+                        if (json.success) {
+                            alert('Assessment approved successfully!');
+                            window.location.href = '{{ route("assessment.results") }}';
+                        } else {
+                            alert('Error: ' + (json.message || 'Unknown'));
+                        }
+                    }).catch(err => {
+                        console.error(err); alert('Error processing request.');
+                    }).finally(()=>{
+                        btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Approve';
+                    });
+                });
+            }
+
+            window.rejectAssessment = function(){
+                if (!confirm('Are you sure you want to reject this assessment?')) return;
+                const form = document.getElementById('assessmentScoringForm');
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')}
+                }).then(r=>r.json()).then(json=>{
+                    if (json.success) { alert('Assessment rejected.'); window.location.href='{{ route("assessment.results") }}'; }
+                    else alert('Error: ' + (json.message||'Unknown'));
+                }).catch(err=>{ console.error(err); alert('Error rejecting.'); });
+            };
+        })();
+    </script>
+
+    <script>
+        // AI integration: lightweight, defensive, and self-contained
+        (function(){
+            const aiBtn = document.getElementById('ai-check-btn');
+            if (!aiBtn) return; // nothing to do
+
+            const resultId = {!! json_encode($resultId ?? null) !!};
+            const apiEvaluateUrl = `/api/ai/evaluate/${resultId}`;
+            const apiApproveUrl = `/api/ai/evaluate/${resultId}/approve`;
+
+            const panel = document.getElementById('ai-result-panel');
+            const contentDiv = document.getElementById('ai-result-content');
+            const actionsDiv = document.getElementById('ai-result-actions');
+            const approveBtn = document.getElementById('aiApproveBtnInline');
+            const rejectBtn = document.getElementById('aiRejectBtnInline');
+
+            function showSpinner(btn){ btn.disabled = true; btn.dataset.orig = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...'; }
+            function hideSpinner(btn){ if (btn && btn.dataset && btn.dataset.orig) { btn.innerHTML = btn.dataset.orig; btn.disabled = false; delete btn.dataset.orig; } }
+
+            function renderAiResult(ai){
+                if (!ai) { contentDiv.innerHTML = '<div class="alert alert-warning">No AI data returned.</div>'; return; }
+                if (ai.error) { contentDiv.innerHTML = `<div class="alert alert-danger">AI Error: ${ai.error}</div>`; return; }
+
+                // Build a friendly HTML summary based on expected schema
+                let html = '';
+                if (typeof ai.overall_score !== 'undefined') {
+                    html += `<p><strong>Overall Score:</strong> ${ai.overall_score} — <strong>Percentage:</strong> ${ai.percentage ?? 'N/A'}%</p>`;
+                }
+
+                if (Array.isArray(ai.per_question) && ai.per_question.length){
+                    html += '<h6>Per-question details</h6><div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Correct?</th><th>Reason</th></tr></thead><tbody>';
+                    ai.per_question.forEach(q=>{
+                        const num = q.question_number ?? q.question_id ?? '-';
+                        const ok = q.is_correct ? '<span class="text-success">Yes</span>' : '<span class="text-danger">No</span>';
+                        const reason = (q.reason && q.reason.length) ? q.reason : '';
+                        html += `<tr><td>${num}</td><td>${ok}</td><td>${reason}</td></tr>`;
+                    });
+                    html += '</tbody></table></div>';
+                }
+
+                if (!html) html = `<pre>${JSON.stringify(ai, null, 2)}</pre>`;
+                contentDiv.innerHTML = html;
+            }
+
+            aiBtn.addEventListener('click', async function(e){
+                e.preventDefault();
+                if (!confirm('Run automatic AI evaluation for this assessment?')) return;
+                showSpinner(aiBtn);
+
+                try {
+                    const resp = await fetch(apiEvaluateUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify({})
+                    });
+
+                    if (!resp.ok) {
+                        const text = await resp.text();
+                        contentDiv.innerHTML = `<div class="alert alert-danger">Server error: ${resp.status} — ${text}</div>`;
+                        panel.style.display = 'block'; actionsDiv.style.display = 'none';
                         return;
                     }
 
-                    const formData = new FormData(this);
-                    formData.append('action', 'approve');
-                    const saveScoringBtn = document.getElementById('saveScoringBtn');
-
-                    saveScoringBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-                    saveScoringBtn.disabled = true;
-
-                    fetch(this.action, {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                    'content')
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                                if (data.success) {
-                                    // Show success message
-                                    alert('Assessment approved successfully!');
-                                    // Redirect back to results page
-                                    window.location.href = '{{ route('assessment.results') }}';
-                                } else {
-                                    alert('Error: ' + data.messa
-                                    }
-                                })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                alert('An error occurred while processing the assessment.');
-                            })
-                            .finally(() => {
-                                saveScoringBtn.innerHTML = '<i class="fas fa-check"></i> Approve';
-                                saveScoringBtn.disabled = false;
-                            });
-                        });
-
-                function rejectAssessment() {
-                    if (confirm('Are you sure you want to reject this assessment?')) {
-                        const form = document.getElementById('assessmentScoringForm');
-                        const formData = new FormData(form);
-                        formData.append('action', 'reject');
-
-                        fetch(form.action, {
-                                method: 'POST',
-                                body: formData,
-                                headers: {
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                        'content')
-                                }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    alert('Assessment rejected.');
-                                    window.location.href = '{{ route('assessment.results') }}';
-                                } else {
-                                    alert('Error: ' + data.message);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                alert('An error occurred while rejecting the assessment.');
-                            });
+                    const json = await resp.json();
+                    if (!json.success) {
+                        contentDiv.innerHTML = `<div class="alert alert-danger">AI Error: ${json.message || 'Unknown'}</div>`;
+                        panel.style.display = 'block'; actionsDiv.style.display = 'none';
+                        return;
                     }
-                }
 
-                function proceedToHandsOnEvaluation() {
-                    if (confirm(
-                            'Proceed to hands-on evaluation? This will assess the employee\'s practical skills and competencies.'
-                            )) {
-                        // For hands-on evaluation, we'll use the first assessment result ID as a reference
-                        // since the competency evaluation is employee-level, not assessment-specific
-                        @if (isset($assessmentData) && count($assessmentData) > 0)
-                            const firstResultId = '{{ $assessmentData[0]->result_id }}';
-                            // Pass all result IDs for this group so we only update these specific assessments
-                            const resultIds = '{{ implode(',', array_column($assessmentData, 'result_id')) }}';
-                            window.location.href =
-                                `/assessment-results/${firstResultId}/evaluate/step2?result_ids=${resultIds}`;
-                        @else
-                            alert('No assessment data available for hands-on evaluation.');
-                        @endif
-                    }
+                    renderAiResult(json.ai);
+                    applyAiResultsToForm(json.ai);
+                    panel.style.display = 'block'; actionsDiv.style.display = 'block';
+                    panel.dataset.aiPayload = JSON.stringify(json.ai || {});
+
+                } catch(err) {
+                    console.error(err);
+                    contentDiv.innerHTML = `<div class="alert alert-danger">Network or server error: ${err.message}</div>`;
+                    panel.style.display = 'block'; actionsDiv.style.display = 'none';
+                } finally {
+                    hideSpinner(aiBtn);
                 }
+            });
+
+            approveBtn.addEventListener('click', async function(e){
+                if (!confirm('Approve AI grading? This will save the AI review.')) return;
+                showSpinner(approveBtn);
+                try {
+                    const aiPayload = panel.dataset.aiPayload ? JSON.parse(panel.dataset.aiPayload) : null;
+                    if (!aiPayload) { alert('No AI result to save.'); return; }
+
+                    const resp = await fetch(apiApproveUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify({ ai_result: aiPayload })
+                    });
+
+                    const json = await resp.json();
+                    if (json.success) { alert('AI review saved.'); window.location.reload(); }
+                    else alert('Failed to save AI review: ' + (json.message || 'Unknown'));
+                } catch(err){ console.error(err); alert('Error saving AI review: ' + err.message); }
+                finally { hideSpinner(approveBtn); }
+            });
+
+            rejectBtn.addEventListener('click', function(){ panel.style.display='none'; contentDiv.innerHTML=''; actionsDiv.style.display='none'; delete panel.dataset.aiPayload; });
+
+            function applyAiResultsToForm(ai) {
+  if (!ai || !Array.isArray(ai.per_question)) return;
+
+  ai.per_question.forEach(q => {
+    const qnum = q.question_number; // AI must return question_number
+    if (typeof qnum === 'undefined') return;
+
+    // find the question card by number
+    const card = document.querySelector(`.question-card[data-question-number="${qnum}"]`);
+    if (!card) return;
+
+    // set radio
+    const correctInput = card.querySelector(`input[type="radio"][value="1"]`);
+    const incorrectInput = card.querySelector(`input[type="radio"][value="0"]`);
+    if (q.is_correct) {
+      if (correctInput) correctInput.checked = true;
+      if (incorrectInput) incorrectInput.checked = false;
+    } else {
+      if (incorrectInput) incorrectInput.checked = true;
+      if (correctInput) correctInput.checked = false;
+    }
+
+    // optionally display AI reason inline (only when present)
+    let reasonEl = card.querySelector('.ai-reason');
+    if (!reasonEl) {
+      reasonEl = document.createElement('div');
+      reasonEl.className = 'ai-reason mt-2 text-muted small';
+      card.appendChild(reasonEl);
+    }
+    reasonEl.textContent = q.reason ? `AI: ${q.reason}` : '';
+    
+    // If you want to update awarded points display (optional)
+    let awardedEl = card.querySelector('.ai-awarded');
+    if (!awardedEl) {
+      awardedEl = document.createElement('div');
+      awardedEl.className = 'ai-awarded mt-1';
+      card.appendChild(awardedEl);
+    }
+    if (typeof q.awarded_points !== 'undefined') {
+      awardedEl.innerHTML = `<small>AI awarded: ${q.awarded_points}/${q.points_possible}</small>`;
+    } else {
+      awardedEl.innerHTML = '';
+    }
+  });
+}
+        })();
+        
     </script>
+
 </x-app-layout>
