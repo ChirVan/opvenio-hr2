@@ -10,72 +10,420 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Boxicons -->
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --primary-light: #d1fae5;
+            --secondary: #64748b;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+            --card-shadow-hover: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
+        }
+
         body {
-            background-color: #f5f7f6;
-            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--light);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--dark);
         }
+
+        /* Page Header */
         .page-header {
-            background: linear-gradient(135deg, #198754 0%, #157347 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
-            border-radius: 12px;
-            padding: 25px 30px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
+            position: relative;
+            overflow: hidden;
         }
-        .card {
-            border: none;
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .page-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-header p {
+            opacity: 0.9;
+            font-size: 0.875rem;
+            margin-bottom: 0;
+        }
+
+        .btn-back {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            font-size: 0.8rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-back:hover {
+            background: rgba(255,255,255,0.3);
+            color: white;
+        }
+
+        /* Cards */
+        .section-card {
+            background: white;
             border-radius: 14px;
-            transition: all 0.25s ease;
-            background-color: #ffffff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(0,0,0,0.04);
+            overflow: hidden;
+            height: 100%;
         }
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+
+        .section-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #f1f5f9;
         }
-        label {
-            font-weight: 500;
-            color: #444;
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        .badge {
+
+        .section-title i {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .section-body {
+            padding: 1.25rem;
+        }
+
+        /* Form Styles */
+        .form-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.35rem;
+        }
+
+        .form-control,
+        .form-select {
+            font-size: 0.85rem;
+            padding: 0.6rem 0.875rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .form-control::placeholder {
+            color: #94a3b8;
             font-size: 0.8rem;
         }
-        .table td, .table th {
+
+        textarea.form-control {
+            resize: none;
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            border: none;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-dark);
+            color: white;
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.7;
+        }
+
+        /* Leave Balance Cards */
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .balance-card {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 0.875rem;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .balance-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.5rem;
+            font-size: 1rem;
+        }
+
+        .balance-icon.vacation { background: #dbeafe; color: #2563eb; }
+        .balance-icon.sick { background: #fee2e2; color: #dc2626; }
+        .balance-icon.emergency { background: #fef3c7; color: #d97706; }
+        .balance-icon.personal { background: #f3e8ff; color: #7c3aed; }
+
+        .balance-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+            line-height: 1;
+        }
+
+        .balance-label {
+            font-size: 0.65rem;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.25rem;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .leave-table {
+            width: 100%;
+            margin: 0;
+        }
+
+        .leave-table thead th {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--secondary);
+            padding: 0.75rem 1rem;
+            background: #f8fafc;
+            border: none;
+            white-space: nowrap;
+        }
+
+        .leave-table tbody td {
+            font-size: 0.8rem;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-bottom: 1px solid #f1f5f9;
             vertical-align: middle;
+        }
+
+        .leave-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .leave-table tbody tr:hover {
+            background: #fafbfc;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            font-size: 0.65rem;
+            font-weight: 500;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .status-badge.approved {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+        }
+
+        .status-badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Leave Type Badge */
+        .leave-type {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .leave-type-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        .leave-type-icon.vacation { background: #dbeafe; color: #2563eb; }
+        .leave-type-icon.sick { background: #fee2e2; color: #dc2626; }
+        .leave-type-icon.emergency { background: #fef3c7; color: #d97706; }
+        .leave-type-icon.personal { background: #f3e8ff; color: #7c3aed; }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: var(--secondary);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 0.85rem;
+            margin-bottom: 0;
+        }
+
+        /* Date Range */
+        .date-range {
+            font-size: 0.75rem;
+            color: var(--secondary);
+        }
+
+        .date-range .date {
+            color: var(--dark);
+            font-weight: 500;
+        }
+
+        /* Remarks */
+        .remarks-text {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.75rem;
+            color: var(--secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .balance-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                padding: 1.25rem;
+            }
+            .page-header h2 {
+                font-size: 1.25rem;
+            }
+            .balance-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
     @include('layouts.ess-navbar-bootstrap')
 
-    <div class="container-fluid py-4" style="margin-top: 80px;">
+    <div class="container py-4" style="margin-top: 76px; max-width: 1200px;">
         <!-- Header -->
-        <div class="page-header mb-4 d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="mb-1">Request Leave</h2>
-                <p class="mb-0 opacity-75">Submit and track your leave applications</p>
+        <div class="page-header mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Request Leave</h2>
+                    <p>Submit and track your leave applications</p>
+                </div>
+                <a href="{{ route('ess.dashboard') }}" class="btn btn-back">
+                    <i class='bx bx-arrow-back me-1'></i>Back
+                </a>
             </div>
-            <a href="{{ route('ess.dashboard') }}" class="btn btn-light text-success fw-semibold">
-                <i class='bx bx-arrow-back me-2'></i>Back to Dashboard
-            </a>
         </div>
 
-        <div class="row g-4">
+        <div class="row g-3">
             <!-- Request Form -->
             <div class="col-lg-5">
-                <div class="card">
-                    <div class="card-header bg-white border-0 pb-0">
-                        <h5 class="mb-0 fw-semibold text-success">
-                            <i class='bx bx-edit-alt me-2'></i>New Leave Request
+                <div class="section-card">
+                    <div class="section-header">
+                        <h5 class="section-title">
+                            <i class='bx bx-edit-alt'></i>New Leave Request
                         </h5>
                     </div>
-                    <div class="card-body">
+                    <div class="section-body">
+                        <!-- Leave Balance Cards -->
+                        <div class="balance-grid">
+                            <div class="balance-card">
+                                <div class="balance-icon vacation">
+                                    <i class='bx bx-sun'></i>
+                                </div>
+                                <div class="balance-value">15</div>
+                                <div class="balance-label">Vacation</div>
+                            </div>
+                            <div class="balance-card">
+                                <div class="balance-icon sick">
+                                    <i class='bx bx-plus-medical'></i>
+                                </div>
+                                <div class="balance-value">10</div>
+                                <div class="balance-label">Sick</div>
+                            </div>
+                            <div class="balance-card">
+                                <div class="balance-icon emergency">
+                                    <i class='bx bx-error'></i>
+                                </div>
+                                <div class="balance-value">3</div>
+                                <div class="balance-label">Emergency</div>
+                            </div>
+                            <div class="balance-card">
+                                <div class="balance-icon personal">
+                                    <i class='bx bx-user'></i>
+                                </div>
+                                <div class="balance-value">5</div>
+                                <div class="balance-label">Personal</div>
+                            </div>
+                        </div>
+
                         <form id="leaveForm">
                             <div class="mb-3">
                                 <label for="leaveType" class="form-label">Leave Type</label>
                                 <select class="form-select" id="leaveType" required>
-                                    <option value="">Select Leave Type</option>
+                                    <option value="">Select leave type...</option>
                                     <option value="Vacation">Vacation Leave</option>
                                     <option value="Sick">Sick Leave</option>
                                     <option value="Emergency">Emergency Leave</option>
@@ -83,23 +431,24 @@
                                 </select>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="startDate" class="form-label">Start Date</label>
-                                <input type="date" class="form-control" id="startDate" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="endDate" class="form-label">End Date</label>
-                                <input type="date" class="form-control" id="endDate" required>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label for="startDate" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" id="startDate" required>
+                                </div>
+                                <div class="col-6">
+                                    <label for="endDate" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="endDate" required>
+                                </div>
                             </div>
 
                             <div class="mb-3">
                                 <label for="reason" class="form-label">Reason</label>
-                                <textarea class="form-control" id="reason" rows="3" placeholder="Briefly explain the reason for your leave..." required></textarea>
+                                <textarea class="form-control" id="reason" rows="3" placeholder="Briefly explain your reason..." required></textarea>
                             </div>
 
-                            <div class="text-end">
-                                <button type="submit" class="btn btn-success px-4">
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-submit">
                                     <i class='bx bx-send me-1'></i>Submit Request
                                 </button>
                             </div>
@@ -110,27 +459,31 @@
 
             <!-- Leave History -->
             <div class="col-lg-7">
-                <div class="card">
-                    <div class="card-header bg-white border-0 pb-0">
-                        <h5 class="mb-0 fw-semibold text-success">
-                            <i class='bx bx-history me-2'></i>Leave History
+                <div class="section-card">
+                    <div class="section-header">
+                        <h5 class="section-title">
+                            <i class='bx bx-history'></i>Leave History
                         </h5>
                     </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table align-middle">
-                                <thead class="table-light">
+                    <div class="section-body p-0">
+                        <div class="table-container">
+                            <table class="leave-table">
+                                <thead>
                                     <tr>
-                                        <th>Leave Type</th>
+                                        <th>Type</th>
                                         <th>Date Range</th>
                                         <th>Status</th>
                                         <th>Remarks</th>
                                     </tr>
                                 </thead>
                                 <tbody id="leaveHistory">
-                                    <!-- Leave history will be loaded from database -->
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted">Loading...</td>
+                                        <td colspan="4">
+                                            <div class="empty-state">
+                                                <i class='bx bx-loader-alt bx-spin'></i>
+                                                <p>Loading leave history...</p>
+                                            </div>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -148,9 +501,25 @@
         // Load leave history on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadLeaveHistory();
+            
+            // Set min date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').min = today;
+            document.getElementById('endDate').min = today;
         });
 
-        // Fetch and display leave history from database
+        // Get leave type icon class
+        function getLeaveTypeIcon(type) {
+            const icons = {
+                'Vacation': { icon: 'bx-sun', class: 'vacation' },
+                'Sick': { icon: 'bx-plus-medical', class: 'sick' },
+                'Emergency': { icon: 'bx-error', class: 'emergency' },
+                'Personal': { icon: 'bx-user', class: 'personal' }
+            };
+            return icons[type] || { icon: 'bx-calendar', class: 'vacation' };
+        }
+
+        // Fetch and display leave history
         async function loadLeaveHistory() {
             try {
                 const userEmail = '{{ Auth::user()->email ?? "" }}';
@@ -162,27 +531,42 @@
                     tbody.innerHTML = '';
 
                     result.data.forEach(leave => {
-                        const startDate = new Date(leave.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const startDate = new Date(leave.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                         const endDate = new Date(leave.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        
+                        const typeInfo = getLeaveTypeIcon(leave.leave_type);
                         
                         let statusBadge = '';
                         switch(leave.status) {
                             case 'approved':
-                                statusBadge = '<span class="badge bg-success">Approved</span>';
+                                statusBadge = '<span class="status-badge approved"><i class="bx bx-check"></i>Approved</span>';
                                 break;
                             case 'rejected':
-                                statusBadge = '<span class="badge bg-danger">Rejected</span>';
+                                statusBadge = '<span class="status-badge rejected"><i class="bx bx-x"></i>Rejected</span>';
                                 break;
                             default:
-                                statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+                                statusBadge = '<span class="status-badge pending"><i class="bx bx-time"></i>Pending</span>';
                         }
 
                         const row = `
                             <tr>
-                                <td>${leave.leave_type}</td>
-                                <td>${startDate} - ${endDate}</td>
+                                <td>
+                                    <div class="leave-type">
+                                        <span class="leave-type-icon ${typeInfo.class}">
+                                            <i class="bx ${typeInfo.icon}"></i>
+                                        </span>
+                                        <span>${leave.leave_type}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="date-range">
+                                        <span class="date">${startDate}</span> - <span class="date">${endDate}</span>
+                                    </div>
+                                </td>
                                 <td>${statusBadge}</td>
-                                <td>${leave.remarks || leave.reason}</td>
+                                <td>
+                                    <span class="remarks-text" title="${leave.remarks || leave.reason || '-'}">${leave.remarks || leave.reason || '-'}</span>
+                                </td>
                             </tr>
                         `;
                         tbody.insertAdjacentHTML('beforeend', row);
@@ -190,16 +574,39 @@
                 } else {
                     document.getElementById('leaveHistory').innerHTML = `
                         <tr>
-                            <td colspan="4" class="text-center text-muted">No leave requests found</td>
+                            <td colspan="4">
+                                <div class="empty-state">
+                                    <i class='bx bx-calendar-x'></i>
+                                    <p>No leave requests found</p>
+                                </div>
+                            </td>
                         </tr>
                     `;
                 }
             } catch (error) {
                 console.error('Error loading leave history:', error);
+                document.getElementById('leaveHistory').innerHTML = `
+                    <tr>
+                        <td colspan="4">
+                            <div class="empty-state">
+                                <i class='bx bx-error-circle'></i>
+                                <p>Failed to load leave history</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
             }
         }
 
-        // Submit leave request to API
+        // Update end date min when start date changes
+        document.getElementById('startDate').addEventListener('change', function() {
+            document.getElementById('endDate').min = this.value;
+            if (document.getElementById('endDate').value < this.value) {
+                document.getElementById('endDate').value = this.value;
+            }
+        });
+
+        // Submit leave request
         document.getElementById('leaveForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -240,13 +647,13 @@
                 if (result.success) {
                     alert('✅ Leave request submitted successfully!');
                     this.reset();
-                    loadLeaveHistory(); // Reload the table from database
+                    loadLeaveHistory();
                 } else {
-                    alert('❌ Failed to submit leave request: ' + (result.message || 'Unknown error'));
+                    alert('❌ Failed to submit: ' + (result.message || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error submitting leave:', error);
-                alert('❌ An error occurred while submitting your leave request.');
+                alert('❌ An error occurred while submitting your request.');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="bx bx-send me-1"></i>Submit Request';

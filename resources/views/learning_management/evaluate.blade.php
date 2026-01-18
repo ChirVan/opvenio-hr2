@@ -436,24 +436,24 @@
                         })
                         .then(response => response.json())
                         .then(data => {
-                                if (data.success) {
-                                    // Show success message
-                                    alert('Assessment approved successfully!');
-                                    // Redirect back to results page
-                                    window.location.href = '{{ route('assessment.results') }}';
-                                } else {
-                                    alert('Error: ' + data.messa
-                                    }
-                                })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                alert('An error occurred while processing the assessment.');
-                            })
-                            .finally(() => {
-                                saveScoringBtn.innerHTML = '<i class="fas fa-check"></i> Approve';
-                                saveScoringBtn.disabled = false;
-                            });
+                            if (data.success) {
+                                // Show success message
+                                alert('Assessment approved successfully!');
+                                // Redirect back to results page
+                                window.location.href = '{{ route('assessment.results') }}';
+                            } else {
+                                alert('Error: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while processing the assessment.');
+                        })
+                        .finally(() => {
+                            saveScoringBtn.innerHTML = '<i class="fas fa-check"></i> Approve';
+                            saveScoringBtn.disabled = false;
                         });
+                });
 
                 function rejectAssessment() {
                     if (confirm('Are you sure you want to reject this assessment?')) {

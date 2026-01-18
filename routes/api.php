@@ -196,6 +196,47 @@ Route::prefix('ess')->group(function () {
         }
     });
 
+    // Get employee attendance/schedule from HR3 API
+    Route::get('/attendance/{employeeId}', function ($employeeId) {
+        try {
+            $response = Http::timeout(30)
+                ->withOptions(['verify' => false])
+                ->get('https://hr3.microfinancial-1.com/api/v1/065c6b0ff2fd56be5bbb7bb45cef10dc22d97ddfbb0e4d23344a0b98d9df6140/attendance-logs');
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                $logs = $data['data'] ?? $data;
+                
+                // Find the most recent attendance record for this employee
+                $employeeLog = collect($logs)->first(function ($log) use ($employeeId) {
+                    return $log['employee_id_no'] === $employeeId;
+                });
+                
+                if ($employeeLog) {
+                    return response()->json([
+                        'success' => true,
+                        'attendance' => $employeeLog
+                    ]);
+                }
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No attendance record found for this employee'
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch attendance data'
+            ], 500);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'API connection error: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
     // Get employee by ID
     Route::get('/employee/{id}', function ($id) {
         try {
