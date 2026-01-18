@@ -322,11 +322,77 @@
                         return;
                     }
 
+<<<<<<< HEAD
                     const json = await resp.json();
                     if (!json.success) {
                         contentDiv.innerHTML = `<div class="alert alert-danger">AI Error: ${json.message || 'Unknown'}</div>`;
                         panel.style.display = 'block'; actionsDiv.style.display = 'none';
                         return;
+=======
+                    const formData = new FormData(this);
+                    formData.append('action', 'approve');
+                    const saveScoringBtn = document.getElementById('saveScoringBtn');
+
+                    saveScoringBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                    saveScoringBtn.disabled = true;
+
+                    fetch(this.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
+                                    'content')
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Show success message
+                                alert('Assessment approved successfully!');
+                                // Redirect back to results page
+                                window.location.href = '{{ route('assessment.results') }}';
+                            } else {
+                                alert('Error: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while processing the assessment.');
+                        })
+                        .finally(() => {
+                            saveScoringBtn.innerHTML = '<i class="fas fa-check"></i> Approve';
+                            saveScoringBtn.disabled = false;
+                        });
+                });
+
+                function rejectAssessment() {
+                    if (confirm('Are you sure you want to reject this assessment?')) {
+                        const form = document.getElementById('assessmentScoringForm');
+                        const formData = new FormData(form);
+                        formData.append('action', 'reject');
+
+                        fetch(form.action, {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
+                                        'content')
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Assessment rejected.');
+                                    window.location.href = '{{ route('assessment.results') }}';
+                                } else {
+                                    alert('Error: ' + data.message);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert('An error occurred while rejecting the assessment.');
+                            });
+>>>>>>> 8d7a87ffbdfa532acad7f6f53a5f927f37d119f8
                     }
 
                     renderAiResult(json.ai);
