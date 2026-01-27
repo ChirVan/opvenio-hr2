@@ -15,7 +15,7 @@ use App\Http\Controllers\AiEvaluationController;
 // AI Job Recommendation API -天使
 Route::post('/ai/recommend', [AiRecommendationController::class, 'recommend']);
 
-// Run AI Evaluation
+// Run AI Evaluation in LMS Checking
 Route::post('ai/evaluate/{resultId}', [AiEvaluationController::class, 'evaluateByAi']);
 Route::post('ai/evaluate/{resultId}/approve', [AiEvaluationController::class, 'approveByAi']);
 

@@ -191,7 +191,36 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-    <!-- SweetAlert2 CDN -->
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Simple toast helper (top-right small notifications)
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+        });
+
+        // Generic notification helper
+        function swalNotify(type = 'success', title = '', text = '') {
+            Toast.fire({ icon: type, title: title || text });
+        }
+
+        // Confirm dialog helper that returns the promise
+        function swalConfirm({ title = 'Are you sure?', text = '', confirmText = 'Yes', cancelText = 'Cancel' } = {}) {
+            return Swal.fire({
+            title,
+            text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: confirmText,
+            cancelButtonText: cancelText,
+            reverseButtons: true,
+            });
+        }
+    </script>
+
 </body>
 </html>

@@ -174,7 +174,22 @@ class AssessmentResultsController extends Controller
             ];
         })->values();
 
-        return view('learning_management.results', ['results' => $groupedByEmployee]);
+// Paginate the grouped results
+$page = request()->get('page', 1);
+$perPage = 3; // Items per page
+$total = count($groupedByEmployee);
+$results = new \Illuminate\Pagination\LengthAwarePaginator(
+    $groupedByEmployee->forPage($page, $perPage)->values(),
+    $total,
+    $perPage,
+    $page,
+    [
+        'path' => route('assessment.results'),
+        'query' => request()->query(),
+    ]
+);
+
+return view('learning_management.results', ['results' => $results]);
     }
 
     /**

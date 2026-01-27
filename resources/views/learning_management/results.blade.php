@@ -35,7 +35,7 @@
                     @endif
 
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
+                        <table class="table table-bordered table-hover border-black">
                             <thead class="thead-dark">
                                 <tr>
                                     <th style="background-color: #343a40; color: white;">Employee Name</th>
@@ -343,6 +343,9 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+                    <div class="mt-4 p-3">
+                        {{ $results->links('pagination::bootstrap-4') }}
                     </div>
                 </div>
             </div>

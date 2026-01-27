@@ -1,5 +1,9 @@
 
-# 📢🔗🛠️🎚️⛔🚧🆕 NEW COMMIT 01/03/26
+# 📢🔗🛠️🎚️⛔🚧🆕 NEW COMMIT 
+
+- 
+
+# LAST COMMIT 01/03/26
 # 🆕 Installed Prism and Connected OpenAI -天使
 
 - 📢 NEW PACKAGE INSTALLED: Prism 📢
@@ -15,22 +19,12 @@
 - 🚧 IN-DEV: A Controller recommendation using AI: 12/31/25-17:52-app\Services\AIService.php
 
 
-# LAST COMMIT 12/29/25-23:49
-# NEW: Added syncing db with hr4, success -天使
-
-- 🆕 Added new Syncing database logic from HR4 API employee data 12/23/25-00:15-routes/api.php-line:23-118
-
-- 🆕 Added button for the syncing in 12/23/25-23:16-resources/views/dashboard.blade.php-line:35-40
-
-- 🆕 Added migrations file for adding employee_status column to opvenio_hr2-users for Syncing database logic 12/23/25-23:16-2025_12_27_222525_add_employment_status_to_users_table.php
-
-- 🆕 Added 'employment_status' for writable 12/23/25-23:16-app/Models/User.php-line:34
-
-
 ~~線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線~~
 
 # 📌⚠️ Important Information by 天使 ⚠️📌
 > Always `npm run build` *before* pushing to git, there are circumstances that styles won't apply when deployed
+
+> Ocassionally Sync database with HR4 using button on the dashboard, for database consistency 
 
 
 ~~線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線~~
@@ -44,11 +38,19 @@
 
 ❌ Bug 4: Middleware, not working, no response when applied to routes
 
+❌ Bug 5: payslip.blade.php, dragging and dropping files into payslip does not record it
+
+❌ Bug 6: training_management.course_requests table has the wrong email of employee, displaysed in resources/views/training_management/grant.blade.php
+
 ❌ Vulnerability 1: Dashboard, Upcoming Trainings is static 
 
 ❌ Vulnerability 2: Nav-bar, Notification Bell is static
 
 ❌ Vulnerability 3: Nav-bar, Mail/Inbox is static
+
+❌ Vulnerability 4: ESS is accessible by staffs and admins, indicating no middleware restrictions
+
+❌ Vulnerability 5: Dashboard, API errors out when there's no internet connection
 
 ✅ Adjustment 1: Remove successors displaying email column for practicality FIXED:12/17/2025-14:34-resources/views/succession_planning/successors.blade.php
 
@@ -61,15 +63,31 @@
 ~~線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線~~
 
 ## TODO 📝
+
+Training Management
+# Grant Request
+✅ [Assign Assessment Alert Message]
+
+Learning Management
+# Assessment Result
+> [Add Table Pagination]
+> [Make Submit Score not Approve and Reject button on Single Assessment Evaluation]
+> [Improve Alert Message After Submission on Single Assessment Evaluation]
+> [Improve Confirmation Message on Step 2 Evaluation]
+> [Improve Approve Confirmation message on Submission of Approve or Delete Button]
+
+Competency Management
+# Gap Analysis
+> [Add Pagination on table]
+
+
 > Find bugs and fix
 
 ✅ Sync HR4's db to our db: Make the api calling instantly create accounts based on the employee information retrieved, also update existing accounts 
 
-> Prepare for the integration of AI(OpenAI)
+✅ Add Prism
 
-> Add Prism
-
-> Add AI
+✅ Add AI
 
 
 ~~線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線~~

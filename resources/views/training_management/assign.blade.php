@@ -137,7 +137,7 @@
                         <div class="overflow-x-auto">
                             <table class="w-full table-auto">
                                 <thead>
-                                    <tr class="bg-gray-50">
+                                    <tr class="bg-gray-50" style="border-bottom: 1px solid #000;">
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assignment</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Employee</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Training Materials</th>
@@ -149,7 +149,7 @@
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach($assignments as $assignment)
-                                        <tr class="hover:bg-gray-50">
+                                        <tr class="hover:bg-gray-50 border-black">
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div>
                                                     <div class="text-sm font-medium text-gray-900">{{ $assignment->assignment_title }}</div>

@@ -165,7 +165,7 @@
                             @foreach($requests as $request)
                             <tr class="hover:bg-gray-50 transition-colors duration-200">
                                 <td class="px-6 py-4">
-                                    <input type="checkbox" class="request-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                                    <input type="checkbox" class="request-checkbox rounded border-black-300 text-blue-600 focus:ring-blue-500" 
                                            value="{{ $request->id }}" data-status="{{ $request->status }}">
                                 </td>
                                 <td class="px-6 py-4">
@@ -696,7 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = document.createElement('div');
             item.className = `flex items-start p-3 rounded-lg transition-colors ${isAssigned ? 'bg-green-50 opacity-75' : 'bg-gray-50 hover:bg-purple-50'}`;
             item.innerHTML = `
-                <input type="checkbox" class="assessment-checkbox mt-1 rounded border-gray-300 text-purple-600 focus:ring-purple-500 ${isAssigned ? 'cursor-not-allowed' : ''}" 
+                <input type="checkbox" class="assessment-checkbox mt-1 rounded border-black-300 text-purple-600 focus:ring-purple-500 ${isAssigned ? 'cursor-not-allowed' : ''}" 
                        value="${assessment.id}" data-title="${assessment.quiz_title}" ${isAssigned ? 'disabled checked' : ''}>
                 <div class="ml-3 flex-1">
                     <div class="flex items-center gap-2">
@@ -740,9 +740,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }));
         
         if (selectedAssessments.length === 0) {
-            alert('Please select at least one assessment to assign.');
-            return;
-        }
+    swalNotify('error', 'Validation Error', 'Please select at least one assessment to assign.');
+    return;
+}
         
         const dueDate = document.getElementById('assessment-due-date').value;
         const notes = document.getElementById('assessment-notes').value.trim();
@@ -771,22 +771,22 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Show success message
-                alert(data.message || 'Assessment(s) assigned successfully!');
-                assignAssessmentModal.classList.add('hidden');
-                location.reload();
-            } else {
-                alert('Error: ' + (data.message || 'Failed to assign assessment.'));
-                confirmBtn.disabled = false;
-                confirmBtn.innerHTML = originalText;
-            }
+    // Show success message
+    swalNotify('success', 'Success', data.message || 'Assessment(s) assigned successfully!');
+    assignAssessmentModal.classList.add('hidden');
+    setTimeout(() => location.reload(), 800);
+} else {
+    swalNotify('error', 'Error', data.message || 'Failed to assign assessment.');
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = originalText;
+}
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Error: An unexpected error occurred.');
-            confirmBtn.disabled = false;
-            confirmBtn.innerHTML = originalText;
-        });
+    console.error('Error:', error);
+    swalNotify('error', 'Network Error', error.message || 'An unexpected error occurred.');
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = originalText;
+});
     });
     
     // Confirm approve
