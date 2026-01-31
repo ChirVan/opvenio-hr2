@@ -102,6 +102,14 @@ class AiEvaluationController extends Controller
         try {
             $aiResult = $ai->recommendFromPayload($payload, $template);
 
+            if (isset($aiResult['per_question'])) {
+                foreach ($aiResult['per_question'] as &$q) {
+                    if (!array_key_exists('is_correct', $q)) {
+                        $q['is_correct'] = (($q['awarded_points'] ?? 0) > 0);
+                    }
+                }
+            }
+
             // aiResult should already be an array (AIService decodes). Return it.
             return response()->json(['success' => true, 'ai' => $aiResult], 200);
 

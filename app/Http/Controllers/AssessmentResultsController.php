@@ -174,22 +174,22 @@ class AssessmentResultsController extends Controller
             ];
         })->values();
 
-// Paginate the grouped results
-$page = request()->get('page', 1);
-$perPage = 3; // Items per page
-$total = count($groupedByEmployee);
-$results = new \Illuminate\Pagination\LengthAwarePaginator(
-    $groupedByEmployee->forPage($page, $perPage)->values(),
-    $total,
-    $perPage,
-    $page,
-    [
-        'path' => route('assessment.results'),
-        'query' => request()->query(),
-    ]
-);
+        // Paginate the grouped results
+        $page = request()->get('page', 1);
+        $perPage = 3; // Items per page
+        $total = count($groupedByEmployee);
+        $results = new \Illuminate\Pagination\LengthAwarePaginator(
+            $groupedByEmployee->forPage($page, $perPage)->values(),
+            $total,
+            $perPage,
+            $page,
+            [
+                'path' => route('assessment.results'),
+                'query' => request()->query(),
+            ]
+        );
 
-return view('learning_management.results', ['results' => $results]);
+        return view('learning_management.results', ['results' => $results]);
     }
 
     /**
@@ -796,106 +796,105 @@ return view('learning_management.results', ['results' => $results]);
     public function updateQuestionScoring(Request $request)
     {
         try {
-            $action = $request->input('action', 'approve'); // 'approve' or 'reject'
             $resultIds = $request->input('result_ids', []);
+            $questionScores = $request->input('question_scores', []);
+            $passingThreshold = 70; // 70% to pass
             
-            // Only process question scores if approving
-            if ($action === 'approve') {
-                $questionScores = $request->input('question_scores', []);
+            // Process question scores
+            foreach ($questionScores as $answerId => $scoreData) {
+                $userAnswer = DB::connection('ess')
+                    ->table('user_answers')
+                    ->where('id', $answerId)
+                    ->first();
                 
-                foreach ($questionScores as $answerId => $scoreData) {
-                    // Get the points_possible for this question to assign proper score
-                    $userAnswer = DB::connection('ess')
-                        ->table('user_answers')
-                        ->where('id', $answerId)
-                        ->first();
-                    
-                    $pointsPossible = $userAnswer->points_possible ?? 1;
-                    $isCorrect = $scoreData['is_correct'] ? 1 : 0;
-                    $manualScore = $isCorrect ? $pointsPossible : 0; // Simple logic: correct = full points, incorrect = 0
-                    
-                    // Update the user_answer with manual scoring
-                    DB::connection('ess')
-                        ->table('user_answers')
-                        ->where('id', $answerId)
-                        ->update([
-                            'is_correct' => $isCorrect,
-                            'manual_score' => $manualScore,
-                            'evaluator_comments' => $scoreData['comments'] ?? null,
-                            'manually_graded' => 1,
-                            'graded_by' => Auth::id(),
-                            'graded_at' => now(),
-                            'updated_at' => now()
-                        ]);
-                }
+                if (!$userAnswer) continue;
+                
+                $pointsPossible = $userAnswer->points_possible ?? 1;
+                $isCorrect = isset($scoreData['is_correct']) && $scoreData['is_correct'] ? 1 : 0;
+                $manualScore = $isCorrect ? $pointsPossible : 0;
+                
+                DB::connection('ess')
+                    ->table('user_answers')
+                    ->where('id', $answerId)
+                    ->update([
+                        'is_correct' => $isCorrect,
+                        'manual_score' => $manualScore,
+                        'evaluator_comments' => $scoreData['comments'] ?? null,
+                        'manually_graded' => 1,
+                        'graded_by' => Auth::id(),
+                        'graded_at' => now(),
+                        'updated_at' => now()
+                    ]);
             }
+
+            $passedCount = 0;
+            $failedCount = 0;
 
             // Process each assessment result
             foreach ($resultIds as $resultId) {
-                if ($action === 'approve') {
-                    // Recalculate score and mark as passed
-                    $score = $this->recalculateAssessmentScore($resultId);
-                    
-                    // Update result status and evaluation_status to passed
-                    DB::connection('ess')
-                        ->table('assessment_results')
-                        ->where('id', $resultId)
+                // Recalculate score
+                $score = $this->recalculateAssessmentScore($resultId);
+                
+                // Auto-determine pass/fail based on threshold
+                $status = $score >= $passingThreshold ? 'passed' : 'failed';
+                $evaluationStatus = $score >= $passingThreshold ? 'passed' : 'failed';
+                
+                if ($status === 'passed') {
+                    $passedCount++;
+                } else {
+                    $failedCount++;
+                }
+                
+                // Update result status
+                DB::connection('ess')
+                    ->table('assessment_results')
+                    ->where('id', $resultId)
+                    ->update([
+                        'status' => $status,
+                        'evaluation_status' => $evaluationStatus,
+                        'score' => round($score, 2),
+                        'evaluated_by' => Auth::id(),
+                        'evaluated_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                
+                // Update the assignment in learning_management database
+                $result = DB::connection('ess')->table('assessment_results')->where('id', $resultId)->first();
+                if ($result) {
+                    DB::connection('learning_management')->table('assessment_assignments')
+                        ->where('id', $result->assignment_id)
                         ->update([
-                            'status' => 'passed',
-                            'evaluation_status' => 'passed',
-                            'evaluated_by' => Auth::id(),
-                            'evaluated_at' => now(),
+                            'status' => 'completed',
+                            'score' => round($score, 2),
                             'updated_at' => now()
                         ]);
-                    
-                    // Also update the assignment in learning_management database
-                    $result = DB::connection('ess')->table('assessment_results')->where('id', $resultId)->first();
-                    if ($result) {
-                        DB::connection('learning_management')->table('assessment_assignments')
-                            ->where('id', $result->assignment_id)
-                            ->update([
-                                'status' => 'completed',
-                                'score' => $score,
-                                'updated_at' => now()
-                            ]);
-                    }
-                } elseif ($action === 'reject') {
-                    // Mark status and evaluation_status as failed (rejected)
-                    DB::connection('ess')
-                        ->table('assessment_results')
-                        ->where('id', $resultId)
-                        ->update([
-                            'status' => 'failed',
-                            'evaluation_status' => 'failed',
-                            'evaluated_by' => Auth::id(),
-                            'evaluated_at' => now(),
-                            'updated_at' => now()
-                        ]);
-                    
-                    // Also update the assignment in learning_management database
-                    $result = DB::connection('ess')->table('assessment_results')->where('id', $resultId)->first();
-                    if ($result) {
-                        DB::connection('learning_management')->table('assessment_assignments')
-                            ->where('id', $result->assignment_id)
-                            ->update([
-                                'status' => 'completed',
-                                'score' => 0.00, // Set to failing score
-                                'updated_at' => now()
-                            ]);
-                    }
                 }
             }
 
-            $message = $action === 'approve' 
-                ? 'Assessment approved successfully.' 
-                : 'Assessment rejected successfully.';
+            // Build response message
+            $totalCount = $passedCount + $failedCount;
+            if ($totalCount === 1) {
+                $score = $this->recalculateAssessmentScore($resultIds[0]);
+                $message = $score >= $passingThreshold 
+                    ? "Assessment PASSED with score of {$score}%." 
+                    : "Assessment FAILED with score of {$score}%. (Passing threshold: {$passingThreshold}%)";
+            } else {
+                $message = "Evaluated {$totalCount} assessments: {$passedCount} passed, {$failedCount} failed.";
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => $message
+                'message' => $message,
+                'passed_count' => $passedCount,
+                'failed_count' => $failedCount
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Assessment scoring update failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update scoring: ' . $e->getMessage()

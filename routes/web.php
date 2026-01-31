@@ -217,57 +217,94 @@ Route::middleware('auth')->group(function () {
         }
     })->name('sync.employees.hr4');
 
-    Route::get('/dashboard', function () {
-        $totalCourses = DB::connection('training_management')->table('training_catalogs')->count();
-        $availableCourses = DB::connection('training_management')->table('training_materials')->count();
-        $assignedEmployees = DB::connection('learning_management')->table('assessment_assignments')->count();
-        $identifiedSuccessors = DB::connection('succession_planning')->table('promotions')->count();
+    // Replace the existing dashboard route with this robust version:
+Route::get('/dashboard', function () {
+    // Local counts (DB-only queries — cheap and safe)
+    $totalCourses = DB::connection('training_management')->table('training_catalogs')->count();
+    $availableCourses = DB::connection('training_management')->table('training_materials')->count();
+    $assignedEmployees = DB::connection('learning_management')->table('assessment_assignments')->count();
+    $identifiedSuccessors = DB::connection('succession_planning')->table('promotions')->count();
 
-        // Fetch approved employees for potential successors table
-        $results = DB::connection('ess')
-            ->table('assessment_results')
-            ->where('status', 'passed')
-            ->orderBy('evaluated_at', 'desc') // ensure latest is first in group
-            ->get();
+    // Fetch approved employees for potential successors table (DB first)
+    $results = DB::connection('ess')
+        ->table('assessment_results')
+        ->where('status', 'passed')
+        ->orderBy('evaluated_at', 'desc')
+        ->get();
 
-        $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
-            ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
-            ->get('https://hr4.microfinancial-1.com/allemployees');
-        $responseData = $apiResponse->json();
-        $employeesApi = $responseData['data'] ?? $responseData['employees'] ?? $responseData;
-        $employeeMap = collect($employeesApi)
-            ->filter(function ($employee) {
-                return isset($employee['employee_id']);
-            })
-            ->mapWithKeys(function ($employee) {
-                return [trim((string)$employee['employee_id']) => $employee];
-            });
-        
-            $approvedEmployees = $results
-            ->groupBy('employee_id')
-            ->map(function ($group, $employeeId) use ($employeeMap) {
-                $item = $group->first(); // latest for this employee
-                $details = $employeeMap->get(trim((string)$employeeId));
-                return (object) [
-                    'employee_id' => $employeeId,
-                    'full_name'   => $details['full_name'] ?? '-',
-                    'job_title'   => $details['job_title'] ?? '-',
-                    'status'      => $item->status,
-                ];
-            })
-            ->values();
-            
-        $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
+    // Helper: try to fetch HR4 employees, fall back to cache on failure
+    $fetchExternalEmployees = function () {
+        try {
+            $apiResponse = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
+                ->withHeaders(['X-API-Key' => 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a'])
+                ->timeout(8) // short timeout: do not hang page
+                ->get('https://hr4.microfinancial-1.com/allemployees');
 
-        return view('dashboard', compact(
-            'totalCourses',
-            'availableCourses',
-            'assignedEmployees',
-            'identifiedSuccessors',
-            'approvedEmployees',
-            'promotedIds'
-        ));
-    })->name('dashboard');
+            if (! $apiResponse->successful()) {
+                \Illuminate\Support\Facades\Log::warning('HR4 API returned non-success status: ' . $apiResponse->status());
+                return collect(\Illuminate\Support\Facades\Cache::get('external_employees', []));
+            }
+
+            $responseData = $apiResponse->json();
+            $employeesApi = $responseData['data'] ?? $responseData['employees'] ?? $responseData;
+
+            // Ensure array/collection
+            $employeesApi = is_array($employeesApi) ? $employeesApi : [];
+
+            // Cache a snapshot for offline fallback (10 minutes; adjust as needed)
+            \Illuminate\Support\Facades\Cache::put('external_employees', $employeesApi, now()->addMinutes(10));
+
+            return collect($employeesApi);
+        } catch (\Throwable $e) {
+            // Log and return cached snapshot (or empty collection)
+            \Illuminate\Support\Facades\Log::warning('HR4 fetch failed: ' . $e->getMessage());
+            return collect(\Illuminate\Support\Facades\Cache::get('external_employees', []));
+        }
+    };
+
+    // Use helper to get external employees (collection)
+    $employeesCollection = $fetchExternalEmployees();
+
+    // Build a map keyed by employee_id (trim to avoid mismatches)
+    $employeeMap = $employeesCollection
+        ->filter(function ($employee) {
+            return isset($employee['employee_id']);
+        })
+        ->mapWithKeys(function ($employee) {
+            return [trim((string)$employee['employee_id']) => $employee];
+        });
+
+    // Build approvedEmployees from local results but enrich with external details when available
+    $approvedEmployees = $results
+        ->groupBy('employee_id')
+        ->map(function ($group, $employeeId) use ($employeeMap) {
+            $item = $group->first(); // latest for this employee
+            $details = $employeeMap->get(trim((string)$employeeId), null);
+
+            // If external details missing, try to derive a fallback name from DB result (if available)
+            $fallbackName = $item->employee_name ?? ($details['full_name'] ?? '-');
+
+            return (object) [
+                'employee_id' => $employeeId,
+                'full_name'   => $details['full_name'] ?? $fallbackName,
+                'job_title'   => $details['job_title'] ?? '-',
+                'status'      => $item->status,
+            ];
+        })
+        ->values();
+
+    $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
+
+    return view('dashboard', compact(
+        'totalCourses',
+        'availableCourses',
+        'assignedEmployees',
+        'identifiedSuccessors',
+        'approvedEmployees',
+        'promotedIds'
+    ));
+})->name('dashboard');
+
 
     // ============================================================
     // =============== ESS (Employee Self Service) ================
@@ -486,6 +523,8 @@ Route::middleware('auth')->group(function () {
     });
 
     // Competency Gap Analysis Routes (Pre-Assessment Based)
+    Route::get('/competency-gap-analysis/{employeeId}', [CompetencyGapAnalysisController::class, 'showEmployee'])->name('competency.gap-analysis.show');
+
     Route::prefix('competency')->group(function () {
         Route::get('gap-analysis', [\App\Modules\competency_management\Controllers\CompetencyGapAnalysisController::class, 'index'])->name('competency.gap-analysis');
         Route::get('gap-analysis/pre-assessment', [\App\Modules\competency_management\Controllers\CompetencyGapAnalysisController::class, 'preAssessment'])->name('competency.gap-analysis.pre-assessment');

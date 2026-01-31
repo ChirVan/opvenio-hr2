@@ -11,6 +11,11 @@
         @include('layouts.sidebar')
     @endsection
 
+    <style>
+        #ai-result-content table td { word-break: break-word; white-space: normal; }
+    </style>
+
+
     <div class="py-3">
         <div class="mb-6">
             @if (isset($isSingleAssessment) && $isSingleAssessment)
@@ -37,11 +42,6 @@
                             @else
                                 <h3 class="card-title">Employee Assessment Evaluation</h3>
                             @endif
-                            <div class="card-tools">
-                                <a href="{{ route('assessment.results') }}" class="btn btn-secondary btn-sm">
-                                    <i class="fas fa-arrow-left"></i> Back to Results
-                                </a>
-                            </div>
                         </div>
 
                         <div class="card-body">
@@ -167,34 +167,43 @@
                                         </div>
                                     @endforeach
 
+                                    <!-- Inline AI Result Panel -->
+                                    <div id="ai-result-panel" class="mt-4" style="display:none;">
+                                        <div class="card border-info">
+                                            <div class="card-header bg-info text-white">
+                                                <h5 class="mb-0">AI Automatic Evaluation</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="ai-result-content" class="mb-3"></div>
+
+                                                <div id="ai-result-actions" style="display:none;">
+                                                    <button id="aiApproveBtnInline" class="btn btn-success mr-2">Approve AI Result</button>
+                                                    <button id="aiRejectBtnInline" class="btn btn-secondary">Dismiss</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="row mt-4">
                                         <div class="col-12 text-center">
-                                            <button type="submit" class="btn btn-success btn-lg" id="saveScoringBtn"><i class="fas fa-check"></i> Approve</button>
-                                            <button type="button" class="btn btn-danger btn-lg ml-2" onclick="rejectAssessment()"><i class="fas fa-times"></i> Reject</button>
+                                            <a class="btn btn-danger btn-lg" href="{{ route('assessment.results') }}">
+                                                <i class="fas fa-arrow-left"></i> Back to Results
+                                            </a>
+
+                                            <button type="submit" class="btn btn-primary btn-lg" id="submitEvaluationBtn">
+                                                <i class="fas fa-paper-plane"></i> Submit Evaluation
+                                            </button>
 
                                             @if(isset($isSingleAssessment) && $isSingleAssessment && isset($resultId))
-                                                <button id="ai-check-btn" class="btn btn-info btn-lg ml-2">֎ Auto-check with AI</button>
+                                                <button type="button" id="ai-check-btn" class="btn btn-info btn-lg ml-2">
+                                                    ֎ Auto-check with AI
+                                                </button>
                                             @endif
                                         </div>
                                     </div>
                                 </form>
 
-                                <!-- Inline AI Result Panel -->
-                                <div id="ai-result-panel" class="mt-4" style="display:none;">
-                                    <div class="card border-info">
-                                        <div class="card-header bg-info text-white">
-                                            <h5 class="mb-0">AI Automatic Evaluation</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <div id="ai-result-content" class="mb-3"></div>
-
-                                            <div id="ai-result-actions" style="display:none;">
-                                                <button id="aiApproveBtnInline" class="btn btn-success mr-2">Approve AI Result</button>
-                                                <button id="aiRejectBtnInline" class="btn btn-secondary">Dismiss</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                
                             @else
                                 <!-- Read-only mode: display summary only -->
                                 <div class="alert alert-info">Read-only mode — results displayed above.</div>
@@ -207,281 +216,298 @@
     </div>
 
     <!-- Scripts -->
-    <script>
-        // Basic form submit handling (unchanged behavior)
-        (function(){
-            const form = document.getElementById('assessmentScoringForm');
-            if (form) {
-                form.addEventListener('submit', function(e){
-                    e.preventDefault();
-                    if (!confirm('Are you sure you want to approve this assessment?')) return;
+    <!-- Scripts -->
+<script>
+    (function() {
+        'use strict';
+        
+        // ========== UTILITY FUNCTIONS ==========
+        function escapeHtml(str) {
+            if (str === null || typeof str === 'undefined') return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
-                    const btn = document.getElementById('saveScoringBtn');
-                    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        function showSpinner(btn, text = 'Processing...') {
+            btn.disabled = true;
+            btn.dataset.originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${text}`;
+        }
 
-                    fetch(form.action, {
-                        method: 'POST',
-                        body: new FormData(form),
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                        }
-                    }).then(r => r.json()).then(json => {
-                        if (json.success) {
-                            alert('Assessment approved successfully!');
-                            window.location.href = '{{ route("assessment.results") }}';
-                        } else {
-                            alert('Error: ' + (json.message || 'Unknown'));
-                        }
-                    }).catch(err => {
-                        console.error(err); alert('Error processing request.');
-                    }).finally(()=>{
-                        btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Approve';
-                    });
-                });
+        function hideSpinner(btn) {
+            if (btn && btn.dataset.originalHtml) {
+                btn.innerHTML = btn.dataset.originalHtml;
+                btn.disabled = false;
+                delete btn.dataset.originalHtml;
             }
+        }
 
-            window.rejectAssessment = function(){
-                if (!confirm('Are you sure you want to reject this assessment?')) return;
-                const form = document.getElementById('assessmentScoringForm');
+        function getCsrfToken() {
+            return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        }
+
+        // ========== FORM SUBMISSION ==========
+        const form = document.getElementById('assessmentScoringForm');
+        const submitBtn = document.getElementById('submitEvaluationBtn');
+
+        if (form && submitBtn) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (!confirm('Submit this evaluation? The system will automatically determine pass/fail based on the score.')) {
+                    return;
+                }
+
+                showSpinner(submitBtn, 'Submitting...');
+
                 fetch(form.action, {
                     method: 'POST',
                     body: new FormData(form),
-                    headers: {'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')}
-                }).then(r=>r.json()).then(json=>{
-                    if (json.success) { alert('Assessment rejected.'); window.location.href='{{ route("assessment.results") }}'; }
-                    else alert('Error: ' + (json.message||'Unknown'));
-                }).catch(err=>{ console.error(err); alert('Error rejecting.'); });
-            };
-        })();
-    </script>
+                    headers: { 'X-CSRF-TOKEN': getCsrfToken() }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message || 'Evaluation submitted successfully!');
+                        window.location.href = '{{ route("assessment.results") }}';
+                    } else {
+                        alert('Error: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Submission error:', error);
+                    alert('Error processing request. Please try again.');
+                })
+                .finally(() => hideSpinner(submitBtn));
+            });
+        }
 
-    <script>
-        // AI integration: lightweight, defensive, and self-contained
-        (function(){
-            const aiBtn = document.getElementById('ai-check-btn');
-            if (!aiBtn) return; // nothing to do
+        // ========== AI INTEGRATION ==========
+        const aiBtn = document.getElementById('ai-check-btn');
+        if (!aiBtn) return;
 
-            const resultId = {!! json_encode($resultId ?? null) !!};
-            const apiEvaluateUrl = `/api/ai/evaluate/${resultId}`;
-            const apiApproveUrl = `/api/ai/evaluate/${resultId}/approve`;
+        const resultId = {!! json_encode($resultId ?? null) !!};
+        const apiEvaluateUrl = `/api/ai/evaluate/${resultId}`;
+        const apiApproveUrl = `/api/ai/evaluate/${resultId}/approve`;
 
-            const panel = document.getElementById('ai-result-panel');
-            const contentDiv = document.getElementById('ai-result-content');
-            const actionsDiv = document.getElementById('ai-result-actions');
-            const approveBtn = document.getElementById('aiApproveBtnInline');
-            const rejectBtn = document.getElementById('aiRejectBtnInline');
+        const panel = document.getElementById('ai-result-panel');
+        const contentDiv = document.getElementById('ai-result-content');
+        const actionsDiv = document.getElementById('ai-result-actions');
+        const approveBtn = document.getElementById('aiApproveBtnInline');
+        const rejectBtn = document.getElementById('aiRejectBtnInline');
 
-            function showSpinner(btn){ btn.disabled = true; btn.dataset.orig = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...'; }
-            function hideSpinner(btn){ if (btn && btn.dataset && btn.dataset.orig) { btn.innerHTML = btn.dataset.orig; btn.disabled = false; delete btn.dataset.orig; } }
-
-            function renderAiResult(ai){
-                if (!ai) { contentDiv.innerHTML = '<div class="alert alert-warning">No AI data returned.</div>'; return; }
-                if (ai.error) { contentDiv.innerHTML = `<div class="alert alert-danger">AI Error: ${ai.error}</div>`; return; }
-
-                // Build a friendly HTML summary based on expected schema
-                let html = '';
-                if (typeof ai.overall_score !== 'undefined') {
-                    html += `<p><strong>Overall Score:</strong> ${ai.overall_score} — <strong>Percentage:</strong> ${ai.percentage ?? 'N/A'}%</p>`;
-                }
-
-                if (Array.isArray(ai.per_question) && ai.per_question.length){
-                    html += '<h6>Per-question details</h6><div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Correct?</th><th>Reason</th></tr></thead><tbody>';
-                    ai.per_question.forEach(q=>{
-                        const num = q.question_number ?? q.question_id ?? '-';
-                        const ok = q.is_correct ? '<span class="text-success">Yes</span>' : '<span class="text-danger">No</span>';
-                        const reason = (q.reason && q.reason.length) ? q.reason : '';
-                        html += `<tr><td>${num}</td><td>${ok}</td><td>${reason}</td></tr>`;
-                    });
-                    html += '</tbody></table></div>';
-                }
-
-                if (!html) html = `<pre>${JSON.stringify(ai, null, 2)}</pre>`;
-                contentDiv.innerHTML = html;
+        // Render AI results in a table
+        function renderAiResult(ai) {
+            if (!ai) {
+                contentDiv.innerHTML = '<div class="alert alert-warning">No AI data returned.</div>';
+                return;
+            }
+            if (ai.error) {
+                contentDiv.innerHTML = `<div class="alert alert-danger">AI Error: ${escapeHtml(ai.error)}</div>`;
+                return;
             }
 
-            aiBtn.addEventListener('click', async function(e){
-                e.preventDefault();
-                if (!confirm('Run automatic AI evaluation for this assessment?')) return;
-                showSpinner(aiBtn);
+            let html = '';
+            
+            if (typeof ai.overall_score !== 'undefined') {
+                html += `<p><strong>Overall Score:</strong> ${escapeHtml(ai.overall_score)} — <strong>Percentage:</strong> ${escapeHtml(ai.percentage ?? 'N/A')}%</p>`;
+            }
 
-                try {
-                    const resp = await fetch(apiEvaluateUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                        },
-                        body: JSON.stringify({})
-                    });
+            if (Array.isArray(ai.per_question) && ai.per_question.length) {
+                html += '<h6>Per-question details</h6>';
+                html += '<div class="table-responsive"><table class="table table-sm table-bordered">';
+                html += '<thead><tr><th>#</th><th>Question</th><th>Employee Answer</th><th>Correct Answer</th><th>Correct?</th><th>Reason</th></tr></thead><tbody>';
 
-                    if (!resp.ok) {
-                        const text = await resp.text();
-                        contentDiv.innerHTML = `<div class="alert alert-danger">Server error: ${resp.status} — ${text}</div>`;
-                        panel.style.display = 'block'; actionsDiv.style.display = 'none';
-                        return;
+                ai.per_question.forEach(q => {
+                    const num = q.question_number ?? q.question_id ?? '-';
+                    const card = document.querySelector(`.question-card[data-question-number="${num}"]`);
+
+                    // Get answers from DOM or AI response
+                    let empText = q.employee_answer ?? q.user_answer ?? '-';
+                    let corrText = q.correct_answer ?? '-';
+                    let questionText = q.question_text ?? '-';
+
+                    if (card) {
+                        const empEl = card.querySelector('.bg-light');
+                        const corrEl = card.querySelector('.bg-success');
+                        const qTextEl = card.querySelector('.card-body p');
+                        
+                        if (empEl?.innerText.trim()) empText = empEl.innerText.trim();
+                        if (corrEl?.innerText.trim()) corrText = corrEl.innerText.trim();
+                        if (qTextEl?.innerText.trim()) questionText = qTextEl.innerText.trim();
                     }
 
-<<<<<<< HEAD
-                    const json = await resp.json();
-                    if (!json.success) {
-                        contentDiv.innerHTML = `<div class="alert alert-danger">AI Error: ${json.message || 'Unknown'}</div>`;
-                        panel.style.display = 'block'; actionsDiv.style.display = 'none';
-                        return;
-=======
-                    const formData = new FormData(this);
-                    formData.append('action', 'approve');
-                    const saveScoringBtn = document.getElementById('saveScoringBtn');
+                    const isCorrect = q.is_correct === true || (Number(q.awarded_points) > 0);
+                    const okHtml = isCorrect 
+                        ? '<span class="text-success">Yes</span>' 
+                        : '<span class="text-danger">No</span>';
+                    const rowClass = isCorrect ? '' : 'table-danger';
 
-                    saveScoringBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-                    saveScoringBtn.disabled = true;
-
-                    fetch(this.action, {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                    'content')
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                // Show success message
-                                alert('Assessment approved successfully!');
-                                // Redirect back to results page
-                                window.location.href = '{{ route('assessment.results') }}';
-                            } else {
-                                alert('Error: ' + data.message);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('An error occurred while processing the assessment.');
-                        })
-                        .finally(() => {
-                            saveScoringBtn.innerHTML = '<i class="fas fa-check"></i> Approve';
-                            saveScoringBtn.disabled = false;
-                        });
+                    html += `<tr class="${rowClass}">
+                        <td>${escapeHtml(num)}</td>
+                        <td style="min-width:180px">${escapeHtml(questionText)}</td>
+                        <td>${escapeHtml(empText)}</td>
+                        <td>${escapeHtml(corrText)}</td>
+                        <td>${okHtml}</td>
+                        <td>${escapeHtml(q.reason || '')}</td>
+                    </tr>`;
                 });
 
-                function rejectAssessment() {
-                    if (confirm('Are you sure you want to reject this assessment?')) {
-                        const form = document.getElementById('assessmentScoringForm');
-                        const formData = new FormData(form);
-                        formData.append('action', 'reject');
+                html += '</tbody></table></div>';
+            }
 
-                        fetch(form.action, {
-                                method: 'POST',
-                                body: formData,
-                                headers: {
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                        'content')
-                                }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    alert('Assessment rejected.');
-                                    window.location.href = '{{ route('assessment.results') }}';
-                                } else {
-                                    alert('Error: ' + data.message);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                alert('An error occurred while rejecting the assessment.');
-                            });
->>>>>>> 8d7a87ffbdfa532acad7f6f53a5f927f37d119f8
-                    }
+            contentDiv.innerHTML = html || `<pre>${escapeHtml(JSON.stringify(ai, null, 2))}</pre>`;
+        }
 
-                    renderAiResult(json.ai);
-                    applyAiResultsToForm(json.ai);
-                    panel.style.display = 'block'; actionsDiv.style.display = 'block';
-                    panel.dataset.aiPayload = JSON.stringify(json.ai || {});
+        // Apply AI results to the form radio buttons
+        function applyAiResultsToForm(ai) {
+            if (!ai?.per_question) return;
 
-                } catch(err) {
-                    console.error(err);
-                    contentDiv.innerHTML = `<div class="alert alert-danger">Network or server error: ${err.message}</div>`;
-                    panel.style.display = 'block'; actionsDiv.style.display = 'none';
-                } finally {
-                    hideSpinner(aiBtn);
+            ai.per_question.forEach(q => {
+                const qnum = q.question_number;
+                if (typeof qnum === 'undefined') return;
+
+                const card = document.querySelector(`.question-card[data-question-number="${qnum}"]`);
+                if (!card) return;
+
+                const correctInput = card.querySelector('input[type="radio"][value="1"]');
+                const incorrectInput = card.querySelector('input[type="radio"][value="0"]');
+                const isCorrect = q.is_correct === true;
+
+                if (isCorrect && correctInput) {
+                    correctInput.checked = true;
+                } else if (!isCorrect && incorrectInput) {
+                    incorrectInput.checked = true;
                 }
-            });
 
-            approveBtn.addEventListener('click', async function(e){
+                // Add AI reason if present
+                let reasonEl = card.querySelector('.ai-reason');
+                if (!reasonEl) {
+                    reasonEl = document.createElement('div');
+                    reasonEl.className = 'ai-reason mt-2 text-muted small';
+                    card.querySelector('.card-body').appendChild(reasonEl);
+                }
+                reasonEl.textContent = q.reason ? `AI: ${q.reason}` : '';
+
+                // Add awarded points display
+                let awardedEl = card.querySelector('.ai-awarded');
+                if (!awardedEl) {
+                    awardedEl = document.createElement('div');
+                    awardedEl.className = 'ai-awarded mt-1';
+                    card.querySelector('.card-body').appendChild(awardedEl);
+                }
+                awardedEl.innerHTML = typeof q.awarded_points !== 'undefined' 
+                    ? `<small class="text-info">AI awarded: ${q.awarded_points}/${q.points_possible}</small>` 
+                    : '';
+            });
+        }
+
+        // AI Check button click
+        aiBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            if (!confirm('Run automatic AI evaluation for this assessment?')) return;
+            
+            showSpinner(aiBtn, 'Evaluating...');
+
+            try {
+                const resp = await fetch(apiEvaluateUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken()
+                    },
+                    body: JSON.stringify({})
+                });
+
+                if (!resp.ok) {
+                    const text = await resp.text();
+                    contentDiv.innerHTML = `<div class="alert alert-danger">Server error: ${resp.status} — ${text}</div>`;
+                    panel.style.display = 'block';
+                    actionsDiv.style.display = 'none';
+                    return;
+                }
+
+                const json = await resp.json();
+                
+                if (!json.success) {
+                    contentDiv.innerHTML = `<div class="alert alert-danger">AI Error: ${json.message || 'Unknown'}</div>`;
+                    panel.style.display = 'block';
+                    actionsDiv.style.display = 'none';
+                    return;
+                }
+
+                renderAiResult(json.ai);
+                applyAiResultsToForm(json.ai);
+                panel.style.display = 'block';
+                actionsDiv.style.display = 'block';
+                panel.dataset.aiPayload = JSON.stringify(json.ai || {});
+
+            } catch (err) {
+                console.error('AI evaluation error:', err);
+                contentDiv.innerHTML = `<div class="alert alert-danger">Network error: ${err.message}</div>`;
+                panel.style.display = 'block';
+                actionsDiv.style.display = 'none';
+            } finally {
+                hideSpinner(aiBtn);
+            }
+        });
+
+        // Approve AI result button
+        if (approveBtn) {
+            approveBtn.addEventListener('click', async function() {
                 if (!confirm('Approve AI grading? This will save the AI review.')) return;
-                showSpinner(approveBtn);
+                
+                showSpinner(approveBtn, 'Saving...');
+
                 try {
                     const aiPayload = panel.dataset.aiPayload ? JSON.parse(panel.dataset.aiPayload) : null;
-                    if (!aiPayload) { alert('No AI result to save.'); return; }
+                    if (!aiPayload) {
+                        alert('No AI result to save.');
+                        return;
+                    }
 
                     const resp = await fetch(apiApproveUrl, {
                         method: 'POST',
                         headers: {
                             'Accept': 'application/json',
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            'X-CSRF-TOKEN': getCsrfToken()
                         },
                         body: JSON.stringify({ ai_result: aiPayload })
                     });
 
                     const json = await resp.json();
-                    if (json.success) { alert('AI review saved.'); window.location.reload(); }
-                    else alert('Failed to save AI review: ' + (json.message || 'Unknown'));
-                } catch(err){ console.error(err); alert('Error saving AI review: ' + err.message); }
-                finally { hideSpinner(approveBtn); }
+                    
+                    if (json.success) {
+                        alert('AI review saved.');
+                        window.location.reload();
+                    } else {
+                        alert('Failed to save AI review: ' + (json.message || 'Unknown'));
+                    }
+                } catch (err) {
+                    console.error('AI approve error:', err);
+                    alert('Error saving AI review: ' + err.message);
+                } finally {
+                    hideSpinner(approveBtn);
+                }
             });
+        }
 
-            rejectBtn.addEventListener('click', function(){ panel.style.display='none'; contentDiv.innerHTML=''; actionsDiv.style.display='none'; delete panel.dataset.aiPayload; });
-
-            function applyAiResultsToForm(ai) {
-  if (!ai || !Array.isArray(ai.per_question)) return;
-
-  ai.per_question.forEach(q => {
-    const qnum = q.question_number; // AI must return question_number
-    if (typeof qnum === 'undefined') return;
-
-    // find the question card by number
-    const card = document.querySelector(`.question-card[data-question-number="${qnum}"]`);
-    if (!card) return;
-
-    // set radio
-    const correctInput = card.querySelector(`input[type="radio"][value="1"]`);
-    const incorrectInput = card.querySelector(`input[type="radio"][value="0"]`);
-    if (q.is_correct) {
-      if (correctInput) correctInput.checked = true;
-      if (incorrectInput) incorrectInput.checked = false;
-    } else {
-      if (incorrectInput) incorrectInput.checked = true;
-      if (correctInput) correctInput.checked = false;
-    }
-
-    // optionally display AI reason inline (only when present)
-    let reasonEl = card.querySelector('.ai-reason');
-    if (!reasonEl) {
-      reasonEl = document.createElement('div');
-      reasonEl.className = 'ai-reason mt-2 text-muted small';
-      card.appendChild(reasonEl);
-    }
-    reasonEl.textContent = q.reason ? `AI: ${q.reason}` : '';
-    
-    // If you want to update awarded points display (optional)
-    let awardedEl = card.querySelector('.ai-awarded');
-    if (!awardedEl) {
-      awardedEl = document.createElement('div');
-      awardedEl.className = 'ai-awarded mt-1';
-      card.appendChild(awardedEl);
-    }
-    if (typeof q.awarded_points !== 'undefined') {
-      awardedEl.innerHTML = `<small>AI awarded: ${q.awarded_points}/${q.points_possible}</small>`;
-    } else {
-      awardedEl.innerHTML = '';
-    }
-  });
-}
-        })();
-        
-    </script>
+        // Dismiss AI result button
+        if (rejectBtn) {
+            rejectBtn.addEventListener('click', function() {
+                panel.style.display = 'none';
+                contentDiv.innerHTML = '';
+                actionsDiv.style.display = 'none';
+                delete panel.dataset.aiPayload;
+            });
+        }
+    })();
+</script>
 
 </x-app-layout>

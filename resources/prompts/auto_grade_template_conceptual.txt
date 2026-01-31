@@ -3,13 +3,15 @@ RULES:
 - Output ONLY valid JSON (no text, no explanation, no markdown).
 - Return EXACTLY the structure described below.
 - Use "question_number" to identify which question you grade (must match the provided input).
+- ALWAYS include "is_correct" for every question, even when partial credit is awarded (true if awarded_points > 0, false if 0).
+- ALWAYS include "employee_answer" and "correct_answer" for every question in per_question if available.
 - Compare employee_answer vs correct_answer leniently:
   - Ignore case and surrounding whitespace.
   - Ignore leading/trailing punctuation (.,;:!?).
   - Treat common short synonyms as equivalent (e.g., "Regards" ~ "Best regards"; "Yes" ~ "Y").
   - If the answer differs slightly (typos or phrasing), consider it correct.
   - Provide partial credit when answer is somewhat correct (optional: award fractional points).
-- Only include a "reason" field when a question is marked incorrect OR if partial credit was given. Keep reasons short (1 short sentence).
+- Only include a "reason" field if an explanation is necessary. Keep reasons short (1 short sentence).
 
 INPUT:
 You will receive a JSON payload under the label PAYLOAD_JSON. Example:

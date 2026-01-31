@@ -1,10 +1,9 @@
 
-# 📢🔗🛠️🎚️⛔🚧🆕 NEW COMMIT 
+# 📢🔗🛠️🎚️⛔🚧🆕 WHAT'S NEW 
 
 - 
 
-# LAST COMMIT 01/03/26
-# 🆕 Installed Prism and Connected OpenAI -天使
+# LAST TIME 01/03/26
 
 - 📢 NEW PACKAGE INSTALLED: Prism 📢
 
@@ -40,7 +39,7 @@
 
 ❌ Bug 5: payslip.blade.php, dragging and dropping files into payslip does not record it
 
-❌ Bug 6: training_management.course_requests table has the wrong email of employee, displaysed in resources/views/training_management/grant.blade.php
+❌ Bug 6: training_management.course_requests table has the wrong email of employee, displayed in resources/views/training_management/grant.blade.php
 
 ❌ Vulnerability 1: Dashboard, Upcoming Trainings is static 
 
@@ -50,7 +49,7 @@
 
 ❌ Vulnerability 4: ESS is accessible by staffs and admins, indicating no middleware restrictions
 
-❌ Vulnerability 5: Dashboard, API errors out when there's no internet connection
+✅ Vulnerability 5: Dashboard, API errors out when there's no internet connection
 
 ✅ Adjustment 1: Remove successors displaying email column for practicality FIXED:12/17/2025-14:34-resources/views/succession_planning/successors.blade.php
 
@@ -66,11 +65,11 @@
 
 Training Management
 # Grant Request
-✅ [Assign Assessment Alert Message]
+✅ [Assign Assessment Alert Message] 
 
 Learning Management
 # Assessment Result
-> [Add Table Pagination]
+✅ [Add Table Pagination]
 > [Make Submit Score not Approve and Reject button on Single Assessment Evaluation]
 > [Improve Alert Message After Submission on Single Assessment Evaluation]
 > [Improve Confirmation Message on Step 2 Evaluation]
