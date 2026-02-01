@@ -263,7 +263,7 @@
                     </div>
                 @else
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
+                        <table id="gapAnalysisTable" class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
                                 <tr>
                                     <th class="px-6 py-4 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Employee</th>
@@ -281,7 +281,7 @@
                                     <th class="px-6 py-4 text-center text-xs font-bold text-gray-800 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-100">
+                            <tbody id="gapAnalysisTableBody" class="bg-white divide-y divide-gray-100">
                                 @foreach($gapAnalysisResults as $result)
                                     <tr class="hover:bg-gray-50 transition-colors duration-150">
                                         <td class="px-6 py-4">
@@ -510,6 +510,24 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    <!-- Gap Analysis Pagination -->
+                    <div id="gapAnalysisPagination" class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                        <div class="text-sm text-gray-600">
+                            Showing <span id="gapShowingFrom">0</span> to <span id="gapShowingTo">0</span> of <span id="gapTotalRecords">0</span> results
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="gapRowsPerPage" class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
+                                <option value="10">10 per page</option>
+                                <option value="25">25 per page</option>
+                                <option value="50">50 per page</option>
+                                <option value="100">100 per page</option>
+                            </select>
+                            <div id="gapPaginationButtons" class="flex gap-1">
+                                <!-- Pagination buttons will be generated here -->
+                            </div>
+                        </div>
+                    </div>
                 @endif
             </div>
 
@@ -607,8 +625,16 @@
                     <div class="text-sm text-gray-600">
                         Showing <span id="showingFrom">0</span> to <span id="showingTo">0</span> of <span id="totalRecords">0</span> results
                     </div>
-                    <div id="paginationButtons" class="flex gap-2">
-                        <!-- Pagination buttons will be generated here -->
+                    <div class="flex items-center gap-2">
+                        <select id="assignedRowsPerPage" class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-green-400">
+                            <option value="10">10 per page</option>
+                            <option value="25">25 per page</option>
+                            <option value="50">50 per page</option>
+                            <option value="100">100 per page</option>
+                        </select>
+                        <div id="paginationButtons" class="flex gap-1">
+                            <!-- Pagination buttons will be generated here -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -778,9 +804,17 @@
         let currentPage = 1;
         let itemsPerPage = 10;
 
+        // Gap Analysis Table Pagination Variables
+        let gapCurrentPage = 1;
+        let gapItemsPerPage = 10;
+        let gapTableRows = [];
+
         // Load assigned competencies on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadAssignedCompetencies();
+            
+            // Initialize Gap Analysis Table Pagination
+            initGapAnalysisPagination();
             
             // Add filter event listeners
             document.getElementById('statusFilter').addEventListener('change', filterAssignedTable);
@@ -788,6 +822,130 @@
             document.getElementById('typeFilter').addEventListener('change', filterAssignedTable);
             document.getElementById('assignedSearch').addEventListener('input', filterAssignedTable);
         });
+
+        // ========== GAP ANALYSIS TABLE PAGINATION ==========
+        function initGapAnalysisPagination() {
+            const tableBody = document.getElementById('gapAnalysisTableBody');
+            if (!tableBody) return;
+            
+            // Get all rows and store them
+            gapTableRows = Array.from(tableBody.querySelectorAll('tr'));
+            
+            if (gapTableRows.length === 0) return;
+            
+            // Add event listener for rows per page change
+            const rowsPerPageSelect = document.getElementById('gapRowsPerPage');
+            if (rowsPerPageSelect) {
+                rowsPerPageSelect.addEventListener('change', function() {
+                    gapItemsPerPage = parseInt(this.value);
+                    gapCurrentPage = 1;
+                    renderGapAnalysisTable();
+                });
+            }
+            
+            // Initial render
+            renderGapAnalysisTable();
+        }
+
+        function renderGapAnalysisTable() {
+            const tableBody = document.getElementById('gapAnalysisTableBody');
+            if (!tableBody || gapTableRows.length === 0) return;
+            
+            const totalItems = gapTableRows.length;
+            const totalPages = Math.ceil(totalItems / gapItemsPerPage);
+            const startIndex = (gapCurrentPage - 1) * gapItemsPerPage;
+            const endIndex = Math.min(startIndex + gapItemsPerPage, totalItems);
+            
+            // Hide all rows first
+            gapTableRows.forEach(row => row.style.display = 'none');
+            
+            // Show only rows for current page
+            for (let i = startIndex; i < endIndex; i++) {
+                gapTableRows[i].style.display = '';
+            }
+            
+            // Update pagination info
+            document.getElementById('gapShowingFrom').textContent = totalItems > 0 ? startIndex + 1 : 0;
+            document.getElementById('gapShowingTo').textContent = endIndex;
+            document.getElementById('gapTotalRecords').textContent = totalItems;
+            
+            // Generate pagination buttons
+            generateGapPaginationButtons(totalPages);
+        }
+
+        function generateGapPaginationButtons(totalPages) {
+            const container = document.getElementById('gapPaginationButtons');
+            if (!container) return;
+            
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            let buttons = '';
+            
+            // Previous button
+            buttons += `
+                <button onclick="changeGapPage(${gapCurrentPage - 1})" 
+                        class="px-3 py-1 rounded ${gapCurrentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} text-sm transition-colors"
+                        ${gapCurrentPage === 1 ? 'disabled' : ''}>
+                    <i class='bx bx-chevron-left'></i>
+                </button>
+            `;
+            
+            // Page number buttons (show max 5 pages)
+            let startPage = Math.max(1, gapCurrentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+            
+            if (startPage > 1) {
+                buttons += `
+                    <button onclick="changeGapPage(1)" class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm transition-colors">1</button>
+                `;
+                if (startPage > 2) {
+                    buttons += `<span class="px-2 text-gray-400">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                buttons += `
+                    <button onclick="changeGapPage(${i})" 
+                            class="px-3 py-1 rounded ${i === gapCurrentPage ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} text-sm transition-colors">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    buttons += `<span class="px-2 text-gray-400">...</span>`;
+                }
+                buttons += `
+                    <button onclick="changeGapPage(${totalPages})" class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm transition-colors">${totalPages}</button>
+                `;
+            }
+            
+            // Next button
+            buttons += `
+                <button onclick="changeGapPage(${gapCurrentPage + 1})" 
+                        class="px-3 py-1 rounded ${gapCurrentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} text-sm transition-colors"
+                        ${gapCurrentPage === totalPages ? 'disabled' : ''}>
+                    <i class='bx bx-chevron-right'></i>
+                </button>
+            `;
+            
+            container.innerHTML = buttons;
+        }
+
+        function changeGapPage(page) {
+            const totalPages = Math.ceil(gapTableRows.length / gapItemsPerPage);
+            if (page < 1 || page > totalPages) return;
+            gapCurrentPage = page;
+            renderGapAnalysisTable();
+        }
 
         function loadAssignedCompetencies() {
             fetch('/api/assigned-competencies')
@@ -797,6 +955,16 @@
                         assignedCompetenciesData = data.data;
                         renderAssignedTable();
                         updateTotalCount();
+                        
+                        // Add event listener for rows per page change
+                        const assignedRowsPerPage = document.getElementById('assignedRowsPerPage');
+                        if (assignedRowsPerPage) {
+                            assignedRowsPerPage.addEventListener('change', function() {
+                                itemsPerPage = parseInt(this.value);
+                                currentPage = 1;
+                                filterAssignedTable();
+                            });
+                        }
                     } else {
                         showEmptyState('Failed to load data');
                     }
@@ -1046,7 +1214,34 @@
             }
 
             let buttons = '';
-            for (let i = 1; i <= totalPages; i++) {
+            
+            // Previous button
+            buttons += `
+                <button onclick="changePage(${currentPage - 1})" 
+                        class="px-3 py-1 rounded ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} text-sm transition-colors"
+                        ${currentPage === 1 ? 'disabled' : ''}>
+                    <i class='bx bx-chevron-left'></i>
+                </button>
+            `;
+            
+            // Page number buttons (show max 5 pages)
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+            
+            if (startPage > 1) {
+                buttons += `
+                    <button onclick="changePage(1)" class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm transition-colors">1</button>
+                `;
+                if (startPage > 2) {
+                    buttons += `<span class="px-2 text-gray-400">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
                 buttons += `
                     <button onclick="changePage(${i})" 
                             class="px-3 py-1 rounded ${i === currentPage ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} text-sm transition-colors">
@@ -1054,10 +1249,31 @@
                     </button>
                 `;
             }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    buttons += `<span class="px-2 text-gray-400">...</span>`;
+                }
+                buttons += `
+                    <button onclick="changePage(${totalPages})" class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm transition-colors">${totalPages}</button>
+                `;
+            }
+            
+            // Next button
+            buttons += `
+                <button onclick="changePage(${currentPage + 1})" 
+                        class="px-3 py-1 rounded ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} text-sm transition-colors"
+                        ${currentPage === totalPages ? 'disabled' : ''}>
+                    <i class='bx bx-chevron-right'></i>
+                </button>
+            `;
+            
             paginationContainer.innerHTML = buttons;
         }
 
         function changePage(page) {
+            const totalPages = Math.ceil(assignedCompetenciesData.length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
             currentPage = page;
             filterAssignedTable();
         }

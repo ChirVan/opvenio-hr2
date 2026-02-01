@@ -238,16 +238,26 @@
                                                 </button>
                                             @elseif($allEvaluated && !$step2Completed && !$hasFailed)
                                                 {{-- All Step 1 evaluated, Step 2 not done yet, all passed - CAN PROCEED to Step 2 --}}
-                                                <a href="{{ route('assessment.results.evaluate', ['employeeId' => $employee->employee_id, 'result_ids' => implode(',', $resultIds)]) }}" 
-                                                   class="btn btn-sm btn-success" style="padding: 6px 12px; border-radius: 4px; text-decoration: none; margin-bottom: 2px;">
-                                                    <i class="fas fa-clipboard-check"></i> Proceed to Step 2
-                                                </a>
+                                                @php
+                                                    $firstResultId = $employee->assessment_results->first()->id ?? null;
+                                                @endphp
+                                                @if($firstResultId)
+                                                    <a href="{{ route('assessment.results.evaluate.step2', ['id' => $firstResultId, 'result_ids' => implode(',', $resultIds)]) }}" 
+                                                       class="btn btn-sm btn-success" style="padding: 6px 12px; border-radius: 4px; text-decoration: none; margin-bottom: 2px;">
+                                                        <i class="fas fa-clipboard-check"></i> Proceed to Step 2
+                                                    </a>
+                                                @endif
                                             @elseif($allEvaluated && !$step2Completed && $hasFailed)
                                                 {{-- All Step 1 evaluated, Step 2 not done yet, has failures - CAN PROCEED to Step 2 --}}
-                                                <a href="{{ route('assessment.results.evaluate', ['employeeId' => $employee->employee_id, 'result_ids' => implode(',', $resultIds)]) }}" 
-                                                   class="btn btn-sm btn-warning" style="padding: 6px 12px; border-radius: 4px; text-decoration: none; margin-bottom: 2px;">
-                                                    <i class="fas fa-clipboard-check"></i> Proceed to Step 2
-                                                </a>
+                                                @php
+                                                    $firstResultId = $employee->assessment_results->first()->id ?? null;
+                                                @endphp
+                                                @if($firstResultId)
+                                                    <a href="{{ route('assessment.results.evaluate.step2', ['id' => $firstResultId, 'result_ids' => implode(',', $resultIds)]) }}" 
+                                                       class="btn btn-sm btn-warning" style="padding: 6px 12px; border-radius: 4px; text-decoration: none; margin-bottom: 2px;">
+                                                        <i class="fas fa-clipboard-check"></i> Proceed to Step 2
+                                                    </a>
+                                                @endif
                                             @endif
                                             <br>
                                             @php

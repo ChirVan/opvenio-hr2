@@ -42,7 +42,7 @@
                     <a href="{{ route('competency.frameworks') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.frameworks') ? 'active' : '' }}">Competencies</a>
                     <a href="{{ route('competency.rolemapping') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.rolemapping*') ? 'active' : '' }}">Role Mapping</a>
                     <a href="{{ route('competency.gap-analysis') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.gap-analysis*') ? 'active' : '' }}">Gap Analysis</a>
-                    <a href="{{ route('competency.gapanalysis') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.gapanalysis*') ? 'active' : '' }}">Gap Analysis (Legacy)</a>
+                    <!-- <a href="{{ route('competency.gapanalysis') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('competency.gapanalysis*') ? 'active' : '' }}">Gap Analysis (Legacy)</a> -->
                 </div>
             </div>
         </div>

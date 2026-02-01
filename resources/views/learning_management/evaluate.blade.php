@@ -1,6 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <!-- SweetAlert2 -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     </x-slot>
 
     @section('navbar')
@@ -255,34 +257,60 @@
         const submitBtn = document.getElementById('submitEvaluationBtn');
 
         if (form && submitBtn) {
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
-                if (!confirm('Submit this evaluation? The system will automatically determine pass/fail based on the score.')) {
-                    return;
-                }
+                const confirmResult = await Swal.fire({
+                    title: 'Submit Evaluation?',
+                    text: 'The system will automatically determine pass/fail based on the score.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Submit',
+                    cancelButtonText: 'Cancel'
+                });
+
+                if (!confirmResult.isConfirmed) return;
 
                 showSpinner(submitBtn, 'Submitting...');
 
-                fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: { 'X-CSRF-TOKEN': getCsrfToken() }
-                })
-                .then(response => response.json())
-                .then(data => {
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: { 'X-CSRF-TOKEN': getCsrfToken() }
+                    });
+                    
+                    const data = await response.json();
+                    
                     if (data.success) {
-                        alert(data.message || 'Evaluation submitted successfully!');
+                        await Swal.fire({
+                            title: 'Success!',
+                            text: data.message || 'Evaluation submitted successfully!',
+                            icon: 'success',
+                            confirmButtonColor: '#3085d6'
+                        });
                         window.location.href = '{{ route("assessment.results") }}';
                     } else {
-                        alert('Error: ' + (data.message || 'Unknown error'));
+                        Swal.fire({
+                            title: 'Error',
+                            text: data.message || 'Unknown error occurred',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
                     }
-                })
-                .catch(error => {
+                } catch (error) {
                     console.error('Submission error:', error);
-                    alert('Error processing request. Please try again.');
-                })
-                .finally(() => hideSpinner(submitBtn));
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Error processing request. Please try again.',
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
+                    });
+                } finally {
+                    hideSpinner(submitBtn);
+                }
             });
         }
 
@@ -409,7 +437,19 @@
         // AI Check button click
         aiBtn.addEventListener('click', async function(e) {
             e.preventDefault();
-            if (!confirm('Run automatic AI evaluation for this assessment?')) return;
+            
+            const confirmResult = await Swal.fire({
+                title: 'Run AI Evaluation?',
+                text: 'This will automatically evaluate all answers using AI.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#17a2b8',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Evaluate',
+                cancelButtonText: 'Cancel'
+            });
+
+            if (!confirmResult.isConfirmed) return;
             
             showSpinner(aiBtn, 'Evaluating...');
 
@@ -460,14 +500,30 @@
         // Approve AI result button
         if (approveBtn) {
             approveBtn.addEventListener('click', async function() {
-                if (!confirm('Approve AI grading? This will save the AI review.')) return;
+                const confirmResult = await Swal.fire({
+                    title: 'Approve AI Grading?',
+                    text: 'This will save the AI evaluation results.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Approve',
+                    cancelButtonText: 'Cancel'
+                });
+
+                if (!confirmResult.isConfirmed) return;
                 
                 showSpinner(approveBtn, 'Saving...');
 
                 try {
                     const aiPayload = panel.dataset.aiPayload ? JSON.parse(panel.dataset.aiPayload) : null;
                     if (!aiPayload) {
-                        alert('No AI result to save.');
+                        Swal.fire({
+                            title: 'No Data',
+                            text: 'No AI result to save.',
+                            icon: 'warning',
+                            confirmButtonColor: '#f0ad4e'
+                        });
                         return;
                     }
 
@@ -484,14 +540,29 @@
                     const json = await resp.json();
                     
                     if (json.success) {
-                        alert('AI review saved.');
+                        await Swal.fire({
+                            title: 'Saved!',
+                            text: 'AI review has been saved successfully.',
+                            icon: 'success',
+                            confirmButtonColor: '#28a745'
+                        });
                         window.location.reload();
                     } else {
-                        alert('Failed to save AI review: ' + (json.message || 'Unknown'));
+                        Swal.fire({
+                            title: 'Failed',
+                            text: 'Failed to save AI review: ' + (json.message || 'Unknown error'),
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
                     }
                 } catch (err) {
                     console.error('AI approve error:', err);
-                    alert('Error saving AI review: ' + err.message);
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Error saving AI review: ' + err.message,
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
+                    });
                 } finally {
                     hideSpinner(approveBtn);
                 }
