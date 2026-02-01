@@ -61,6 +61,7 @@
                     <a href="{{ route('training.catalog.index') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('training.catalog.*') ? 'active' : '' }}">Training Catalog</a>
                     <a href="{{ route('training.assign.index') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('training.assign.*') ? 'active' : '' }}">Assign Training</a>
                     <a href="{{ route('training.grant-request.index') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('training.grant-request.*') ? 'active' : '' }}">Grant Request</a>
+                    <a href="{{ route('training.room.index') }}" class="block text-white hover:bg-white hover:bg-opacity-20 rounded-md px-3 py-2 {{ request()->routeIs('training.room.*') ? 'active' : '' }}">Training Room</a>
                 </div>
             </div>
         </div>

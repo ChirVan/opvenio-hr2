@@ -1,30 +1,158 @@
 @extends('layouts.guest')
 
 @section('content')
-<div class="h-full w-full flex bg-gray-100 dark:bg-gray-900">
-    <!-- Left: Login form (30%) -->
-    <div class="w-full md:w-[30%] flex items-center justify-center bg-white p-10 shadow-lg">
-        <div class="w-full max-w-sm text-center">
-            <!-- Logo and title -->
-            <div class="flex flex-col items-center mb-6">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo" class="h-16 w-16 rounded-full mb-2">
-                <h2 class="text-xl font-semibold text-gray-800">Microfinance</h2>
-            </div>
+<div class="min-h-screen w-full flex relative overflow-hidden" style="background: #059669;">
+    
+    <!-- Background Decorative Circles -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -bottom-32 -left-32 w-96 h-96 rounded-full" style="background: rgba(255,255,255,0.08);"></div>
+        <div class="absolute top-1/3 -left-20 w-72 h-72 rounded-full" style="background: rgba(255,255,255,0.05);"></div>
+        <div class="absolute -top-20 right-1/3 w-64 h-64 rounded-full" style="background: rgba(255,255,255,0.06);"></div>
+        <div class="absolute bottom-20 right-1/4 w-80 h-80 rounded-full" style="background: rgba(255,255,255,0.04);"></div>
+        <div class="absolute top-1/2 right-[30%] w-48 h-48 rounded-full" style="background: rgba(255,255,255,0.07);"></div>
+    </div>
 
-            <h2 class="text-3xl font-semibold mb-4 text-gray-800">Welcome back</h2>
-            <p class="text-sm text-gray-600 mb-6">Sign in to your account to continue to Javes Cooperative.</p>
+    <!-- Left Side: Branding -->
+    <div class="hidden md:flex md:w-[60%] flex-col items-center justify-center p-12 relative z-10">
+        
+        <!-- Logo -->
+        <div class="mb-6">
+            <img src="{{ asset('images/logo.png') }}" alt="Logo" class="w-24 h-24">
+        </div>
+        
+        <!-- Title -->
+        <h1 class="text-4xl font-bold text-white mb-2">Microfinance HR</h1>
+        <p class="text-white/70 text-sm tracking-wider mb-10">Human Resource II</p>
+        
+        <!-- Image Carousel -->
+        <div class="w-full max-w-2xl mb-10 overflow-hidden">
+            <!-- Carousel Container - Seamless Loop -->
+            <div id="carousel" class="relative" style="min-height: 280px;">
+                <!-- Slide 1 -->
+                <div class="carousel-slide flex flex-col items-center px-8 transition-opacity duration-500" style="opacity: 1;">
+                    <svg class="w-64 h-48 mb-4" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Training Clipart -->
+                        <rect x="100" y="50" width="200" height="140" rx="8" fill="white" fill-opacity="0.15"/>
+                        <rect x="120" y="70" width="60" height="40" rx="4" fill="#34D399"/>
+                        <rect x="200" y="70" width="80" height="15" rx="2" fill="white" fill-opacity="0.5"/>
+                        <rect x="200" y="95" width="60" height="15" rx="2" fill="white" fill-opacity="0.3"/>
+                        <rect x="120" y="130" width="160" height="8" rx="2" fill="white" fill-opacity="0.2"/>
+                        <rect x="120" y="150" width="120" height="8" rx="2" fill="white" fill-opacity="0.2"/>
+                        <rect x="120" y="170" width="140" height="8" rx="2" fill="white" fill-opacity="0.2"/>
+                        <!-- Person -->
+                        <circle cx="320" cy="180" r="25" fill="#FCD34D"/>
+                        <rect x="295" y="205" width="50" height="60" rx="8" fill="#60A5FA"/>
+                        <circle cx="312" cy="175" r="3" fill="#1F2937"/>
+                        <circle cx="328" cy="175" r="3" fill="#1F2937"/>
+                        <path d="M315 185 Q320 190 325 185" stroke="#1F2937" stroke-width="2" fill="none"/>
+                    </svg>
+                    <h4 class="text-white font-bold text-xl mb-2">Training & Development</h4>
+                    <p class="text-white/70 text-sm text-center">Empower your growth with comprehensive training programs.</p>
+                </div>
+                <!-- Slide 2 -->
+                <div class="carousel-slide absolute top-0 left-0 w-full flex flex-col items-center px-8 transition-opacity duration-500" style="opacity: 0;">
+                    <svg class="w-64 h-48 mb-4" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Team Clipart -->
+                        <circle cx="150" cy="120" r="30" fill="#FCD34D"/>
+                        <rect x="120" y="150" width="60" height="70" rx="10" fill="#34D399"/>
+                        <circle cx="143" cy="115" r="4" fill="#1F2937"/>
+                        <circle cx="157" cy="115" r="4" fill="#1F2937"/>
+                        <path d="M145 128 Q150 133 155 128" stroke="#1F2937" stroke-width="2" fill="none"/>
+                        
+                        <circle cx="250" cy="120" r="30" fill="#FCD34D"/>
+                        <rect x="220" y="150" width="60" height="70" rx="10" fill="#60A5FA"/>
+                        <circle cx="243" cy="115" r="4" fill="#1F2937"/>
+                        <circle cx="257" cy="115" r="4" fill="#1F2937"/>
+                        <path d="M245 128 Q250 133 255 128" stroke="#1F2937" stroke-width="2" fill="none"/>
+                        
+                        <circle cx="200" cy="80" r="25" fill="#FCD34D"/>
+                        <rect x="175" y="105" width="50" height="60" rx="8" fill="#F472B6"/>
+                        <circle cx="193" cy="76" r="3" fill="#1F2937"/>
+                        <circle cx="207" cy="76" r="3" fill="#1F2937"/>
+                        <path d="M195 86 Q200 91 205 86" stroke="#1F2937" stroke-width="2" fill="none"/>
+                        
+                        <!-- Connection lines -->
+                        <path d="M175 130 L190 110" stroke="white" stroke-opacity="0.3" stroke-width="2"/>
+                        <path d="M225 130 L210 110" stroke="white" stroke-opacity="0.3" stroke-width="2"/>
+                    </svg>
+                    <h4 class="text-white font-bold text-xl mb-2">Team Collaboration</h4>
+                    <p class="text-white/70 text-sm text-center">Work together to achieve organizational excellence.</p>
+                </div>
+                <!-- Slide 3 -->
+                <div class="carousel-slide absolute top-0 left-0 w-full flex flex-col items-center px-8 transition-opacity duration-500" style="opacity: 0;">
+                    <svg class="w-64 h-48 mb-4" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Analytics Clipart -->
+                        <rect x="80" y="60" width="240" height="160" rx="8" fill="white" fill-opacity="0.15"/>
+                        <!-- Chart bars -->
+                        <rect x="110" y="160" width="30" height="40" rx="4" fill="#34D399"/>
+                        <rect x="155" y="130" width="30" height="70" rx="4" fill="#60A5FA"/>
+                        <rect x="200" y="100" width="30" height="100" rx="4" fill="#FCD34D"/>
+                        <rect x="245" y="80" width="30" height="120" rx="4" fill="#F472B6"/>
+                        <!-- Trend line -->
+                        <path d="M125 150 L170 120 L215 90 L260 70" stroke="white" stroke-width="3" fill="none"/>
+                        <circle cx="125" cy="150" r="5" fill="white"/>
+                        <circle cx="170" cy="120" r="5" fill="white"/>
+                        <circle cx="215" cy="90" r="5" fill="white"/>
+                        <circle cx="260" cy="70" r="5" fill="white"/>
+                    </svg>
+                    <h4 class="text-white font-bold text-xl mb-2">Performance Analytics</h4>
+                    <p class="text-white/70 text-sm text-center">Track progress and measure success with data-driven insights.</p>
+                </div>
+                <!-- Slide 4 -->
+                <div class="carousel-slide absolute top-0 left-0 w-full flex flex-col items-center px-8 transition-opacity duration-500" style="opacity: 0;">
+                    <svg class="w-64 h-48 mb-4" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Skills/Learning Clipart -->
+                        <circle cx="200" cy="100" r="50" fill="white" fill-opacity="0.15"/>
+                        <circle cx="200" cy="100" r="35" fill="white" fill-opacity="0.1"/>
+                        <!-- Brain/lightbulb -->
+                        <path d="M185 85 Q200 60 215 85 Q230 100 215 115 L210 125 L190 125 L185 115 Q170 100 185 85" fill="#FCD34D"/>
+                        <rect x="190" y="125" width="20" height="10" rx="2" fill="#9CA3AF"/>
+                        <line x1="195" y1="130" x2="205" y2="130" stroke="#6B7280" stroke-width="2"/>
+                        <!-- Skill badges -->
+                        <rect x="100" y="160" width="80" height="30" rx="15" fill="#34D399"/>
+                        <rect x="160" y="200" width="80" height="30" rx="15" fill="#60A5FA"/>
+                        <rect x="220" y="160" width="80" height="30" rx="15" fill="#F472B6"/>
+                        <!-- Stars -->
+                        <path d="M130 175 L132 180 L138 180 L133 184 L135 190 L130 186 L125 190 L127 184 L122 180 L128 180 Z" fill="white"/>
+                        <path d="M190 215 L192 220 L198 220 L193 224 L195 230 L190 226 L185 230 L187 224 L182 220 L188 220 Z" fill="white"/>
+                        <path d="M250 175 L252 180 L258 180 L253 184 L255 190 L250 186 L245 190 L247 184 L242 180 L248 180 Z" fill="white"/>
+                    </svg>
+                    <h4 class="text-white font-bold text-xl mb-2">Skill Development</h4>
+                    <p class="text-white/70 text-sm text-center">Bridge competency gaps and unlock your potential.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quote -->
+        <div class="text-center max-w-md">
+            <p class="text-white/90 italic text-sm leading-relaxed">
+                "The strength of the team is each individual member. The strength of each member is the team."
+            </p>
+            <p class="text-white/60 text-sm mt-3">- Phil Jackson</p>
+        </div>
+    </div>
+
+    <!-- Right Side: Login Form -->
+    <div class="w-full md:w-[40%] flex items-center justify-center p-6 relative z-10">
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8">
+            
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome Back!</h2>
+                <p class="text-sm text-gray-500">Please enter your details to sign in.</p>
+            </div>
 
             <form method="POST" action="{{ route('login') }}">
                 @csrf
 
                 @if (session('status'))
-                    <div class="mb-4 text-sm text-green-700 bg-green-50 border border-green-100 rounded p-3">
+                    <div class="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
                         {{ session('status') }}
                     </div>
                 @endif
 
                 @if ($errors->any())
-                    <div class="mb-4 text-sm text-red-700 bg-red-50 border border-red-100 rounded p-3">
+                    <div class="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
                         <ul class="list-disc list-inside">
                             @foreach ($errors->all() as $error)
                                 <li>{{ $error }}</li>
@@ -34,67 +162,103 @@
                 @endif
 
                 <!-- Email Field -->
-<div class="mb-4 text-start">
-    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-    <div class="relative">
-        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-            <i class="bx bx-envelope text-gray-400 text-lg"></i>
-        </span>
-        <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
-            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="Enter your email" autocomplete="off">
-    </div>
-</div>
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+                            <i class="bx bx-at text-xl"></i>
+                        </span>
+                        <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
+                            class="block w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg
+                                   focus:ring-2 focus:ring-[#059669] focus:border-[#059669] 
+                                   transition-all duration-200 text-sm text-gray-700"
+                            placeholder="Enter your email" autocomplete="off">
+                    </div>
+                </div>
 
-<!-- Password Field -->
-<div class="mb-6 text-start">
-    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-    <div class="relative">
-        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-            <i class="bx bx-lock-alt text-gray-400 text-lg"></i>
-        </span>
-        <input id="password" type="password" name="password" required
-            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="Enter your password">
-    </div>
-</div>
+                <!-- Password Field -->
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+                            <i class="bx bx-lock-alt text-xl"></i>
+                        </span>
+                        <input id="password" type="password" name="password" required
+                            class="block w-full pl-12 pr-12 py-3 border border-gray-200 rounded-lg
+                                   focus:ring-2 focus:ring-[#059669] focus:border-[#059669] 
+                                   transition-all duration-200 text-sm text-gray-700"
+                            placeholder="Enter your password">
+                        <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600">
+                            <i id="password-toggle-icon" class="bx bx-show text-xl"></i>
+                        </button>
+                    </div>
+                </div>
 
+                <!-- Sign In Button -->
                 <button type="submit"
-                    class="w-full py-2 px-4 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    Sign in
+                    class="w-full py-3 px-4 text-sm font-semibold rounded-lg text-white 
+                           bg-[#059669] hover:bg-[#047857] 
+                           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#059669] 
+                           transition-all duration-200">
+                    Sign In
                 </button>
 
-                <p class="mt-4 text-xs text-gray-600">
-                    By signing in, you agree to our
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal" class="text-green-600 hover:underline">
-                        Terms and Conditions
-                    </a>.
-                </p>
+                <!-- Terms Checkbox -->
+                <div class="mt-6 flex items-center">
+                    <input type="checkbox" id="terms" name="terms" required
+                        class="w-4 h-4 rounded border-gray-300 text-[#059669] focus:ring-[#059669]">
+                    <label for="terms" class="ml-2 text-sm text-gray-600">
+                        I agree to the 
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal" 
+                           class="text-[#059669] hover:text-[#047857] font-medium hover:underline">
+                            Terms and Conditions
+                        </a>
+                    </label>
+                </div>
+
+                <!-- Copyright -->
+                <div class="mt-8 text-center">
+                    <p class="text-xs text-gray-400">© 2026 Microfinance HR. All Rights Reserved.</p>
+                </div>
             </form>
         </div>
     </div>
-
-    <!-- Right: Branding (70%) -->
-    <div class="hidden md:flex md:w-[70%] items-center justify-center p-12" style="background: var(--color-primary);">
-        <div class="text-white text-center max-w-md">
-            <h3 class="text-4xl font-bold mb-2">JAVES COOPERATIVE MICROFINANCE</h3>
-            <p class="text-base mb-6">Human Resources II</p>
-
-            <div class="bg-white bg-opacity-10 rounded-2xl p-8 shadow-lg flex flex-col items-center mb-8">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white opacity-90 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 14l9-5-9-5-9 5 9 5zm0 0v6m0 0c-4.418 0-8-1.79-8-4V9m8 11c4.418 0 8-1.79 8-4V9" />
-                </svg>
-                <h4 class="text-xl font-semibold mb-2">Training and Development</h4>
-                <p class="text-sm text-white text-opacity-80 text-center">
-                    Empower your growth with our comprehensive training and development programs.
-                </p>
-            </div>
-
-            <p class="text-xs text-white text-opacity-80">Secure access to your HR data. If you have trouble signing in, contact your administrator.</p>
-        </div>
-    </div>
 </div>
+
+<script>
+// Password Toggle
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const toggleIcon = document.getElementById('password-toggle-icon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('bx-show');
+        toggleIcon.classList.add('bx-hide');
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('bx-hide');
+        toggleIcon.classList.add('bx-show');
+    }
+}
+
+// Carousel Functionality - Smooth fade transition
+let currentSlide = 0;
+const slides = document.querySelectorAll('.carousel-slide');
+const totalSlides = slides.length;
+
+function showSlide(index) {
+    slides.forEach((slide, i) => {
+        slide.style.opacity = i === index ? '1' : '0';
+    });
+}
+
+// Auto-rotate every 3 seconds
+setInterval(() => {
+    currentSlide = (currentSlide + 1) % totalSlides;
+    showSlide(currentSlide);
+}, 3000);
+</script>
 
 <!-- 💼 Modern Terms & Conditions Modal -->
 <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">

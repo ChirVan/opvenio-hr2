@@ -631,6 +631,16 @@ Route::get('/dashboard', function () {
             Route::post('/bulk-action', [\App\Modules\training_management\Controllers\GrantRequestController::class, 'bulkAction'])->name('bulk-action');
             Route::get('/api/stats', [\App\Modules\training_management\Controllers\GrantRequestController::class, 'getStats'])->name('stats');
         });
+
+        // Training Room Routes
+        Route::prefix('room')->name('training.room.')->group(function () {
+            Route::get('/', [\App\Modules\training_management\Controllers\TrainingRoomController::class, 'index'])->name('index');
+            Route::get('/bookings', [\App\Modules\training_management\Controllers\TrainingRoomController::class, 'getBookings'])->name('bookings');
+            Route::post('/bookings', [\App\Modules\training_management\Controllers\TrainingRoomController::class, 'storeBooking'])->name('bookings.store');
+            Route::put('/bookings/{id}/status', [\App\Modules\training_management\Controllers\TrainingRoomController::class, 'updateBookingStatus'])->name('bookings.update-status');
+            Route::delete('/bookings/{id}', [\App\Modules\training_management\Controllers\TrainingRoomController::class, 'deleteBooking'])->name('bookings.delete');
+            Route::get('/{id}', [\App\Modules\training_management\Controllers\TrainingRoomController::class, 'show'])->name('show');
+        });
     });
 });
 

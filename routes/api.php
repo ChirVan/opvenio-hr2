@@ -594,3 +594,31 @@ Route::prefix('leaves')->group(function () {
     // Get leave statistics
     Route::get('/stats/summary', [LeaveApiController::class, 'statistics']);
 });
+
+// ============================================================
+// ======= Training Room Bookings API =========================
+// ============================================================
+Route::prefix('training-room-bookings')->group(function () {
+    
+    // Get all bookings
+    Route::get('/', [\App\Modules\training_management\Controllers\TrainingRoomBookingApiController::class, 'index']);
+    
+    // Get booking statistics
+    Route::get('/stats', [\App\Modules\training_management\Controllers\TrainingRoomBookingApiController::class, 'stats']);
+    
+    // Get a specific booking
+    Route::get('/{id}', [\App\Modules\training_management\Controllers\TrainingRoomBookingApiController::class, 'show']);
+    
+    // Create a new booking
+    Route::post('/', [\App\Modules\training_management\Controllers\TrainingRoomBookingApiController::class, 'store']);
+    
+    // Update a booking
+    Route::put('/{id}', [\App\Modules\training_management\Controllers\TrainingRoomBookingApiController::class, 'update']);
+    Route::patch('/{id}', [\App\Modules\training_management\Controllers\TrainingRoomBookingApiController::class, 'update']);
+    
+    // Update booking status only
+    Route::patch('/{id}/status', [\App\Modules\training_management\Controllers\TrainingRoomBookingApiController::class, 'updateStatus']);
+    
+    // Delete a booking
+    Route::delete('/{id}', [\App\Modules\training_management\Controllers\TrainingRoomBookingApiController::class, 'destroy']);
+});

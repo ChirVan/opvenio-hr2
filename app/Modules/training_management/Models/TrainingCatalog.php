@@ -39,6 +39,14 @@ class TrainingCatalog extends Model
     }
 
     /**
+     * Alias for trainingMaterials relationship.
+     */
+    public function materials()
+    {
+        return $this->hasMany(TrainingMaterial::class);
+    }
+
+    /**
      * Scope a query to only include active catalogs.
      */
     public function scopeActive($query)

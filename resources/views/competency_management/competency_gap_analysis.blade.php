@@ -602,6 +602,7 @@
                                 <th class="px-6 py-4 text-center text-xs font-bold text-gray-800 uppercase tracking-wider">Priority</th>
                                 <th class="px-6 py-4 text-center text-xs font-bold text-gray-800 uppercase tracking-wider">Avg Progress</th>
                                 <th class="px-6 py-4 text-center text-xs font-bold text-gray-800 uppercase tracking-wider">Overall Status</th>
+                                <th class="px-6 py-4 text-center text-xs font-bold text-gray-800 uppercase tracking-wider">Training Room</th>
                                 <th class="px-6 py-4 text-center text-xs font-bold text-gray-800 uppercase tracking-wider">Next Deadline</th>
                                 <th class="px-6 py-4 text-center text-xs font-bold text-gray-800 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -609,7 +610,7 @@
                         <tbody id="assignedTableBody" class="bg-white divide-y divide-gray-100">
                             <!-- Will be populated via JavaScript -->
                             <tr>
-                                <td colspan="8" class="px-6 py-12 text-center">
+                                <td colspan="9" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center">
                                         <i class='bx bx-loader-alt bx-spin text-4xl text-gray-400 mb-2'></i>
                                         <p class="text-sm text-gray-500">Loading assigned competencies...</p>
@@ -1056,6 +1057,31 @@
                             </span>` : 
                             getStatusBadge(item.overall_status)
                         }
+                    </td>
+                    
+                    <!-- Training Room -->
+                    <td class="px-6 py-4 text-center">
+                        ${item.training_count > 0 ? `
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                    <i class='bx bx-check-circle mr-1'></i>${item.training_count} Assigned
+                                </span>
+                                <a href="{{ route('training.room.index') }}" 
+                                   class="inline-flex items-center text-xs text-emerald-600 hover:text-emerald-800 font-medium transition-colors">
+                                    <i class='bx bx-tv mr-1'></i>Enter Room
+                                </a>
+                            </div>
+                        ` : `
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                                    <i class='bx bx-minus-circle mr-1'></i>Not Assigned
+                                </span>
+                                <button onclick="bulkAssignTraining('${item.employee_id}', '${item.employee_name}')" 
+                                        class="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                                    <i class='bx bx-plus mr-1'></i>Assign Training
+                                </button>
+                            </div>
+                        `}
                     </td>
                     
                     <!-- Next Deadline -->
