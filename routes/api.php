@@ -417,6 +417,118 @@ Route::prefix('ess')->group(function () {
             ], 500);
         }
     });
+
+    // Get payslip data from external HR4 API (keeps credentials server-side)
+    Route::get('/payslips/{employeeId}', function ($employeeId) {
+        try {
+            // API credentials kept server-side for security
+            $apiUrl = 'https://hr4.microfinancial-1.com/GetAllPayslip';
+            $apiKey = 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a';
+            
+            $response = Http::timeout(30)
+                ->withOptions(['verify' => false])
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'X-API-Key' => $apiKey
+                ])
+                ->get($apiUrl);
+            
+            if (!$response->successful()) {
+                Log::warning("Payslip API failed for employee {$employeeId}: " . $response->status());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to fetch payslip data from external API',
+                    'payslips' => []
+                ]);
+            }
+            
+            $data = $response->json();
+            $allPayslips = $data['payslips'] ?? $data['data'] ?? [];
+            
+            // Find the employee's payslip data
+            $employeePayslipData = collect($allPayslips)->first(function ($item) use ($employeeId) {
+                return $item['employee_id'] == $employeeId;
+            });
+            
+            if (!$employeePayslipData) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No payslip records found for this employee',
+                    'employee' => null,
+                    'payrolls' => [],
+                    'paid_payrolls' => []
+                ]);
+            }
+            
+            // Get the payrolls array from the employee data
+            $payrolls = $employeePayslipData['payrolls'] ?? [];
+            
+            // Filter only "Paid" status payrolls
+            $paidPayrolls = collect($payrolls)->filter(function ($payroll) {
+                $status = strtolower($payroll['status'] ?? '');
+                return $status === 'paid' || $status === 'released' || $status === 'completed';
+            })->values()->all();
+            
+            return response()->json([
+                'success' => true,
+                'employee' => [
+                    'employee_id' => $employeePayslipData['employee_id'],
+                    'full_name' => $employeePayslipData['full_name'],
+                    'position' => $employeePayslipData['position'],
+                    'department' => $employeePayslipData['department'],
+                ],
+                'payrolls' => $payrolls,
+                'paid_payrolls' => $paidPayrolls,
+                'total_records' => count($payrolls),
+                'paid_count' => count($paidPayrolls)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error("Payslip API error for employee {$employeeId}: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error connecting to payslip API: ' . $e->getMessage(),
+                'payrolls' => []
+            ], 500);
+        }
+    });
+
+    // Get ALL payslips from external API (for debugging/display all)
+    Route::get('/payslips-all', function () {
+        try {
+            $apiUrl = 'https://hr4.microfinancial-1.com/GetAllPayslip';
+            $apiKey = 'b24e8778f104db434adedd4342e94d39cee6d0668ec595dc6f02c739c522b57a';
+            
+            $response = Http::timeout(30)
+                ->withOptions(['verify' => false])
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'X-API-Key' => $apiKey
+                ])
+                ->get($apiUrl);
+            
+            if (!$response->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to fetch payslip data',
+                    'status_code' => $response->status()
+                ]);
+            }
+            
+            $data = $response->json();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    });
 });
 
 // ============================================================
