@@ -493,7 +493,7 @@ Route::prefix('ess')->group(function () {
         }
     });
 
-    // Get ALL payslips from external API (for debugging/display all)
+    // Get ALL payslips from external API
     Route::get('/payslips-all', function () {
         try {
             $apiUrl = 'https://hr4.microfinancial-1.com/GetAllPayslip';

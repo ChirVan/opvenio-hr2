@@ -1,6 +1,8 @@
 
 # 📢🔗🛠️🎚️⛔🚧🆕 WHAT'S NEW 
 
+- Kept SQL Backups locally instead of putting it in the repo, generally a bad practice
+
 - 
 
 # LAST TIME 01/03/26
