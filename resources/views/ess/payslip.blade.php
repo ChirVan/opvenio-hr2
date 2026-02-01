@@ -242,8 +242,62 @@
                 <i class='bx bx-show me-1'></i>View Details
               </button>
             </div>
-            <div id="bankStatusMessage" class="mt-3 small text-muted">
-              <!-- Dynamic message based on status -->
+            <div id="bankStatusMessage" class="mt-3 small text-muted"></div>
+          </div>
+        </div>
+
+        <!-- Paid Payslip Information Card (Only shown when status is 'paid') -->
+        <div class="col-lg-7 mb-4 d-none" id="paidPayslipCard">
+          <div class="card p-4 border-success">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h6 class="fw-semibold mb-1"><i class='bx bx-check-circle me-2 text-success'></i>Payment Confirmed</h6>
+                <span class="status-badge status-approved">Paid</span>
+              </div>
+              <span class="badge bg-success" id="paidPayPeriodBadge">--</span>
+            </div>
+            
+            <div class="bg-success bg-opacity-10 rounded p-3 mb-3">
+              <div class="row text-center">
+                <div class="col-4">
+                  <small class="text-muted d-block">Net Pay</small>
+                  <h5 class="text-success fw-bold mb-0" id="paidNetPay">₱0.00</h5>
+                </div>
+                <div class="col-4">
+                  <small class="text-muted d-block">Pay Date</small>
+                  <p class="fw-semibold mb-0" id="paidPayDate">--</p>
+                </div>
+                <div class="col-4">
+                  <small class="text-muted d-block">Reference No.</small>
+                  <p class="fw-semibold mb-0" id="paidReferenceNo">--</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-6">
+                <div class="detail-card mb-2">
+                  <div class="detail-label">Gross Pay</div>
+                  <div class="detail-value text-success" id="paidGrossPay">₱0.00</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="detail-card mb-2">
+                  <div class="detail-label">Total Deductions</div>
+                  <div class="detail-value text-danger" id="paidTotalDeductions">-₱0.00</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-3 pt-3 border-top">
+              <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                  <i class='bx bx-bank me-1'></i>Deposited to: <span id="paidBankInfo" class="fw-semibold">--</span>
+                </small>
+                <button class="btn btn-sm btn-outline-success" onclick="downloadPaidPayslip()">
+                  <i class='bx bx-download me-1'></i>Download Receipt
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -835,6 +889,7 @@
         
         // Load bank details from API
         await loadBankDetailsFromAPI();
+        await loadPaidPayslipFromAPI();
 
         // Update UI
         updateEmployeeInfo(employeeData);
@@ -882,6 +937,121 @@
         bankDetails = null;
       }
     }
+    
+    // Load payslip data from our local API (which proxies to external HR system)
+    // Load payslip data from our local API (which proxies to external HR system)
+    async function loadPaidPayslipFromAPI() {
+      try {
+        const employeeId = employeeData?.employee_id;
+        
+        if (!employeeId) {
+          console.log('No employee ID available for payslip lookup');
+          return null;
+        }
+
+        console.log('Fetching payslips for employee:', employeeId);
+        
+        const response = await fetch(`/api/ess/payslips/${encodeURIComponent(employeeId)}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+          }
+        });
+
+        if (!response.ok) {
+          console.log('Payslip API returned error:', response.status);
+          return null;
+        }
+
+        const result = await response.json();
+        console.log('Payslip API response:', result);
+
+        if (!result.success) {
+          console.log('Payslip fetch unsuccessful:', result.message);
+          return null;
+        }
+
+        // Get paid payrolls from the response
+        const paidPayrolls = result.paid_payrolls || [];
+        
+        if (paidPayrolls.length > 0) {
+          // Get the most recent paid payroll (first one, assuming sorted by date)
+          const latestPayroll = paidPayrolls[0];
+          displayPaidPayslip(latestPayroll, result.employee);
+          return latestPayroll;
+        }
+
+        console.log('No paid payslips found for employee');
+        return null;
+        
+      } catch (error) {
+        console.error('Error loading payslip from API:', error);
+        return null;
+      }
+    }
+
+    // Display paid payslip information
+    function displayPaidPayslip(payroll, employee) {
+      const paidCard = document.getElementById('paidPayslipCard');
+      if (!paidCard || !payroll) return;
+
+      console.log('Displaying paid payroll:', payroll);
+
+      // Show the card
+      paidCard.classList.remove('d-none');
+
+      // Parse values from the payroll object
+      const netPay = parseFloat(payroll.net_pay) || 0;
+      const grossPay = parseFloat(payroll.gross_pay) || 0;
+      const baseSalary = parseFloat(payroll.base_salary) || 0;
+      const totalDeductions = parseFloat(payroll.total_deductions) || 0;
+      
+      // Format pay period from start_date and end_date
+      const startDate = payroll.start_date ? new Date(payroll.start_date) : null;
+      const endDate = payroll.end_date ? new Date(payroll.end_date) : null;
+      let payPeriod = '--';
+      if (startDate && endDate) {
+        const startMonth = startDate.toLocaleString('default', { month: 'short' });
+        const endMonth = endDate.toLocaleString('default', { month: 'short' });
+        const year = endDate.getFullYear();
+        payPeriod = `${startMonth} ${startDate.getDate()} - ${endMonth} ${endDate.getDate()}, ${year}`;
+      }
+      
+      // Pay date (computed_at or end_date)
+      const payDate = payroll.computed_at || payroll.end_date;
+      
+      // Reference number (use payroll ID)
+      const referenceNo = payroll.id ? `PAY-${payroll.id}` : '--';
+
+      // Populate the data
+      document.getElementById('paidPayPeriodBadge').textContent = payPeriod;
+      document.getElementById('paidNetPay').textContent = formatCurrency(netPay);
+      document.getElementById('paidPayDate').textContent = payDate ? formatDate(payDate) : '--';
+      document.getElementById('paidReferenceNo').textContent = referenceNo;
+      document.getElementById('paidGrossPay').textContent = formatCurrency(grossPay > 0 ? grossPay : baseSalary);
+      document.getElementById('paidTotalDeductions').textContent = '-' + formatCurrency(totalDeductions);
+      
+      // Bank info from local bank details (if available)
+      if (bankDetails && bankDetails.status === 'approved') {
+        const bankName = bankDetails.bank_name || 'Bank';
+        const accountNumber = bankDetails.account_number || '';
+        const maskedAccount = accountNumber ? maskAccountNumber(accountNumber) : '****';
+        document.getElementById('paidBankInfo').textContent = `${bankName} - ${maskedAccount}`;
+      } else {
+        document.getElementById('paidBankInfo').textContent = 'Direct Deposit';
+      }
+
+      // Also unlock the payslip view if paid
+      document.getElementById('payslipLockOverlay').classList.add('d-none');
+    }
+
+    // Download paid payslip receipt
+    function downloadPaidPayslip() {
+      showToast('Downloading payslip receipt...', 'info');
+      // TODO: Implement actual PDF download
+    }
+
 
     // Update employee info display
     function updateEmployeeInfo(employee) {
