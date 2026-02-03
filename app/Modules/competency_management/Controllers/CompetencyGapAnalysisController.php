@@ -566,7 +566,7 @@ class CompetencyGapAnalysisController extends Controller
     {
         $request->validate([
             'employee_id' => 'required|integer',
-            'competency_id' => 'required|exists:hr2_competency_managements.competencies,id'
+            'competency_id' => 'required|exists:competency_management.competencies,id'
         ]);
 
         // Find a suitable quiz for this competency
@@ -938,7 +938,7 @@ class CompetencyGapAnalysisController extends Controller
     {
         $validated = $request->validate([
             'employee_id' => 'required',
-            'competency_id' => 'required|exists:hr2_competency_managements.competencies,id',
+            'competency_id' => 'required|exists:competency_management.competencies,id',
             'assignment_type' => 'required|in:development,gap_closure,skill_enhancement,mandatory',
             'priority' => 'nullable|in:low,medium,high,critical',
             'target_date' => 'nullable|date',

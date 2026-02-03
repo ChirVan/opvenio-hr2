@@ -30,7 +30,7 @@ class UpdateAssessmentCategoryRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('hr2_learning_management.assessment_categories', 'category_slug')->ignore($categoryId)
+                Rule::unique('learning_management.assessment_categories', 'category_slug')->ignore($categoryId)
             ],
             'category_icon' => 'required|string|in:bx-code-alt,bx-user-voice,bx-briefcase,bx-medal,bx-brain,bx-heart',
             'description' => 'required|string|max:5000',

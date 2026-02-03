@@ -32,7 +32,7 @@ class StoreTrainingMaterialRequest extends FormRequest
             'competency_id' => [
                 'required',
                 'integer',
-                'exists:hr2_competency_managements.competencies,id',
+                'exists:competency_management.competencies,id',
             ],
             'proficiency_level' => [
                 'required',

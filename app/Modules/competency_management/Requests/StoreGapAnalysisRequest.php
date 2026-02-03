@@ -15,7 +15,7 @@ class StoreGapAnalysisRequest extends FormRequest
     {
          return [
             'employee_id' => 'required|integer|min:1', // Changed: now validates external API employee ID
-            'competency_id' => 'required|exists:hr2_competency_managements.competencies,id',
+            'competency_id' => 'required|exists:competency_management.competencies,id',
             'framework' => 'required|string|max:255',
             'proficiency_level' => 'required|string|max:255',
             'notes' => 'nullable|string',

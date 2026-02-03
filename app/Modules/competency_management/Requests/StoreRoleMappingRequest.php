@@ -16,8 +16,8 @@ class StoreRoleMappingRequest extends FormRequest
     {
         return [
         'role_name' => 'required|string|max:255',
-        'framework_id' => 'required|exists:hr2_competency_managements.competency_frameworks,id',
-        'competency_id' => 'required|exists:hr2_competency_managements.competencies,id',
+        'framework_id' => 'required|exists:competency_management.competency_frameworks,id',
+        'competency_id' => 'required|exists:competency_management.competencies,id',
         'proficiency_level' => 'required|integer|min:1',
         'status' => 'required|in:active,inactive',
         'notes' => 'nullable|string|max:1000'

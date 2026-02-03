@@ -19,7 +19,7 @@ class UpdateCompetencyFrameworkRequest extends FormRequest
                 'required',
                 'string', 
                 'max:255',
-                Rule::unique('hr2_competency_managements.competency_frameworks', 'framework_name')
+                Rule::unique('competency_management.competency_frameworks', 'framework_name')
                     ->ignore($this->route('framework'))
             ],
             'description' => 'required|string|max:2000',
