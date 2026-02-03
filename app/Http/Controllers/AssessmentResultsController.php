@@ -653,10 +653,10 @@ class AssessmentResultsController extends Controller
     {
         $approvedEmployees = DB::connection('ess')
             ->table('assessment_results as ar')
-            ->join('users as u', 'ar.employee_id', '=', 'u.employee_id')
-            ->leftJoin('learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-            ->leftJoin('learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
-            ->leftJoin('learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
+            ->join('hr2_opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
+            ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
+            ->leftJoin('hr2_learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
+            ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
             ->where('ar.status', 'passed') // Only approved employees
             ->select([
                 'ar.id',

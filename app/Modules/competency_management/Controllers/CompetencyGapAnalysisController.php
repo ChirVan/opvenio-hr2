@@ -50,10 +50,10 @@ class CompetencyGapAnalysisController extends Controller
         // We'll process all assessments to build comprehensive competency profile
         $allAssessmentResults = DB::connection('ess')
             ->table('assessment_results as ar')
-            ->join('opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
-            ->leftJoin('learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-            ->leftJoin('learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
-            ->leftJoin('learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
+            ->join('hr2_opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
+            ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
+            ->leftJoin('hr2_learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
+            ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
             ->whereIn('ar.status', ['passed', 'completed']) // Include both passed and completed assessments
             ->where(function($query) {
                 $query->whereNotNull('ar.evaluation_data') // Has evaluation data
@@ -366,8 +366,8 @@ class CompetencyGapAnalysisController extends Controller
             // Look for any completed assessment for this employee with evaluation data
             $latestResult = DB::connection('ess')
                 ->table('assessment_results as ar')
-                ->join('learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-                ->join('learning_management.quizzes as q', 'ar.quiz_id', '=', 'q.id')
+                ->join('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
+                ->join('hr2_learning_management.quizzes as q', 'ar.quiz_id', '=', 'q.id')
                 ->where('ar.employee_id', $employeeId)
                 ->where(function($query) {
                     $query->where('ar.status', 'passed')
@@ -398,8 +398,8 @@ class CompetencyGapAnalysisController extends Controller
         // Get the latest assessment result for this employee and competency
         $latestResult = DB::connection('ess')
             ->table('assessment_results as ar')
-            ->join('learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-            ->join('learning_management.quizzes as q', 'ar.quiz_id', '=', 'q.id')
+            ->join('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
+            ->join('hr2_learning_management.quizzes as q', 'ar.quiz_id', '=', 'q.id')
             ->where('ar.employee_id', $employeeId)
             ->whereIn('ar.quiz_id', $competencyQuizzes)
             ->where(function($query) {
@@ -566,7 +566,7 @@ class CompetencyGapAnalysisController extends Controller
     {
         $request->validate([
             'employee_id' => 'required|integer',
-            'competency_id' => 'required|exists:competency_management.competencies,id'
+            'competency_id' => 'required|exists:hr2_competency_managements.competencies,id'
         ]);
 
         // Find a suitable quiz for this competency
@@ -655,10 +655,10 @@ class CompetencyGapAnalysisController extends Controller
         // Get ALL assessment results for this employee
         $allAssessmentResults = DB::connection('ess')
             ->table('assessment_results as ar')
-            ->join('opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
-            ->leftJoin('learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-            ->leftJoin('learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
-            ->leftJoin('learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
+            ->join('hr2_opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
+            ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
+            ->leftJoin('hr2_learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
+            ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
             ->where('ar.employee_id', $employeeId)
             ->where('ar.status', 'passed')
             ->whereNotNull('ar.evaluation_data')
@@ -858,8 +858,8 @@ class CompetencyGapAnalysisController extends Controller
     {
         return DB::connection('ess')
             ->table('assessment_results as ar')
-            ->join('learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-            ->join('learning_management.quizzes as q', 'ar.quiz_id', '=', 'q.id')
+            ->join('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
+            ->join('hr2_learning_management.quizzes as q', 'ar.quiz_id', '=', 'q.id')
             ->where('ar.status', 'passed')
             ->whereNotNull('q.competency_id')
             ->select([
@@ -938,7 +938,7 @@ class CompetencyGapAnalysisController extends Controller
     {
         $validated = $request->validate([
             'employee_id' => 'required',
-            'competency_id' => 'required|exists:competency_management.competencies,id',
+            'competency_id' => 'required|exists:hr2_competency_managements.competencies,id',
             'assignment_type' => 'required|in:development,gap_closure,skill_enhancement,mandatory',
             'priority' => 'nullable|in:low,medium,high,critical',
             'target_date' => 'nullable|date',

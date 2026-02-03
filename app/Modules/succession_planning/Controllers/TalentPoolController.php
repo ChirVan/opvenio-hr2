@@ -17,10 +17,10 @@ class TalentPoolController extends Controller
         // Get approved employees from assessment results
         $talentPool = DB::connection('ess')
             ->table('assessment_results as ar')
-            ->join('opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
-            ->leftJoin('learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-            ->leftJoin('learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
-            ->leftJoin('learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
+            ->join('hr2_opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
+            ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
+            ->leftJoin('hr2_learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
+            ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
             ->where('ar.status', 'passed') // Only approved employees
             ->select([
                 'ar.id',
@@ -68,10 +68,10 @@ class TalentPoolController extends Controller
         // Fetch the talent data using the same logic as index, but filter by employee_id
         $talent = DB::connection('ess')
             ->table('assessment_results as ar')
-            ->join('opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
-            ->leftJoin('learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-            ->leftJoin('learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
-            ->leftJoin('learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
+            ->join('hr2_opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
+            ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
+            ->leftJoin('hr2_learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
+            ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
             ->where('ar.status', 'passed')
             ->where('ar.employee_id', $employee_id)
             ->select([
@@ -139,9 +139,9 @@ class TalentPoolController extends Controller
             // Get additional employee data
             $employeeData = DB::connection('ess')
                 ->table('assessment_results as ar')
-                ->join('opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
-                ->leftJoin('learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-                ->leftJoin('learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
+                ->join('hr2_opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
+                ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
+                ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
                 ->where('ar.employee_id', $validated['employee_id'])
                 ->where('ar.status', 'passed')
                 ->select([

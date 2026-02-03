@@ -24,7 +24,7 @@ class StoreAssessmentCategoryRequest extends FormRequest
     {
         return [
             'category_name' => 'required|string|max:255',
-            'category_slug' => 'required|string|max:255|unique:learning_management.assessment_categories,category_slug',
+            'category_slug' => 'required|string|max:255|unique:hr2_learning_management.assessment_categories,category_slug',
             'category_icon' => 'required|string|in:bx-code-alt,bx-user-voice,bx-briefcase,bx-medal,bx-brain,bx-heart',
             'description' => 'required|string|max:5000',
             'color_theme' => 'required|string|in:blue,green,red,purple,orange,teal,indigo,pink',

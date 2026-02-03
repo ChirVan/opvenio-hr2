@@ -205,10 +205,10 @@ class GapAnalysisController extends Controller
                 $join->on('ar.employee_id', '=', 'latest.employee_id')
                      ->on('ar.completed_at', '=', 'latest.latest_completed');
             })
-            ->join('opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
-            ->leftJoin('learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-            ->leftJoin('learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
-            ->leftJoin('learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
+            ->join('hr2_opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
+            ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
+            ->leftJoin('hr2_learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
+            ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
             ->where('ar.status', 'passed') // Only passed/approved employees
             ->whereNotNull('ar.evaluation_data') // Must have evaluation data
             ->whereNotNull('ar.evaluated_by') // Must be evaluated by someone

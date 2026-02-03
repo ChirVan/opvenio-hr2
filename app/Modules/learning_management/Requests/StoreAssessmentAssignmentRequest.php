@@ -31,7 +31,7 @@ class StoreAssessmentAssignmentRequest extends FormRequest
             'quiz_ids.*' => [
                 'required',
                 'integer',
-                'exists:learning_management.quizzes,id'
+                'exists:hr2_learning_management.quizzes,id'
             ],
             'category_ids' => [
                 'required',
@@ -41,7 +41,7 @@ class StoreAssessmentAssignmentRequest extends FormRequest
             'category_ids.*' => [
                 'required',
                 'integer',
-                'exists:learning_management.assessment_categories,id'
+                'exists:hr2_learning_management.assessment_categories,id'
             ],
             'employee_id' => [
                 'required',

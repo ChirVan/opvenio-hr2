@@ -24,7 +24,7 @@ class UpdateQuizRequest extends FormRequest
     {
         return [
             'quiz_title' => 'required|string|max:255',
-            'competency' => 'required|exists:competency_management.competencies,id',
+            'competency' => 'required|exists:hr2_competency_managements.competencies,id',
             'time_limit' => 'nullable|integer|min:5|max:180',
             'description' => 'nullable|string|max:1000',
             'action' => 'required|in:draft,publish',

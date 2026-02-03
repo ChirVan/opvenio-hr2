@@ -19,11 +19,11 @@ class StoreCompetencyRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('competency_management.competencies', 'competency_name')
+                Rule::unique('hr2_competency_managements.competencies', 'competency_name')
                 
             ],
             'description' => 'required|string|max:2000',
-            'framework_id' => 'required|exists:competency_management.competency_frameworks,id',
+            'framework_id' => 'required|exists:hr2_competency_managements.competency_frameworks,id',
             'proficiency_levels' => 'required|integer|min:1|max:10',
             'status' => 'required|in:active,inactive,draft,archived',
             'behavioral_indicators' => 'nullable|string|max:3000',

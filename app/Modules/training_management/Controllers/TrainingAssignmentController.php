@@ -54,8 +54,8 @@ class TrainingAssignmentController extends Controller
             Log::info("Fetching employees from gap_analyses with proper relationships");
 
             $gapAnalyses = GapAnalysis::with(['competency'])
-                ->join('competency_management.employees', 'gap_analyses.employee_id', '=', 'employees.id')
-                ->leftJoin('competency_management.competencies', 'gap_analyses.competency_id', '=', 'competencies.id')
+                ->join('hr2_competency_managements.employees', 'gap_analyses.employee_id', '=', 'employees.id')
+                ->leftJoin('hr2_competency_managements.competencies', 'gap_analyses.competency_id', '=', 'competencies.id')
                 ->select([
                     'gap_analyses.id',
                     'gap_analyses.employee_id',

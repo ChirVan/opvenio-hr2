@@ -19,7 +19,7 @@ class StoreCompetencyFrameworkRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('competency_management.competency_frameworks')
+                Rule::unique('hr2_competency_managements.competency_frameworks')
             ],
             'description' => 'required|string|max:2000',
             'effective_date' => 'required|date',
