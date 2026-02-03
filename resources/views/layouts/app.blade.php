@@ -28,6 +28,7 @@
     <style>
         :root {
             --navbar-height: 74px;
+            --sidebar-width: 250px;
         }
 
         /* Sidebar Styles */

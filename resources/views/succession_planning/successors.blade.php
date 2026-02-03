@@ -124,7 +124,7 @@
 				showLoaderOnConfirm: true,
 				preConfirm: async () => {
 					try {
-						const response = await fetch(`/succession-planning/promotion/${promotionId}/execute`, {
+						const response = await fetch(`/promotion/${promotionId}/execute`, {
 							method: 'POST',
 							headers: {
 								'Content-Type': 'application/json',
