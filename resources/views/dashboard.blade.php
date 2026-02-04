@@ -82,8 +82,8 @@
     <div class="py-3" id="printableContent">
         <!-- Print Header (only visible when printing) -->
         <div class="print-header">
-            <h1 class="text-2xl font-bold text-gray-900">Microfinance HR - Dashboard Report</h1>
-            <p class="text-sm text-gray-600">Human Resource II System | Generated: {{ now()->format('F d, Y - h:i A') }}</p>
+            <h1 class="text-2xl font-bold text-gray-900" style="text-shadow: -1px -1px 0 #9ca3af, 1px -1px 0 #9ca3af, -1px 1px 0 #9ca3af, 1px 1px 0 #9ca3af;">Microfinance HR - Dashboard Report</h1>
+            <p class="text-sm font-bold text-gray-600" style="text-shadow: -1px -1px 0 #d1d5db, 1px -1px 0 #d1d5db, -1px 1px 0 #d1d5db, 1px 1px 0 #d1d5db;">Human Resource II System | Generated: {{ now()->format('F d, Y - h:i A') }}</p>
         </div>
 
         <!-- Success Message -->
