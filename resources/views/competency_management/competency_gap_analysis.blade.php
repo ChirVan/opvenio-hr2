@@ -7,13 +7,141 @@
         @include('layouts.sidebar')
     @endsection
 
+    {{-- Print Styles --}}
+    <style>
+        @media print {
+            /* Hide navbar, sidebar, overlay, buttons, pagination, filters, modals */
+            #navbar, #sidebar, #sidebarOverlay, .no-print, 
+            #gapAnalysisPagination, #paginationContainer, form,
+            #assignmentModal, #trainingModal, #assessmentModal,
+            .page-header-section, .status-cards-section, .navigation-banner,
+            .filters-section, .assigned-competencies-section {
+                display: none !important;
+            }
+            
+            /* Reset main content positioning */
+            #mainContent {
+                margin-left: 0 !important;
+                margin-top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            
+            /* Page settings - landscape for wide tables */
+            @page {
+                margin: 0.4cm;
+                size: A4 landscape;
+            }
+            
+            body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                font-size: 8px !important;
+            }
+            
+            /* IMPORTANT: Show ALL table rows when printing (override pagination hiding) */
+            #gapAnalysisTableBody tr {
+                display: table-row !important;
+            }
+            
+            /* Table adjustments for fitting on page */
+            #gapAnalysisTable {
+                font-size: 7px !important;
+                width: 100% !important;
+            }
+            
+            #gapAnalysisTable th, #gapAnalysisTable td {
+                padding: 3px 4px !important;
+                font-size: 7px !important;
+                line-height: 1.2 !important;
+            }
+            
+            #gapAnalysisTable th {
+                background-color: #374151 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Hide action column when printing */
+            #gapAnalysisTable th:last-child, #gapAnalysisTable td:last-child {
+                display: none !important;
+            }
+            
+            /* Badge adjustments */
+            .badge, span[class*="rounded-full"], span[class*="rounded-lg"] {
+                font-size: 6px !important;
+                padding: 1px 3px !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Avatar/initials smaller */
+            .h-10.w-10, .h-12.w-12 {
+                height: 20px !important;
+                width: 20px !important;
+                font-size: 8px !important;
+            }
+            
+            /* Remove shadows */
+            .shadow, .shadow-lg, .shadow-sm {
+                box-shadow: none !important;
+            }
+            
+            /* Print header */
+            .print-header {
+                display: block !important;
+                text-align: center;
+                margin-bottom: 8px;
+                padding-bottom: 5px;
+                border-bottom: 2px solid #374151;
+            }
+            
+            /* Card adjustments */
+            .rounded-lg, .rounded-xl {
+                border-radius: 4px !important;
+            }
+            
+            /* Gradient backgrounds for print */
+            .bg-gradient-to-r, .bg-gradient-to-br {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Make sure table container doesn't clip */
+            .overflow-x-auto, .overflow-hidden {
+                overflow: visible !important;
+            }
+            
+            /* Compact text in cells */
+            #gapAnalysisTable .text-sm {
+                font-size: 7px !important;
+            }
+            
+            #gapAnalysisTable .text-xs {
+                font-size: 6px !important;
+            }
+        }
+        
+        /* Hide print header on screen */
+        .print-header {
+            display: none;
+        }
+    </style>
+
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
+            <!-- Print Header (only visible when printing) -->
+            <div class="print-header">
+                <h1 style="font-size: 14px; font-weight: bold; margin: 0;">Microfinance HR - Competency Gap Analysis Report</h1>
+                <p style="font-size: 10px; color: #666; margin: 2px 0 0 0;">Human Resource II System | Generated: {{ now()->format('F d, Y - h:i A') }}</p>
+            </div>
+
             <!-- Page Header -->
-            <div class="mb-6">
+            <div class="mb-6 page-header-section">
                 <h1 class="text-3xl font-bold text-gray-900">Competency Gap Analysis</h1>
-                
             </div>
 
             @if(!$apiStatus)
@@ -29,7 +157,7 @@
             @else
 
             <!-- Employee Competency Status Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8 status-cards-section no-print">
                 <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
                     <div class="flex items-center justify-between">
                         <div>
@@ -115,7 +243,7 @@
             </div>
 
             <!-- Navigation Banner -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6 navigation-banner no-print">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -137,7 +265,7 @@
             </div>
 
             <!-- Filters -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6 filters-section no-print">
                 <form method="GET" action="{{ route('competency.gap-analysis') }}" class="flex flex-wrap items-center gap-4">
                     
                     <!-- Employee Filter -->
@@ -175,6 +303,11 @@
                         <a href="{{ route('competency.gap-analysis') }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md transition-colors">
                             <i class='bx bx-reset mr-1'></i> Reset
                         </a>
+                        {{-- Export/Print Button --}}
+                        <button id="exportBtn" type="button" 
+                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-md transition-colors flex items-center gap-1 no-print">
+                            <i class='bx bx-printer'></i> Export
+                        </button>
                     </div>
 
                 </form>
@@ -527,7 +660,7 @@
             @endif
 
             <!-- Assigned Competencies Section -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mt-8">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mt-8 assigned-competencies-section no-print">
                 <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
                     <div class="flex items-center justify-between">
                         <div>
@@ -802,6 +935,24 @@
         let gapCurrentPage = 1;
         let gapItemsPerPage = 10;
         let gapTableRows = [];
+
+        // Export/Print functionality - shows ALL rows including paginated ones
+        document.getElementById('exportBtn')?.addEventListener('click', function() {
+            // Temporarily show all table rows before printing
+            const tableBody = document.getElementById('gapAnalysisTableBody');
+            if (tableBody) {
+                const allRows = tableBody.querySelectorAll('tr');
+                allRows.forEach(row => row.style.display = '');
+            }
+            
+            // Trigger print
+            window.print();
+            
+            // After print dialog closes, restore pagination view
+            setTimeout(() => {
+                renderGapAnalysisTable();
+            }, 500);
+        });
 
         // Load assigned competencies on page load
         document.addEventListener('DOMContentLoaded', function() {

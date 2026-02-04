@@ -7,11 +7,152 @@
         @include('layouts.sidebar')
     @endsection
 
+    {{-- Print Styles --}}
+    <style>
+        @media print {
+            /* Hide navbar, sidebar, overlay, buttons, pagination */
+            #navbar, #sidebar, #sidebarOverlay, .no-print, .pagination, form, button:not(.print-keep) {
+                display: none !important;
+            }
+            
+            /* Reset main content positioning */
+            #mainContent {
+                margin-left: 0 !important;
+                margin-top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            
+            /* Page settings - landscape for wide tables */
+            @page {
+                margin: 0.5cm;
+                size: A4 landscape;
+            }
+            
+            body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                font-size: 9px !important;
+            }
+            
+            /* Table adjustments for fitting on page */
+            .table {
+                font-size: 8px !important;
+                width: 100% !important;
+            }
+            
+            .table th, .table td {
+                padding: 3px 4px !important;
+                font-size: 7px !important;
+                line-height: 1.2 !important;
+            }
+            
+            .table th {
+                background-color: #343a40 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Hide action column and details row when printing */
+            .table th:last-child, .table td:last-child {
+                display: none !important;
+            }
+            
+            tr[id^="details-"] {
+                display: none !important;
+            }
+            
+            /* Badge adjustments */
+            .badge {
+                font-size: 6px !important;
+                padding: 2px 4px !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Progress bar */
+            .progress {
+                height: 12px !important;
+            }
+            
+            .progress-bar {
+                font-size: 7px !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Remove shadows */
+            .shadow, .shadow-lg, .shadow-sm, .card {
+                box-shadow: none !important;
+            }
+            
+            /* Print header */
+            .print-header {
+                display: block !important;
+                text-align: center;
+                margin-bottom: 8px;
+                padding-bottom: 5px;
+                border-bottom: 2px solid #343a40;
+            }
+            
+            /* Hide page header on print */
+            .page-header-section {
+                display: none !important;
+            }
+            
+            /* Card adjustments */
+            .card-header {
+                padding: 5px 10px !important;
+            }
+            
+            .card-body {
+                padding: 5px !important;
+            }
+            
+            .card-title {
+                font-size: 12px !important;
+                margin: 0 !important;
+            }
+            
+            /* Category items */
+            .category-item {
+                margin-bottom: 2px !important;
+            }
+            
+            .assessment-categories {
+                font-size: 6px !important;
+            }
+        }
+        
+        /* Hide print header on screen */
+        .print-header {
+            display: none;
+        }
+    </style>
+
     <div class="py-3">
+        <!-- Print Header (only visible when printing) -->
+        <div class="print-header">
+            <h1 style="font-size: 14px; font-weight: bold; margin: 0;">Microfinance HR - Assessment Results Report</h1>
+            <p style="font-size: 10px; color: #666; margin: 2px 0 0 0;">Human Resource II System | Generated: {{ now()->format('F d, Y - h:i A') }}</p>
+        </div>
+
         <!-- Page Header -->
-        <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-900">Assessment Results</h1>
-            <p class="text-gray-600 mt-1">Review and evaluate employee assessment submissions.</p>
+        <div class="mb-6 page-header-section flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Assessment Results</h1>
+                <p class="text-gray-600 mt-1">Review and evaluate employee assessment submissions.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                {{-- Export/Print Button --}}
+                <button id="exportBtn" type="button" 
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow transition flex items-center gap-2 no-print">
+                    <i class='bx bx-printer text-lg'></i>
+                    <span>Export</span>
+                </button>
+            </div>
         </div>
 
         <div class="container-fluid">
@@ -373,5 +514,10 @@
                 detailsRow.style.display = 'none';
             }
         }
+        
+        // Export/Print functionality
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            window.print();
+        });
     </script>
 </x-app-layout>

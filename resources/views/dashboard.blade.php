@@ -7,6 +7,71 @@
         @include('layouts.sidebar')
     @endsection
 
+    {{-- Print Styles --}}
+    <style>
+        @media print {
+            /* Hide navbar, sidebar, overlay, and buttons */
+            #navbar, #sidebar, #sidebarOverlay, #exportBtn, #syncForm, .no-print {
+                display: none !important;
+            }
+            
+            /* Reset main content positioning */
+            #mainContent {
+                margin-left: 0 !important;
+                margin-top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            
+            /* Remove shadows and adjust backgrounds for print */
+            .shadow, .shadow-lg, .shadow-sm {
+                box-shadow: none !important;
+            }
+            
+            /* Ensure content fits on page */
+            .bg-gradient-to-r {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Page settings */
+            @page {
+                margin: 1cm;
+                size: A4 landscape;
+            }
+            
+            body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Make grid items break properly */
+            .grid {
+                display: block !important;
+            }
+            
+            .grid > div {
+                page-break-inside: avoid;
+                margin-bottom: 1rem;
+            }
+            
+            /* Print header */
+            .print-header {
+                display: block !important;
+                text-align: center;
+                margin-bottom: 1rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 2px solid #059669;
+            }
+        }
+        
+        /* Hide print header on screen */
+        .print-header {
+            display: none;
+        }
+    </style>
+
     @php
         // Fetch employee data from the controller
         $totalEmployees = $totalEmployees ?? 0;
@@ -14,7 +79,13 @@
         $recentHires = $recentHires ?? [];
     @endphp
 
-    <div class="py-3">
+    <div class="py-3" id="printableContent">
+        <!-- Print Header (only visible when printing) -->
+        <div class="print-header">
+            <h1 class="text-2xl font-bold text-gray-900">Microfinance HR - Dashboard Report</h1>
+            <p class="text-sm text-gray-600">Human Resource II System | Generated: {{ now()->format('F d, Y - h:i A') }}</p>
+        </div>
+
         <!-- Success Message -->
         @if (session('success'))
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
@@ -26,18 +97,29 @@
         @endif
 
         <!-- Dashboard Header -->
-        <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+                <p class="text-gray-600 mt-1">Welcome back! Here's what's happening with your HR system.</p>
+            </div>
 
-            <p class="text-gray-600 mt-1">Welcome back! Here's what's happening with your HR system.</p>
-
-            {{-- Sync with HR4 Button --}}
-            <form id="syncForm" method="POST" action="javascript:void(0);">
-                @csrf
-                <button id="syncBtn" type="button" class="px-4 py-2 bg-indigo-600 text-white rounded">
-                    🔄 Sync Employees (HR4)
+            <div class="flex items-center gap-3">
+                {{-- Export/Print Button --}}
+                <button id="exportBtn" type="button" 
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow transition flex items-center gap-2">
+                    <i class='bx bx-printer text-lg'></i>
+                    <span class="hidden sm:inline">Export</span>
                 </button>
-            </form>
+
+                {{-- Sync with HR4 Button --}}
+                <form id="syncForm" method="POST" action="javascript:void(0);">
+                    @csrf
+                    <button id="syncBtn" type="button" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow transition flex items-center gap-2">
+                        <i class='bx bx-refresh text-lg'></i>
+                        <span class="hidden sm:inline">Sync HR4</span>
+                    </button>
+                </form>
+            </div>
         </div>
 
         <!-- Dashboard Grid -->
@@ -243,6 +325,11 @@
     </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Export/Print functionality
+document.getElementById('exportBtn').addEventListener('click', function() {
+    window.print();
+});
+
 // Detect mobile for responsive settings
 const isMobile = window.innerWidth < 640;
 
@@ -456,7 +543,20 @@ if (successorsCtx) {
 }
 
 document.getElementById('syncBtn').addEventListener('click', async () => {
-    if (!confirm('Sync employees from HR4? This will update/create accounts.')) return;
+    // SweetAlert2 confirmation dialog
+    const confirmResult = await Swal.fire({
+        title: 'Sync with HR4?',
+        text: 'This will update or create employee accounts from HR4 system.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4F46E5',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: '<i class="bx bx-refresh mr-1"></i> Yes, Sync Now',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    });
+
+    if (!confirmResult.isConfirmed) return;
 
     // Use AbortController to guard against calls hanging
     const controller = new AbortController();
@@ -466,7 +566,19 @@ document.getElementById('syncBtn').addEventListener('click', async () => {
     const btn = document.getElementById('syncBtn');
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '⏳ Syncing...';
+    btn.innerHTML = '<i class="bx bx-loader-alt bx-spin mr-1"></i> Syncing...';
+
+    // Show loading toast
+    Swal.fire({
+        title: 'Syncing...',
+        html: 'Please wait while we sync employees from HR4',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
     try {
         const res = await fetch('{{ route("sync.employees.hr4") }}', {
@@ -484,45 +596,100 @@ document.getElementById('syncBtn').addEventListener('click', async () => {
         const data = await res.json();
 
         if (!res.ok) {
-            alert('Sync failed: ' + res.status + '\n' + (data.message || JSON.stringify(data)));
-            window.location.href = '/dashboard';
+            Swal.fire({
+                icon: 'error',
+                title: 'Sync Failed',
+                html: `<p class="text-gray-600">Status: ${res.status}</p><p class="text-sm text-red-600 mt-2">${data.message || JSON.stringify(data)}</p>`,
+                confirmButtonColor: '#EF4444'
+            });
             return;
         }
 
         if (!data.success) {
-            alert('Sync failed: ' + (data.message || 'Unknown error'));
-            window.location.href = '/dashboard';
+            Swal.fire({
+                icon: 'error',
+                title: 'Sync Failed',
+                text: data.message || 'Unknown error occurred',
+                confirmButtonColor: '#EF4444'
+            });
             return;
         }
 
-        // Build a detailed summary message
-        let msg = 'Sync finished.\n';
+        // Build success message with details
+        let htmlContent = '';
         if (data.no_changes) {
-            msg += 'No changes — database already synchronized.\n';
+            htmlContent = `
+                <div class="text-center">
+                    <p class="text-green-600 font-semibold">No changes needed</p>
+                    <p class="text-gray-500 text-sm mt-1">Database is already synchronized</p>
+                </div>
+            `;
         } else {
-            msg += `Created: ${data.created || 0}\nUpdated: ${data.updated || 0}\nSkipped: ${data.skipped || 0}\nErrors: ${data.errors || 0}\n`;
+            htmlContent = `
+                <div class="grid grid-cols-2 gap-3 text-sm mt-2">
+                    <div class="bg-green-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-green-600">${data.created || 0}</p>
+                        <p class="text-green-700">Created</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-blue-600">${data.updated || 0}</p>
+                        <p class="text-blue-700">Updated</p>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-yellow-600">${data.skipped || 0}</p>
+                        <p class="text-yellow-700">Skipped</p>
+                    </div>
+                    <div class="bg-red-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-red-600">${data.errors || 0}</p>
+                        <p class="text-red-700">Errors</p>
+                    </div>
+                </div>
+            `;
         }
 
         // Show error details if any
         if (data.error_details && data.error_details.length > 0) {
-            msg += '\nError details:\n' + data.error_details.slice(0, 5).join('\n');
-            if (data.error_details.length > 5) {
-                msg += '\n... and ' + (data.error_details.length - 5) + ' more errors (check logs)';
-            }
+            htmlContent += `
+                <div class="mt-4 p-3 bg-red-50 rounded-lg text-left">
+                    <p class="text-sm font-semibold text-red-700 mb-2">Error Details:</p>
+                    <ul class="text-xs text-red-600 space-y-1 max-h-32 overflow-y-auto">
+                        ${data.error_details.slice(0, 5).map(err => `<li>• ${err}</li>`).join('')}
+                        ${data.error_details.length > 5 ? `<li class="text-red-500 font-medium">... and ${data.error_details.length - 5} more errors (check logs)</li>` : ''}
+                    </ul>
+                </div>
+            `;
         }
 
-        alert(msg);
+        await Swal.fire({
+            icon: 'success',
+            title: 'Sync Complete!',
+            html: htmlContent,
+            confirmButtonColor: '#10B981',
+            confirmButtonText: 'Done'
+        });
+
+        window.location.href = '/dashboard';
+
     } catch (err) {
         if (err.name === 'AbortError') {
-            alert('Sync timed out (client). Please try again.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sync Timed Out',
+                text: 'The request took too long. Please try again.',
+                confirmButtonColor: '#F59E0B'
+            });
         } else {
-            alert('Sync error: ' + (err.message || 'Unknown error'));
+            Swal.fire({
+                icon: 'error',
+                title: 'Sync Error',
+                text: err.message || 'An unknown error occurred',
+                confirmButtonColor: '#EF4444'
+            });
         }
     } finally {
-        // Restore button and refresh page
+        // Restore button
         btn.disabled = false;
         btn.innerHTML = originalText;
-        window.location.href = '/dashboard';
     }
 });
 </script>
