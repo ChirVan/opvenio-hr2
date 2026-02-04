@@ -27,6 +27,19 @@
 
 > Ocassionally Sync database with HR4 using button on the dashboard, for database consistency 
 
+## API Integrations
+
+# HR3
+Work Schedule
+Leave
+
+# HR4
+Employees
+Payslip
+
+# Admin
+Training room
+
 
 ~~線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線線~~
 
@@ -50,6 +63,8 @@
 ❌ Vulnerability 3: Nav-bar, Mail/Inbox is static
 
 ❌ Vulnerability 4: ESS is accessible by staffs and admins, indicating no middleware restrictions
+
+❌ Vulnerability 5: ESS Recent Activities is STATIC
 
 ✅ Vulnerability 5: Dashboard, API errors out when there's no internet connection
 
