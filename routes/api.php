@@ -11,8 +11,9 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Http\Controllers\AiRecommendationController;
 use App\Http\Controllers\AiEvaluationController;
+use App\Http\Controllers\AiJobRecommendationController;
 
-// AI Job Recommendation API -天使
+// AI Job Recommendation API
 Route::post('/ai/job-recommendation', [AiJobRecommendationController::class, 'recommend']);
 
 // Run AI Evaluation in LMS Checking
