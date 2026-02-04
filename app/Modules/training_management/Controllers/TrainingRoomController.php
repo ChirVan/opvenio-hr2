@@ -189,10 +189,22 @@ class TrainingRoomController extends Controller
             $booking = TrainingRoomBooking::findOrFail($id);
             
             $validated = $request->validate([
-                'status' => 'required|in:pending,approved,ongoing,completed,cancelled'
+                'status' => 'required|in:pending,approved,rejected,ongoing,completed,cancelled'
             ]);
 
-            $booking->update(['status' => $validated['status']]);
+            $oldStatus = $booking->status;
+            $newStatus = $validated['status'];
+            
+            $booking->update(['status' => $newStatus]);
+
+            // Create notification for status changes
+            if ($oldStatus !== $newStatus) {
+                if ($newStatus === 'approved') {
+                    \App\Models\Notification::createTrainingRoomApprovedNotification($booking);
+                } elseif ($newStatus === 'rejected') {
+                    \App\Models\Notification::createTrainingRoomRejectedNotification($booking);
+                }
+            }
 
             return response()->json([
                 'success' => true,

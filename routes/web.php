@@ -197,6 +197,24 @@ Route::middleware('auth')->group(function () {
 
             $noChanges = ($created === 0 && $updated === 0 && $errors === 0);
 
+            // Create notification for the sync result
+            if ($created > 0 || $updated > 0 || $errors > 0) {
+                \App\Models\Notification::createHr4SyncNotification($created, $updated, $skipped, $errors);
+            }
+
+            // Create notification for new employees if any were created
+            if ($created > 0) {
+                \App\Models\Notification::create([
+                    'type' => \App\Models\Notification::TYPE_HR4_NEW_EMPLOYEE,
+                    'title' => 'New Employees from HR4',
+                    'message' => "{$created} new employee(s) have been synced from HR4 system.",
+                    'icon' => 'bx-user-plus',
+                    'icon_color' => 'text-blue-500',
+                    'data' => ['count' => $created],
+                    'is_global' => true,
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => "Sync finished",
@@ -216,6 +234,20 @@ Route::middleware('auth')->group(function () {
             ], 500);
         }
     })->name('sync.employees.hr4');
+
+    // ============================================================
+    // =============== Notification Routes ========================
+    // ============================================================
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [\App\Http\Controllers\NotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::post('/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('mark-read');
+        Route::post('/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+        Route::delete('/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
+        Route::post('/clear-all', [\App\Http\Controllers\NotificationController::class, 'clearAll'])->name('clear-all');
+        Route::get('/check-hr4', [\App\Http\Controllers\NotificationController::class, 'checkHr4Updates'])->name('check-hr4');
+        Route::get('/check-training-rooms', [\App\Http\Controllers\NotificationController::class, 'checkTrainingRoomUpdates'])->name('check-training-rooms');
+    });
 
     // Replace the existing dashboard route with this robust version:
 Route::get('/dashboard', function () {

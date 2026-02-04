@@ -223,6 +223,24 @@ class GrantRequestController extends Controller
 
             DB::connection('training_management')->commit();
 
+            // Create notification for course approval
+            if ($courseRequest) {
+                \App\Models\Notification::create([
+                    'type' => \App\Models\Notification::TYPE_COURSE_APPROVED,
+                    'title' => 'Course Request Approved',
+                    'message' => "Course request for '{$courseRequest->course_title}' by {$courseRequest->employee_name} has been approved.",
+                    'icon' => 'bx-book-open',
+                    'icon_color' => 'text-emerald-500',
+                    'link' => '/training/grant-request',
+                    'data' => [
+                        'request_id' => $id,
+                        'course_title' => $courseRequest->course_title,
+                        'employee_name' => $courseRequest->employee_name,
+                    ],
+                    'is_global' => true,
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Course request approved and training assigned successfully!'

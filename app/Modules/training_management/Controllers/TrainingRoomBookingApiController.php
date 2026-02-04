@@ -327,7 +327,19 @@ class TrainingRoomBookingApiController extends Controller
                 ], 422);
             }
 
-            $booking->update(['status' => $request->status]);
+            $oldStatus = $booking->status;
+            $newStatus = $request->status;
+            
+            $booking->update(['status' => $newStatus]);
+
+            // Create notification for status changes
+            if ($oldStatus !== $newStatus) {
+                if ($newStatus === 'approved') {
+                    \App\Models\Notification::createTrainingRoomApprovedNotification($booking);
+                } elseif ($newStatus === 'rejected') {
+                    \App\Models\Notification::createTrainingRoomRejectedNotification($booking);
+                }
+            }
 
             return response()->json([
                 'success' => true,
