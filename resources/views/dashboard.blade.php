@@ -101,78 +101,360 @@
 
         <!-- Recent Activities Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Potential Successors -->
+            <!-- Potential Successors - Modern Graph View -->
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">Potential Successors</h3>
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-4 sm:px-6 py-3 sm:py-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+                        <h3 class="text-base sm:text-lg font-semibold text-white">Potential Successors</h3>
+                        <span class="bg-white text-emerald-600 text-xs sm:text-sm font-bold px-2 sm:px-3 py-1 rounded-full shadow">
+                            <span class="text-base sm:text-lg">{{ count($approvedEmployees ?? []) }}</span> Total
+                        </span>
+                    </div>
                 </div>
-                <div class="p-6">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 shadow-sm">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Employee ID</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Name</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Position</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-100">
-                                @forelse ($approvedEmployees as $employee)
-                                    <tr class="hover:bg-green-50 transition">
-                                        <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-700">
-                                            {{ $employee->employee_id }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-900 font-semibold">
-                                            {{ $employee->full_name }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700">
-                                            {{ $employee->job_title }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold {{ $employee->status == 'passed' ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-                                                {{ ucfirst($employee->status) }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">No approved employees found.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                <div class="p-4 sm:p-6">
+                    @php
+                        // Calculate status distribution
+                        $statusCounts = collect($approvedEmployees ?? [])->groupBy('status')->map->count();
+                        $passedCount = $statusCounts->get('passed', 0);
+                        $pendingCount = $statusCounts->get('pending', 0);
+                        $reviewCount = $statusCounts->get('review', 0);
+                        $otherCount = collect($approvedEmployees ?? [])->count() - $passedCount - $pendingCount - $reviewCount;
+                        
+                        // Group by position/job title for chart
+                        $positionCounts = collect($approvedEmployees ?? [])->groupBy('job_title')->map->count()->take(6);
+                    @endphp
+
+                    <!-- Chart Container -->
+                    <div class="relative mb-4 w-full" style="min-height: 200px;">
+                        <canvas id="successorsChart"></canvas>
+                    </div>
+
+                    <!-- Top Successors List (Compact) -->
+                    <div class="border-t pt-3 sm:pt-4">
+                        <h4 class="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3 flex items-center">
+                            <i class='bx bx-trophy text-yellow-500 mr-2'></i>
+                            Top Candidates
+                        </h4>
+                        <div class="space-y-2 max-h-40 sm:max-h-48 overflow-y-auto">
+                            @forelse (collect($approvedEmployees)->take(5) as $employee)
+                                <div class="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                                    <div class="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                                        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                            {{ strtoupper(substr($employee->full_name ?? 'N', 0, 1)) }}
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-xs sm:text-sm font-medium text-gray-900 truncate">{{ $employee->full_name }}</div>
+                                            <div class="text-xs text-gray-500 truncate hidden sm:block">{{ $employee->job_title }}</div>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-1 rounded-full text-xs font-semibold flex-shrink-0 ml-2 {{ $employee->status == 'passed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
+                                        {{ ucfirst($employee->status) }}
+                                    </span>
+                                </div>
+                            @empty
+                                <div class="text-center py-4 text-gray-500">
+                                    <i class='bx bx-user-x text-3xl text-gray-300'></i>
+                                    <p class="text-sm mt-2">No successors identified yet</p>
+                                </div>
+                            @endforelse
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Upcoming Trainings (static for now) -->
+            <!-- Skill Gap Analysis Metrics -->
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">Upcoming Trainings</h3>
+                <div class="bg-gradient-to-r from-purple-500 to-indigo-600 px-3 sm:px-4 py-2 sm:py-3">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-0">
+                        <h3 class="text-sm sm:text-base font-semibold text-white">Skill Gap Analysis</h3>
+                        
+                    </div>
                 </div>
-                <div class="p-6">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slots</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                <tr>
-                                    <td colspan="3" class="px-4 py-4 text-center text-gray-500">No upcoming trainings found.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <div class="p-3 sm:p-4">
+                    @php
+                        // Skill gap metrics - can be replaced with real data from controller
+                        $skillGapData = [
+                            'critical' => $criticalGaps ?? 8,
+                            'moderate' => $moderateGaps ?? 15,
+                            'minor' => $minorGaps ?? 12,
+                            'meets' => $meetsExpectation ?? 25,
+                            'exceeds' => $exceedsExpectation ?? 10
+                        ];
+                        $totalAssessed = array_sum($skillGapData);
+                    @endphp
+
+                    <!-- Chart Container -->
+                    <div class="relative mb-3 w-full" style="min-height: 160px;">
+                        <canvas id="skillGapChart"></canvas>
+                    </div>
+
+                    <!-- Gap Summary Cards -->
+                    <div class="border-t pt-2 sm:pt-3">
+                        <h4 class="text-xs font-semibold text-gray-700 mb-2 flex items-center">
+                            <i class='bx bx-bar-chart-alt-2 text-purple-500 mr-1 text-sm'></i>
+                            Gap Distribution
+                        </h4>
+                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2">
+                            <div class="bg-red-50 rounded-md p-1.5 sm:p-2 border border-red-100">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] text-red-600 font-medium">Critical</span>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                </div>
+                                <p class="text-sm sm:text-base font-bold text-red-700">{{ $skillGapData['critical'] }}</p>
+                                <p class="text-[9px] text-red-500">{{ $totalAssessed > 0 ? round(($skillGapData['critical'] / $totalAssessed) * 100) : 0 }}%</p>
+                            </div>
+                            <div class="bg-orange-50 rounded-md p-1.5 sm:p-2 border border-orange-100">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] text-orange-600 font-medium">Moderate</span>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                                </div>
+                                <p class="text-sm sm:text-base font-bold text-orange-700">{{ $skillGapData['moderate'] }}</p>
+                                <p class="text-[9px] text-orange-500">{{ $totalAssessed > 0 ? round(($skillGapData['moderate'] / $totalAssessed) * 100) : 0 }}%</p>
+                            </div>
+                            <div class="bg-yellow-50 rounded-md p-1.5 sm:p-2 border border-yellow-100">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] text-yellow-600 font-medium">Minor</span>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                                </div>
+                                <p class="text-sm sm:text-base font-bold text-yellow-700">{{ $skillGapData['minor'] }}</p>
+                                <p class="text-[9px] text-yellow-500">{{ $totalAssessed > 0 ? round(($skillGapData['minor'] / $totalAssessed) * 100) : 0 }}%</p>
+                            </div>
+                            <div class="bg-green-50 rounded-md p-1.5 sm:p-2 border border-green-100">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] text-green-600 font-medium">Meets</span>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                </div>
+                                <p class="text-sm sm:text-base font-bold text-green-700">{{ $skillGapData['meets'] }}</p>
+                                <p class="text-[9px] text-green-500">{{ $totalAssessed > 0 ? round(($skillGapData['meets'] / $totalAssessed) * 100) : 0 }}%</p>
+                            </div>
+                            <div class="bg-blue-50 rounded-md p-1.5 sm:p-2 border border-blue-100">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] text-blue-600 font-medium">Exceeds</span>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                </div>
+                                <p class="text-sm sm:text-base font-bold text-blue-700">{{ $skillGapData['exceeds'] }}</p>
+                                <p class="text-[9px] text-blue-500">{{ $totalAssessed > 0 ? round(($skillGapData['exceeds'] / $totalAssessed) * 100) : 0 }}%</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Detect mobile for responsive settings
+const isMobile = window.innerWidth < 640;
+
+// Skill Gap Analysis Pie Chart
+const skillGapCtx = document.getElementById('skillGapChart');
+if (skillGapCtx) {
+    new Chart(skillGapCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Critical', 'Moderate', 'Minor', 'Meets', 'Exceeds'],
+            datasets: [{
+                data: [
+                    {{ $skillGapData['critical'] ?? 8 }},
+                    {{ $skillGapData['moderate'] ?? 15 }},
+                    {{ $skillGapData['minor'] ?? 12 }},
+                    {{ $skillGapData['meets'] ?? 25 }},
+                    {{ $skillGapData['exceeds'] ?? 10 }}
+                ],
+                backgroundColor: [
+                    'rgba(239, 68, 68, 0.85)',
+                    'rgba(249, 115, 22, 0.85)',
+                    'rgba(234, 179, 8, 0.85)',
+                    'rgba(34, 197, 94, 0.85)',
+                    'rgba(59, 130, 246, 0.85)'
+                ],
+                borderColor: [
+                    'rgba(239, 68, 68, 1)',
+                    'rgba(249, 115, 22, 1)',
+                    'rgba(234, 179, 8, 1)',
+                    'rgba(34, 197, 94, 1)',
+                    'rgba(59, 130, 246, 1)'
+                ],
+                borderWidth: 1,
+                hoverOffset: 6,
+                hoverBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '55%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    align: 'center',
+                    labels: {
+                        padding: 6,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 6,
+                        font: {
+                            size: isMobile ? 8 : 9,
+                            weight: '500'
+                        },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            return data.labels.map((label, i) => {
+                                const value = data.datasets[0].data[i];
+                                const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                return {
+                                    text: `${label} ${percentage}%`,
+                                    fillStyle: data.datasets[0].backgroundColor[i],
+                                    strokeStyle: data.datasets[0].borderColor[i],
+                                    lineWidth: 1,
+                                    hidden: false,
+                                    index: i,
+                                    pointStyle: 'circle'
+                                };
+                            });
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                    padding: 8,
+                    titleFont: { size: 10, weight: 'bold' },
+                    bodyFont: { size: 9 },
+                    cornerRadius: 6,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                            return ` ${context.raw} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Successors Line Chart - Trend Over Time
+const successorsCtx = document.getElementById('successorsChart');
+if (successorsCtx) {
+    // Generate sample monthly data (replace with real data from backend)
+    const months = ['Aug 2025', 'Sep 2025', 'Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026', 'Feb 2026'];
+    const passedData = [{{ max(0, ($passedCount ?? 3) - 5) }}, {{ max(0, ($passedCount ?? 3) - 4) }}, {{ max(0, ($passedCount ?? 3) - 3) }}, {{ max(0, ($passedCount ?? 3) - 2) }}, {{ max(0, ($passedCount ?? 3) - 1) }}, {{ $passedCount ?? 3 }}, {{ ($passedCount ?? 3) + 1 }}];
+    const pendingData = [{{ ($pendingCount ?? 2) + 3 }}, {{ ($pendingCount ?? 2) + 2 }}, {{ ($pendingCount ?? 2) + 2 }}, {{ ($pendingCount ?? 2) + 1 }}, {{ ($pendingCount ?? 2) + 1 }}, {{ $pendingCount ?? 2 }}, {{ max(0, ($pendingCount ?? 2) - 1) }}];
+    const totalData = passedData.map((val, idx) => val + pendingData[idx]);
+    
+    new Chart(successorsCtx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Total Successors',
+                    data: totalData,
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: isMobile ? 2 : 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: isMobile ? 1 : 2,
+                    pointRadius: isMobile ? 3 : 5,
+                    pointHoverRadius: isMobile ? 5 : 7
+                },
+                {
+                    label: 'Passed',
+                    data: passedData,
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: isMobile ? 1.5 : 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: isMobile ? 1 : 2,
+                    pointRadius: isMobile ? 2 : 4,
+                    pointHoverRadius: isMobile ? 4 : 6
+                },
+                {
+                    label: 'Pending',
+                    data: pendingData,
+                    borderColor: 'rgba(245, 158, 11, 1)',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderWidth: isMobile ? 1.5 : 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: isMobile ? 1 : 2,
+                    pointRadius: isMobile ? 2 : 4,
+                    pointHoverRadius: isMobile ? 4 : 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: isMobile ? 'bottom' : 'top',
+                    align: isMobile ? 'center' : 'end',
+                    labels: {
+                        padding: isMobile ? 10 : 15,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: isMobile ? 6 : 8,
+                        font: {
+                            size: isMobile ? 10 : 11,
+                            weight: '500'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                    padding: isMobile ? 8 : 12,
+                    titleFont: { size: isMobile ? 11 : 13, weight: 'bold' },
+                    bodyFont: { size: isMobile ? 10 : 12 },
+                    cornerRadius: 8,
+                    displayColors: true,
+                    boxPadding: 4
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: isMobile ? 9 : 11
+                        },
+                        maxRotation: isMobile ? 45 : 0,
+                        minRotation: isMobile ? 45 : 0
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        font: {
+                            size: isMobile ? 9 : 11
+                        },
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
 document.getElementById('syncBtn').addEventListener('click', async () => {
     if (!confirm('Sync employees from HR4? This will update/create accounts.')) return;
 
