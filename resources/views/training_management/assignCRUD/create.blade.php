@@ -231,7 +231,7 @@
                                     <option value="low" {{ old('priority') == 'low' ? 'selected' : '' }}>Low Priority</option>
                                     <option value="medium" {{ old('priority') == 'medium' ? 'selected' : '' }}>Medium Priority</option>
                                     <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>High Priority</option>
-                                    <option value="urgent" {{ old('priority') == 'urgent' ? 'selected' : '' }}>Urgent</option>
+
                                 </select>
                             </div>
 
@@ -244,7 +244,7 @@
                                         class="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('assignment_type') border-red-500 @enderror">
                                     <option value="">Select type</option>
                                     <option value="mandatory" {{ old('assignment_type') == 'mandatory' ? 'selected' : '' }}>Mandatory Training</option>
-                                    <option value="optional" {{ old('assignment_type') == 'optional' ? 'selected' : '' }}>Optional Training</option>
+                            
                                     <option value="development" {{ old('assignment_type') == 'development' ? 'selected' : '' }}>Professional Development</option>
                                 </select>
                             </div>

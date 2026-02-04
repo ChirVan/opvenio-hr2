@@ -13,14 +13,7 @@
             <!-- Page Header -->
             <div class="mb-6">
                 <h1 class="text-3xl font-bold text-gray-900">Competency Gap Analysis</h1>
-                <p class="mt-2 text-sm text-gray-600">Real-time analysis of employee competencies against role requirements based on completed and evaluated assessments</p>
-                <div class="mt-3 flex items-center text-sm">
-                    <div class="flex items-center text-blue-600">
-                        <i class='bx bx-info-circle mr-1'></i>
-                        <span class="font-medium">Integration Notice:</span>
-                    </div>
-                    <span class="ml-2 text-gray-600">This page shows the same real-time data as the Skill Gap Analysis (Role Mapping) with evaluated assessment results</span>
-                </div>
+                
             </div>
 
             @if(!$apiStatus)

@@ -28,23 +28,39 @@
     <style>
         :root {
             --navbar-height: 74px;
-            --sidebar-width: 250px;
+            --sidebar-width: 288px;
         }
 
         /* Sidebar Styles */
         #sidebar {
             position: fixed;
-            top: var(--navbar-height);
+            top: 0;
             left: 0;
             width: var(--sidebar-width);
-            transform: translateX(-100%);
+            height: 100vh;
             transition: transform 0.3s ease-in-out;
             z-index: 40;
             box-sizing: border-box;
         }
 
-        #sidebar.active {
-            transform: translateX(0);
+        /* Desktop: Sidebar visible by default */
+        @media (min-width: 769px) {
+            #sidebar {
+                transform: translateX(0);
+            }
+            #sidebar.hidden-sidebar {
+                transform: translateX(-100%);
+            }
+        }
+
+        /* Mobile: Sidebar hidden by default, show when active */
+        @media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+            }
+            #sidebar.active {
+                transform: translateX(0);
+            }
         }
 
         /* Main Content Styles */
@@ -59,20 +75,35 @@
             z-index: 20;
         }
 
-        #mainContent.shifted {
-            margin-left: var(--sidebar-width);
-            width: calc(100% - var(--sidebar-width));
+        /* Desktop: Main content shifted by default */
+        @media (min-width: 769px) {
+            #mainContent {
+                margin-left: var(--sidebar-width);
+                width: calc(100% - var(--sidebar-width));
+            }
+            #mainContent.full-width {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+
+        /* Mobile: Main content full width */
+        @media (max-width: 768px) {
+            #mainContent {
+                margin-left: 0;
+                width: 100%;
+            }
         }
 
         /* Overlay for mobile */
         #sidebarOverlay {
             position: fixed;
-            top: var(--navbar-height);
+            top: 0;
             left: 0;
             width: 100%;
-            height: calc(100vh - var(--navbar-height));
+            height: 100vh;
             background-color: rgba(0, 0, 0, 0.5);
-            z-index: 30;
+            z-index: 35;
             display: none;
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
@@ -81,14 +112,6 @@
         #sidebarOverlay.active {
             display: block;
             opacity: 1;
-        }
-
-        /* Responsive behavior */
-        @media (max-width: 768px) {
-            #mainContent.shifted {
-                margin-left: 0;
-                width: 100%;
-            }
         }
 
         /* Smooth scrolling for main content */
@@ -122,7 +145,7 @@
     @endif
 
     <!-- Main Content -->
-    <div id="mainContent" class="bg-gray-100 dark:bg-gray-900 shifted" style="margin-top: var(--navbar-height);">
+    <div id="mainContent" class="bg-gray-100 dark:bg-gray-900" style="margin-top: var(--navbar-height);">
         @if (isset($header))
             <header class="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
                 <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -153,21 +176,33 @@
             
             if (!sidebar || !mainContent || !toggleBtn) return;
             
-            let sidebarOpen = sidebar.classList.contains('active');
-            if (sidebarOpen && window.innerWidth <= 768) {
-                overlay.classList.add('active');
-            }
+            // Track if we're on mobile
+            const isMobile = () => window.innerWidth <= 768;
+            
+            // Track sidebar state (mobile only uses active class)
+            let mobileOpen = false;
 
             function toggleSidebar() {
-                sidebarOpen = !sidebarOpen;
-                if (sidebarOpen) {
-                    sidebar.classList.add('active');
-                    mainContent.classList.add('shifted');
-                    if (window.innerWidth <= 768) overlay.classList.add('active');
+                if (isMobile()) {
+                    // Mobile: Toggle active class
+                    mobileOpen = !mobileOpen;
+                    if (mobileOpen) {
+                        sidebar.classList.add('active');
+                        overlay.classList.add('active');
+                    } else {
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                    }
                 } else {
-                    sidebar.classList.remove('active');
-                    mainContent.classList.remove('shifted');
-                    overlay.classList.remove('active');
+                    // Desktop: Toggle hidden-sidebar and full-width classes
+                    const isHidden = sidebar.classList.contains('hidden-sidebar');
+                    if (isHidden) {
+                        sidebar.classList.remove('hidden-sidebar');
+                        mainContent.classList.remove('full-width');
+                    } else {
+                        sidebar.classList.add('hidden-sidebar');
+                        mainContent.classList.add('full-width');
+                    }
                 }
             }
 
@@ -176,16 +211,23 @@
                 toggleSidebar();
             });
 
-            overlay.addEventListener('click', () => {
-                if (sidebarOpen) toggleSidebar();
-            });
+            if (overlay) {
+                overlay.addEventListener('click', () => {
+                    if (mobileOpen) toggleSidebar();
+                });
+            }
 
             window.addEventListener('resize', () => {
-                if (window.innerWidth > 768) overlay.classList.remove('active');
+                if (!isMobile()) {
+                    // Reset mobile state when switching to desktop
+                    sidebar.classList.remove('active');
+                    if (overlay) overlay.classList.remove('active');
+                    mobileOpen = false;
+                }
             });
 
             document.addEventListener('keydown', e => {
-                if (e.key === 'Escape' && sidebarOpen) toggleSidebar();
+                if (e.key === 'Escape' && mobileOpen) toggleSidebar();
             });
         });
     </script>

@@ -9,35 +9,6 @@
 
     <div class="py-4">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Compact Header -->
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg shadow p-4 mb-4 text-white">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-xl font-bold">
-                            @if($employeeGapAnalysis->count() === 1)
-                                Employee Skill Gap Analysis
-                            @else
-                                Skill Gap Analysis
-                            @endif
-                        </h1>
-                        @if($employeeGapAnalysis->count() === 1)
-                            <p class="text-blue-100 text-xs mt-1">{{ $employeeGapAnalysis->first()['employee_name'] }} | {{ $employeeGapAnalysis->first()['job_title'] }}</p>
-                        @else
-                            <p class="text-blue-100 text-xs mt-1">Compare competencies against role requirements</p>
-                        @endif
-                    </div>
-                    <div class="bg-white bg-opacity-20 rounded-lg px-3 py-2 text-center">
-                        <div class="text-lg font-bold">{{ $employeeGapAnalysis->count() }}</div>
-                        <div class="text-[10px]">
-                            @if($employeeGapAnalysis->count() === 1)
-                                Detailed View
-                            @else
-                                Employees
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             @if($employeeGapAnalysis->count() === 1)
                 <!-- Compact Back Navigation -->
@@ -63,25 +34,7 @@
                 </div>
             @endif
 
-            @if($employeeGapAnalysis->count() > 1)
-                <!-- Compact Navigation Banner -->
-                <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <i class='bx bx-transfer-alt text-lg text-green-600'></i>
-                            <div>
-                                <h3 class="text-sm font-semibold text-green-900">Switch to Tabular View</h3>
-                                <p class="text-xs text-green-700">View data in comprehensive table format</p>
-                            </div>
-                        </div>
-                        <a href="{{ route('competency.gap-analysis') }}" 
-                           class="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition-colors">
-                            <i class='bx bx-table mr-1'></i>
-                            Table View
-                        </a>
-                    </div>
-                </div>
-            @endif
+            
 
             <!-- Employee Selection -->
             <div class="bg-white shadow rounded-lg p-4 mb-4">
