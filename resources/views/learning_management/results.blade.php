@@ -351,12 +351,6 @@
                                             
                                             // All pending = none evaluated yet
                                             $allPendingEvaluation = $pendingEvaluationCount === $totalResults;
-                                            
-                                            // Check if Step 2 (hands-on evaluation) is completed
-                                            // Step 2 is completed when all results have evaluation_data filled
-                                            $step2Completed = $employee->assessment_results->every(function($result) {
-                                                return !empty($result->evaluation_data);
-                                            });
                                         @endphp
                                         
                                         @if($employee->completed_assessments > 0)
@@ -372,33 +366,11 @@
                                                     <i class="fas fa-clock"></i> Pending Evaluation
                                                 </button>
                                                 <br><small class="text-muted">{{ $evaluatedCount }}/{{ $totalResults }} evaluated</small>
-                                            @elseif($allEvaluated && $step2Completed)
-                                                {{-- All evaluated AND Step 2 completed - show as complete --}}
+                                            @elseif($allEvaluated)
+                                                {{-- All evaluated - show as complete --}}
                                                 <button class="btn btn-sm btn-success" disabled style="padding: 6px 12px; border-radius: 4px; margin-bottom: 2px;">
                                                     <i class="fas fa-check-circle"></i> Evaluation Complete
                                                 </button>
-                                            @elseif($allEvaluated && !$step2Completed && !$hasFailed)
-                                                {{-- All Step 1 evaluated, Step 2 not done yet, all passed - CAN PROCEED to Step 2 --}}
-                                                @php
-                                                    $firstResultId = $employee->assessment_results->first()->id ?? null;
-                                                @endphp
-                                                @if($firstResultId)
-                                                    <a href="{{ route('assessment.results.evaluate.step2', ['id' => $firstResultId, 'result_ids' => implode(',', $resultIds)]) }}" 
-                                                       class="btn btn-sm btn-success" style="padding: 6px 12px; border-radius: 4px; text-decoration: none; margin-bottom: 2px;">
-                                                        <i class="fas fa-clipboard-check"></i> Proceed to Step 2
-                                                    </a>
-                                                @endif
-                                            @elseif($allEvaluated && !$step2Completed && $hasFailed)
-                                                {{-- All Step 1 evaluated, Step 2 not done yet, has failures - CAN PROCEED to Step 2 --}}
-                                                @php
-                                                    $firstResultId = $employee->assessment_results->first()->id ?? null;
-                                                @endphp
-                                                @if($firstResultId)
-                                                    <a href="{{ route('assessment.results.evaluate.step2', ['id' => $firstResultId, 'result_ids' => implode(',', $resultIds)]) }}" 
-                                                       class="btn btn-sm btn-warning" style="padding: 6px 12px; border-radius: 4px; text-decoration: none; margin-bottom: 2px;">
-                                                        <i class="fas fa-clipboard-check"></i> Proceed to Step 2
-                                                    </a>
-                                                @endif
                                             @endif
                                             <br>
                                             @php

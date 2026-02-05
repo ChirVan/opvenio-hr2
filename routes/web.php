@@ -673,6 +673,13 @@ Route::get('/dashboard', function () {
             Route::delete('/bookings/{id}', [\App\Modules\training_management\Controllers\TrainingRoomController::class, 'deleteBooking'])->name('bookings.delete');
             Route::get('/{id}', [\App\Modules\training_management\Controllers\TrainingRoomController::class, 'show'])->name('show');
         });
+
+        // Training Evaluation Routes (Hands-on Assessment)
+        Route::prefix('evaluation')->name('training.evaluation.')->group(function () {
+            Route::get('/', [\App\Modules\training_management\Controllers\TrainingEvaluationController::class, 'index'])->name('index');
+            Route::get('/{employeeId}', [\App\Modules\training_management\Controllers\TrainingEvaluationController::class, 'evaluate'])->name('evaluate');
+            Route::post('/{employeeId}/submit', [\App\Modules\training_management\Controllers\TrainingEvaluationController::class, 'submitEvaluation'])->name('submit');
+        });
     });
 });
 
