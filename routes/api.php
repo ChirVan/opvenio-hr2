@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Modules\competency_management\Controllers\CompetencyGapAnalysisController;
 use App\Http\Controllers\Api\LeaveApiController;
 use Illuminate\Support\Facades\Http;
@@ -530,6 +531,188 @@ Route::prefix('ess')->group(function () {
             ], 500);
         }
     });
+
+    // ============================================================
+    // ======= Recent Activities API (for ESS Dashboard) ==========
+    // ============================================================
+    Route::get('/activities/{email}', function ($email) {
+        try {
+            $activities = [];
+            
+            // Get user by email to find employee_id
+            $user = \App\Models\User::where('email', $email)->first();
+            $employeeId = $user ? $user->employee_id : null;
+            
+            if (!$employeeId) {
+                return response()->json([
+                    'success' => true,
+                    'activities' => [],
+                    'message' => 'No employee ID found'
+                ]);
+            }
+
+            // 1. Get Assessment Results (completed assessments, evaluations)
+            $assessmentResults = DB::connection('ess')
+                ->table('assessment_results')
+                ->where('employee_id', $employeeId)
+                ->whereNotNull('completed_at')
+                ->orderBy('completed_at', 'desc')
+                ->limit(10)
+                ->get();
+
+            foreach ($assessmentResults as $result) {
+                // Determine activity type based on status/evaluation
+                if ($result->status === 'passed' || $result->evaluation_status === 'passed') {
+                    $activities[] = [
+                        'type' => 'assessment_passed',
+                        'title' => 'Assessment Passed',
+                        'description' => 'You passed an assessment with a score of ' . number_format($result->score, 1) . '%',
+                        'icon' => 'bx-check-circle',
+                        'icon_class' => 'success',
+                        'timestamp' => $result->evaluated_at ?? $result->completed_at,
+                    ];
+                } elseif ($result->status === 'failed' || $result->evaluation_status === 'failed') {
+                    $activities[] = [
+                        'type' => 'assessment_failed',
+                        'title' => 'Assessment Needs Improvement',
+                        'description' => 'Assessment score: ' . number_format($result->score, 1) . '%',
+                        'icon' => 'bx-x-circle',
+                        'icon_class' => 'warning',
+                        'timestamp' => $result->evaluated_at ?? $result->completed_at,
+                    ];
+                } elseif ($result->status === 'completed') {
+                    $activities[] = [
+                        'type' => 'assessment_completed',
+                        'title' => 'Assessment Completed',
+                        'description' => 'You completed an assessment with a score of ' . number_format($result->score, 1) . '%',
+                        'icon' => 'bx-check',
+                        'icon_class' => 'primary',
+                        'timestamp' => $result->completed_at,
+                    ];
+                }
+            }
+
+            // 2. Get Training Assignment activities
+            $trainingActivities = DB::connection('training_management')
+                ->table('training_assignment_employees as tae')
+                ->join('training_assignments as ta', 'tae.training_assignment_id', '=', 'ta.id')
+                ->join('training_catalogs as tc', 'ta.training_catalog_id', '=', 'tc.id')
+                ->where('tae.employee_id', $employeeId)
+                ->select([
+                    'tc.title as course_title',
+                    'tae.status',
+                    'tae.started_at',
+                    'tae.completed_at',
+                    'tae.progress_percentage'
+                ])
+                ->orderByRaw('COALESCE(tae.completed_at, tae.started_at) DESC')
+                ->limit(10)
+                ->get();
+
+            foreach ($trainingActivities as $training) {
+                if ($training->status === 'completed' && $training->completed_at) {
+                    $activities[] = [
+                        'type' => 'training_completed',
+                        'title' => 'Training Completed',
+                        'description' => 'Completed: ' . $training->course_title,
+                        'icon' => 'bx-book-bookmark',
+                        'icon_class' => 'success',
+                        'timestamp' => $training->completed_at,
+                    ];
+                } elseif ($training->started_at && $training->status === 'in_progress') {
+                    $activities[] = [
+                        'type' => 'training_started',
+                        'title' => 'Training Started',
+                        'description' => 'Started: ' . $training->course_title . ' (' . ($training->progress_percentage ?? 0) . '% complete)',
+                        'icon' => 'bx-book-open',
+                        'icon_class' => 'primary',
+                        'timestamp' => $training->started_at,
+                    ];
+                }
+            }
+
+            // 3. Get Leave Request activities
+            $leaveActivities = DB::connection('ess')
+                ->table('leaves')
+                ->where('employee_id', $employeeId)
+                ->orderBy('updated_at', 'desc')
+                ->limit(10)
+                ->get();
+
+            foreach ($leaveActivities as $leave) {
+                $leaveTypeCodes = [
+                    'Vacation Leave' => 'VL',
+                    'Sick Leave' => 'SL',
+                    'Emergency Leave' => 'EL',
+                    'Bereavement Leave' => 'BL',
+                    'Maternity Leave' => 'ML',
+                    'Paternity Leave' => 'PL',
+                    'Solo Parent Leave' => 'SPL',
+                    'Service Incentive Leave' => 'SIL',
+                    'Leave Without Pay' => 'LWOP'
+                ];
+                $typeCode = $leaveTypeCodes[$leave->leave_type] ?? substr($leave->leave_type, 0, 2);
+                $startDate = \Carbon\Carbon::parse($leave->start_date)->format('M d');
+                $endDate = \Carbon\Carbon::parse($leave->end_date)->format('M d');
+                $dateRange = $startDate === $endDate ? $startDate : "{$startDate} - {$endDate}";
+
+                if ($leave->status === 'approved') {
+                    $activities[] = [
+                        'type' => 'leave_approved',
+                        'title' => 'Leave Request Approved',
+                        'description' => "{$typeCode}: {$dateRange} ({$leave->days_requested} day" . ($leave->days_requested > 1 ? 's' : '') . ")",
+                        'icon' => 'bx-calendar-check',
+                        'icon_class' => 'success',
+                        'timestamp' => $leave->updated_at,
+                    ];
+                } elseif ($leave->status === 'rejected') {
+                    $activities[] = [
+                        'type' => 'leave_rejected',
+                        'title' => 'Leave Request Rejected',
+                        'description' => "{$typeCode}: {$dateRange}",
+                        'icon' => 'bx-calendar-x',
+                        'icon_class' => 'warning',
+                        'timestamp' => $leave->updated_at,
+                    ];
+                } elseif ($leave->status === 'pending') {
+                    $activities[] = [
+                        'type' => 'leave_pending',
+                        'title' => 'Leave Request Submitted',
+                        'description' => "{$typeCode}: {$dateRange} ({$leave->days_requested} day" . ($leave->days_requested > 1 ? 's' : '') . ") - Awaiting approval",
+                        'icon' => 'bx-calendar-event',
+                        'icon_class' => 'primary',
+                        'timestamp' => $leave->created_at,
+                    ];
+                }
+            }
+
+            // Sort all activities by timestamp (most recent first)
+            usort($activities, function($a, $b) {
+                return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+            });
+
+            // Return only the 5 most recent activities
+            $activities = array_slice($activities, 0, 5);
+
+            // Format timestamps for display
+            foreach ($activities as &$activity) {
+                $activity['time_ago'] = \Carbon\Carbon::parse($activity['timestamp'])->diffForHumans();
+            }
+
+            return response()->json([
+                'success' => true,
+                'activities' => $activities
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Activities API error for {$email}: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching activities: ' . $e->getMessage(),
+                'activities' => []
+            ], 500);
+        }
+    });
 });
 
 // ============================================================
@@ -685,11 +868,26 @@ Route::get('/assigned-competencies', [CompetencyGapAnalysisController::class, 'g
 
 // Leave API Endpoints (for other departments)
 Route::prefix('leaves')->group(function () {
+    // Get all leave types
+    Route::get('/types', [LeaveApiController::class, 'getLeaveTypes']);
+    
+    // Get employee leave balances
+    Route::get('/balances/{email}', [LeaveApiController::class, 'getBalances']);
+    
+    // Get employee leave calendar
+    Route::get('/calendar/{email}', [LeaveApiController::class, 'getCalendar']);
+    
+    // Validate leave request before submission
+    Route::post('/validate', [LeaveApiController::class, 'validateLeaveRequest']);
+    
     // Fetch all leave requests (with optional filters)
     Route::get('/', [LeaveApiController::class, 'index']);
     
+    // Get leave statistics
+    Route::get('/stats/summary', [LeaveApiController::class, 'statistics']);
+    
     // Fetch a single leave request
-    Route::get('/{id}', [LeaveApiController::class, 'show']);
+    Route::get('/{id}', [LeaveApiController::class, 'show'])->where('id', '[0-9]+');
     
     // Create a new leave request
     Route::post('/', [LeaveApiController::class, 'store']);
@@ -703,9 +901,6 @@ Route::prefix('leaves')->group(function () {
     
     // Bulk update leave statuses
     Route::post('/bulk-update-status', [LeaveApiController::class, 'bulkUpdateStatus']);
-    
-    // Get leave statistics
-    Route::get('/stats/summary', [LeaveApiController::class, 'statistics']);
 });
 
 // ============================================================
