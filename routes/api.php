@@ -735,3 +735,43 @@ Route::prefix('training-room-bookings')->group(function () {
     // Delete a booking
     Route::delete('/{id}', [\App\Modules\training_management\Controllers\TrainingRoomBookingApiController::class, 'destroy']);
 });
+
+// ============================================================
+// ======= Jobs API (for Succession Planning) =================
+// ============================================================
+Route::get('/jobs', function () {
+    try {
+        $response = Http::timeout(30)
+            ->withOptions(['verify' => false])
+            ->withHeaders([
+                'Accept' => 'application/json',
+                'X-API-Key' => '' // Replace with actual API key
+            ])
+            ->get('https://hr4.microfinancial-1.com/api/employees/job'); // Replace with actual API URL
+        
+        if (!$response->successful()) {
+            Log::warning("Jobs API failed: " . $response->status());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch jobs from external API',
+                'data' => []
+            ]);
+        }
+        
+        $result = $response->json();
+        
+        // Return data in expected format
+        return response()->json([
+            'status' => 'success',
+            'data' => $result['data'] ?? $result ?? []
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error("Jobs API error: " . $e->getMessage());
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Unable to connect to jobs service',
+            'data' => []
+        ]);
+    }
+});

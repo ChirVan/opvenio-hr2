@@ -105,7 +105,7 @@ class AiJobRecommendationController extends Controller
             ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
             ->leftJoin('hr2_learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
             ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
-            ->leftJoin('hr2_competency_management.competencies as c', 'q.competency_id', '=', 'c.id')
+            ->leftJoin('hr2_competency_managements.competencies as c', 'q.competency_id', '=', 'c.id')
             ->where('ar.employee_id', $employeeId)
             ->whereIn('ar.status', ['passed', 'completed'])
             ->select([

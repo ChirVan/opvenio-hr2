@@ -167,25 +167,19 @@
 
                                         <!-- Succession Target -->
                                         <td class="px-6 py-4">
-                                            <select name="potential_job" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                                                <option value="">Select Target Role</option>
-                                                <optgroup label="Management Roles">
-                                                    <option value="Department Manager">Department Manager</option>
-                                                    <option value="Operations Manager">Operations Manager</option>
-                                                    <option value="Project Manager">Project Manager</option>
-                                                </optgroup>
-                                                <optgroup label="Senior Specialist Roles">
-                                                    <option value="Senior HR Specialist">Senior HR Specialist</option>
-                                                    <option value="Senior IT Specialist">Senior IT Specialist</option>
-                                                    <option value="Senior Software Engineer">Senior Software Engineer</option>
-                                                    <option value="Senior Business Analyst">Senior Business Analyst</option>
-                                                </optgroup>
-                                                <optgroup label="Administrative Roles">
-                                                    <option value="HR Manager">HR Manager</option>
-                                                    <option value="Payroll Administrator">Payroll Administrator</option>
-                                                    <option value="Training Coordinator">Training Coordinator</option>
-                                                </optgroup>
-                                            </select>
+                                            <div class="succession-target-container" data-employee-id="{{ $employee->employee_id }}">
+                                                <select name="potential_job" class="job-select w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                                    <option value="">Loading jobs...</option>
+                                                </select>
+                                                <div class="job-details mt-2 text-xs text-gray-500 hidden"></div>
+                                                <div class="ai-recommendation mt-2 hidden">
+                                                    <div class="flex items-center gap-1 text-purple-600 text-xs font-medium">
+                                                        <i class='bx bx-bot'></i>
+                                                        <span>AI Recommended: </span>
+                                                        <span class="ai-recommended-job font-bold">--</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <input type="hidden" name="assessment_score" value="{{ number_format($leadershipReadiness, 1) }}">
                                             <input type="hidden" name="category" value="Leadership Development">
                                             <input type="hidden" name="strengths" value="High performance in assessments, demonstrated competency">
@@ -445,7 +439,7 @@
         </div>
     </div>
 
-    <style>
+        <style>
         .active-filter {
             background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
             color: white !important;
@@ -481,6 +475,81 @@
         /* Table row hover effects */
         tbody tr:hover {
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* Line clamp for job descriptions */
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* Disabled option styling */
+        select option:disabled {
+            color: #9ca3af;
+            background-color: #f3f4f6;
+        }
+
+        /* Succession Target column - allow expansion */
+        .succession-target-container {
+            min-width: 280px;
+            max-width: 350px;
+        }
+
+        .succession-target-container .job-select {
+            width: 100%;
+        }
+
+        .succession-target-container .job-details {
+            max-width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .succession-target-container .job-details .grid {
+            font-size: 11px;
+        }
+
+        .succession-target-container .job-details p {
+            word-break: break-word;
+            white-space: normal;
+        }
+
+        /* Table layout adjustments */
+        #successorsTable {
+            table-layout: auto;
+        }
+
+        #successorsTable th:nth-child(5),
+        #successorsTable td:nth-child(5) {
+            min-width: 280px;
+            max-width: 350px;
+            white-space: normal;
+        }
+
+        /* Responsive adjustments for job details card */
+        .job-details > div {
+            width: 100%;
+        }
+
+        .job-details .grid-cols-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+        }
+
+        .job-details .grid-cols-2 > div {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* AI recommendation styling */
+        .ai-recommendation {
+            padding: 4px 8px;
+            background-color: #f3e8ff;
+            border-radius: 6px;
+            border: 1px solid #c4b5fd;
         }
     </style>
 
@@ -907,5 +976,176 @@
             }
         `;
         document.head.appendChild(style);
+
+        // ========== Job API Functions ==========
+        let jobsData = [];
+
+        async function fetchJobs() {
+            try {
+                const response = await fetch('/api/jobs'); // Adjust API endpoint as needed
+                const result = await response.json();
+                
+                if (result.status === 'success' && result.data) {
+                    jobsData = result.data;
+                    populateAllJobSelects();
+                } else {
+                    showJobLoadError('Failed to load jobs');
+                }
+            } catch (error) {
+                console.error('Error fetching jobs:', error);
+                showJobLoadError('Unable to connect to job service');
+            }
+        }
+
+        function showJobLoadError(message) {
+            document.querySelectorAll('.job-select').forEach(select => {
+                select.innerHTML = `<option value="">⚠️ ${message}</option>`;
+                select.disabled = true;
+            });
+        }
+
+        function populateAllJobSelects() {
+            document.querySelectorAll('.job-select').forEach(select => {
+                populateJobSelect(select);
+            });
+        }
+
+        function populateJobSelect(selectElement) {
+            // Group jobs by department
+            const groupedJobs = {};
+            
+            jobsData.forEach(item => {
+                const dept = item.department || 'Other';
+                if (!groupedJobs[dept]) {
+                    groupedJobs[dept] = [];
+                }
+                groupedJobs[dept].push(item);
+            });
+
+            let html = '<option value="">Select Target Role</option>';
+            
+            // AI Recommendation placeholder
+            html += '<optgroup label="🤖 AI Recommended">';
+            html += '<option value="" disabled class="ai-placeholder">-- Pending AI Analysis --</option>';
+            html += '</optgroup>';
+
+            // Group by department
+            Object.keys(groupedJobs).sort().forEach(dept => {
+                html += `<optgroup label="${escapeHtml(dept)}">`;
+                
+                groupedJobs[dept].forEach(item => {
+                    const jobTitle = item.job?.job_title || 'Unknown Position';
+                    const isVacant = item.status?.toLowerCase() === 'vacant';
+                    const statusBadge = isVacant ? '🟢' : '🔴';
+                    const disabled = !isVacant ? 'disabled' : '';
+                    
+                    html += `<option value="${escapeHtml(jobTitle)}" 
+                                data-job-id="${item.job_id}"
+                                data-department="${escapeHtml(item.department || '')}"
+                                data-location="${escapeHtml(item.location || '')}"
+                                data-employment-type="${escapeHtml(item.employment_type || '')}"
+                                data-status="${escapeHtml(item.status || '')}"
+                                data-description="${escapeHtml(item.job?.job_description || 'No description available')}"
+                                ${disabled}>
+                                ${statusBadge} ${escapeHtml(jobTitle)} ${!isVacant ? '(Filled)' : ''}
+                            </option>`;
+                });
+                
+                html += '</optgroup>';
+            });
+
+            selectElement.innerHTML = html;
+            selectElement.disabled = false;
+            
+            // Add change listener to show details
+            selectElement.addEventListener('change', function() {
+                showJobDetails(this);
+            });
+        }
+
+                function showJobDetails(selectElement) {
+            const container = selectElement.closest('.succession-target-container');
+            const detailsDiv = container.querySelector('.job-details');
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            
+            if (!selectedOption || !selectedOption.value) {
+                detailsDiv.classList.add('hidden');
+                return;
+            }
+
+            const dept = selectedOption.dataset.department;
+            const location = selectedOption.dataset.location;
+            const empType = selectedOption.dataset.employmentType;
+            const status = selectedOption.dataset.status;
+            const description = selectedOption.dataset.description;
+
+            let html = `
+                <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 mt-2 text-xs">
+                    <div class="space-y-1">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Dept:</span>
+                            <span class="font-medium text-gray-700">${escapeHtml(dept)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Location:</span>
+                            <span class="font-medium text-gray-700">${escapeHtml(location)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Type:</span>
+                            <span class="font-medium text-gray-700">${escapeHtml(empType)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Status:</span>
+                            <span class="font-medium ${status?.toLowerCase() === 'vacant' ? 'text-green-600' : 'text-red-600'}">${escapeHtml(status)}</span>
+                        </div>
+                    </div>
+                    ${description && description !== 'No description available' ? `
+                        <div class="border-t border-gray-200 pt-2 mt-2">
+                            <span class="text-gray-500 block mb-1">Description:</span>
+                            <p class="text-gray-700 line-clamp-3">${escapeHtml(description)}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            detailsDiv.innerHTML = html;
+            detailsDiv.classList.remove('hidden');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
+        // Set AI recommended job for an employee (placeholder for future AI integration)
+        function setAiRecommendedJob(employeeId, recommendedJobTitle) {
+            const container = document.querySelector(`.succession-target-container[data-employee-id="${employeeId}"]`);
+            if (!container) return;
+
+            const aiDiv = container.querySelector('.ai-recommendation');
+            const aiJobSpan = container.querySelector('.ai-recommended-job');
+            const select = container.querySelector('.job-select');
+
+            if (recommendedJobTitle) {
+                aiJobSpan.textContent = recommendedJobTitle;
+                aiDiv.classList.remove('hidden');
+
+                // Try to select the recommended job
+                const options = select.querySelectorAll('option');
+                options.forEach(opt => {
+                    if (opt.value === recommendedJobTitle && !opt.disabled) {
+                        opt.selected = true;
+                        showJobDetails(select);
+                    }
+                });
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchJobs();
+        });
     </script>
 </x-app-layout>
