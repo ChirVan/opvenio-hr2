@@ -111,6 +111,9 @@
                 <a href="{{ route('training.room.index') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('training.room.*') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1">
                     Training Room
                 </a>
+                <a href="{{ route('training.evaluation.index') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('training.evaluation.*') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1">
+                    Training Evaluation
+                </a>
             </div>
         </div>
 
