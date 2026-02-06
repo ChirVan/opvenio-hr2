@@ -560,6 +560,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        const aiRecommendations = @json($aiRecommendations ?? []);
+
         // Filter candidates based on readiness level
         function filterCandidates(category) {
             const rows = document.querySelectorAll('#successorsTable tbody tr');
@@ -1011,6 +1013,13 @@
         }
 
         function populateJobSelect(selectElement) {
+            const container = selectElement.closest('.succession-target-container');
+            const employeeId = container?.dataset.employeeId;
+            
+            // Check if this employee has an AI recommendation
+            const aiRec = aiRecommendations[employeeId];
+            const aiRecommendedJob = aiRec?.potential_job || null;
+            
             // Group jobs by department
             const groupedJobs = {};
             
@@ -1024,10 +1033,12 @@
 
             let html = '<option value="">Select Target Role</option>';
             
-            // AI Recommendation placeholder
-            html += '<optgroup label="🤖 AI Recommended">';
-            html += '<option value="" disabled class="ai-placeholder">-- Pending AI Analysis --</option>';
-            html += '</optgroup>';
+            // AI Recommendation section
+            if (aiRecommendedJob) {
+                html += '<optgroup label="🤖 AI Recommended">';
+                html += `<option value="${escapeHtml(aiRecommendedJob)}" class="ai-recommended-option" selected>⭐ ${escapeHtml(aiRecommendedJob)}</option>`;
+                html += '</optgroup>';
+            }
 
             // Group by department
             Object.keys(groupedJobs).sort().forEach(dept => {
@@ -1038,6 +1049,7 @@
                     const isVacant = item.status?.toLowerCase() === 'vacant';
                     const statusBadge = isVacant ? '🟢' : '🔴';
                     const disabled = !isVacant ? 'disabled' : '';
+                    const isAiMatch = jobTitle === aiRecommendedJob;
                     
                     html += `<option value="${escapeHtml(jobTitle)}" 
                                 data-job-id="${item.job_id}"
@@ -1046,8 +1058,9 @@
                                 data-employment-type="${escapeHtml(item.employment_type || '')}"
                                 data-status="${escapeHtml(item.status || '')}"
                                 data-description="${escapeHtml(item.job?.job_description || 'No description available')}"
-                                ${disabled}>
-                                ${statusBadge} ${escapeHtml(jobTitle)} ${!isVacant ? '(Filled)' : ''}
+                                ${disabled}
+                                ${isAiMatch ? 'class="ai-match"' : ''}>
+                                ${statusBadge} ${escapeHtml(jobTitle)} ${!isVacant ? '(Filled)' : ''} ${isAiMatch ? '⭐' : ''}
                             </option>`;
                 });
                 
@@ -1056,6 +1069,30 @@
 
             selectElement.innerHTML = html;
             selectElement.disabled = false;
+            
+            // Show AI recommendation details
+            if (aiRecommendedJob && aiRec) {
+                const aiDiv = container.querySelector('.ai-recommendation');
+                const aiJobSpan = container.querySelector('.ai-recommended-job');
+                
+                if (aiDiv && aiJobSpan) {
+                    aiJobSpan.textContent = aiRecommendedJob;
+                    aiDiv.classList.remove('hidden');
+                    
+                    // Parse AI reasoning if available
+                    try {
+                        const recData = typeof aiRec.recommendations === 'string' 
+                            ? JSON.parse(aiRec.recommendations) 
+                            : aiRec.recommendations;
+                        if (recData?.match_score) {
+                            aiJobSpan.textContent = `${aiRecommendedJob} (${recData.match_score}% match)`;
+                        }
+                    } catch (e) {}
+                }
+                
+                // Trigger details display for AI-selected option
+                showJobDetails(selectElement);
+            }
             
             // Add change listener to show details
             selectElement.addEventListener('change', function() {
