@@ -807,6 +807,7 @@
     let bankDetails = null;
     let salaryDetails = null;
     let payslipData = null;
+    let hasPaidPayslip = false;
 
     // DOM Elements
     const loadingState = document.getElementById('loadingState');
@@ -964,6 +965,11 @@
 
       // Show the card
       paidCard.classList.remove('d-none');
+      hasPaidPayslip = true;
+
+      // Hide the bank status card since payslip is already paid
+      const bankStatusCard = document.getElementById('bankStatusCard');
+      if (bankStatusCard) bankStatusCard.closest('.col-lg-7').classList.add('d-none');
 
       // Parse values from the payroll object
       const netPay = parseFloat(payroll.net_pay) || 0;
@@ -1008,6 +1014,46 @@
 
       // Also unlock the payslip view if paid
       document.getElementById('payslipLockOverlay').classList.add('d-none');
+
+      // Populate the Payslip Summary card with the paid payroll data
+      const allowances = parseFloat(payroll.allowances) || 0;
+      const overtimeHours = parseFloat(payroll.overtime_hours) || 0;
+      const claims = parseFloat(payroll.claims_amount) || 0;
+      const sss = parseFloat(payroll.sss) || 0;
+      const philhealth = parseFloat(payroll.philhealth) || 0;
+      const pagibig = parseFloat(payroll.pagibig) || 0;
+      const incomeTax = parseFloat(payroll.income_tax) || 0;
+      const otherDed = parseFloat(payroll.other_deductions) || 0;
+
+      // Earnings
+      document.getElementById('basicSalary').textContent = formatCurrency(baseSalary);
+      document.getElementById('transportAllowance').textContent = formatCurrency(allowances);
+      document.getElementById('mealAllowance').textContent = formatCurrency(claims);
+      document.getElementById('overtimePay').textContent = formatCurrency(grossPay - baseSalary - allowances - claims > 0 ? grossPay - baseSalary - allowances - claims : 0);
+      document.getElementById('otherEarnings').textContent = formatCurrency(0);
+      document.getElementById('grossPay').textContent = formatCurrency(grossPay);
+
+      // Deductions
+      document.getElementById('sssDeduction').textContent = '-' + formatCurrency(sss);
+      document.getElementById('philhealthDeduction').textContent = '-' + formatCurrency(philhealth);
+      document.getElementById('pagibigDeduction').textContent = '-' + formatCurrency(pagibig);
+      document.getElementById('taxDeduction').textContent = '-' + formatCurrency(incomeTax);
+      document.getElementById('otherDeductions').textContent = '-' + formatCurrency(otherDed);
+      document.getElementById('totalDeductions').textContent = '-' + formatCurrency(totalDeductions);
+
+      // Net Pay
+      document.getElementById('netPay').textContent = formatCurrency(netPay);
+
+      // Period badge & footer
+      document.getElementById('payPeriodLabel').textContent = payPeriod;
+      document.getElementById('payslipGeneratedDate').textContent = payroll.computed_at ? formatDate(payroll.computed_at) : formatDate(new Date());
+      document.getElementById('payDate').textContent = payDate ? formatDate(payDate) : '--';
+
+      // Fill employee info from API response if available
+      if (employee) {
+        document.getElementById('empDeptDisplay').textContent = employee.department || '--';
+        document.getElementById('empPositionDisplay').textContent = employee.position || '--';
+      }
     }
 
     // Download paid payslip receipt
@@ -1027,6 +1073,12 @@
 
     // Update bank status badge and message
     function updateBankStatus() {
+      // If there's a paid payslip, always unlock regardless of bank details status
+      if (hasPaidPayslip) {
+        payslipLockOverlay.classList.add('d-none');
+        return;
+      }
+
       if (!bankDetails) {
         bankStatusBadge.className = 'status-badge status-none';
         bankStatusBadge.textContent = 'Not Submitted';
