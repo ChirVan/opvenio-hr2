@@ -462,18 +462,6 @@
                             <i class='bx bx-building me-1'></i>Bank Transfer
                           </label>
                         </div>
-                        <div class="form-check form-check-inline payment-method-option">
-                          <input class="form-check-input" type="radio" name="payment_method" id="methodGcash" value="GCash">
-                          <label class="form-check-label payment-label" for="methodGcash">
-                            <i class='bx bx-wallet me-1'></i>GCash
-                          </label>
-                        </div>
-                        <div class="form-check form-check-inline payment-method-option">
-                          <input class="form-check-input" type="radio" name="payment_method" id="methodMaya" value="Maya">
-                          <label class="form-check-label payment-label" for="methodMaya">
-                            <i class='bx bx-credit-card me-1'></i>Maya
-                          </label>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -496,30 +484,7 @@
                         <label class="form-label fw-medium">Bank Name <span class="text-danger">*</span></label>
                         <select class="form-select" id="bankName" name="bank_name">
                           <option value="">-- Select Your Bank --</option>
-                          <optgroup label="Major Banks">
-                            <option value="BDO Unibank">BDO Unibank</option>
-                            <option value="BPI (Bank of the Philippine Islands)">BPI (Bank of the Philippine Islands)</option>
-                            <option value="Metrobank">Metrobank</option>
-                            <option value="Land Bank of the Philippines">Land Bank of the Philippines</option>
-                            <option value="PNB (Philippine National Bank)">PNB (Philippine National Bank)</option>
-                          </optgroup>
-                          <optgroup label="Other Banks">
-                            <option value="Security Bank">Security Bank</option>
-                            <option value="UnionBank">UnionBank</option>
-                            <option value="China Bank">China Bank</option>
-                            <option value="RCBC">RCBC</option>
-                            <option value="EastWest Bank">EastWest Bank</option>
-                            <option value="PSBank">PSBank</option>
-                            <option value="AUB (Asia United Bank)">AUB (Asia United Bank)</option>
-                            <option value="PBCom">PBCom</option>
-                            <option value="DBP (Development Bank of the Philippines)">DBP</option>
-                            <option value="Veterans Bank">Veterans Bank</option>
-                          </optgroup>
-                          <optgroup label="Rural/Thrift Banks">
-                            <option value="Rural Bank">Rural Bank</option>
-                            <option value="Thrift Bank">Thrift Bank</option>
-                            <option value="Other">Other Bank</option>
-                          </optgroup>
+                          <option value="Land Bank of the Philippines">Land Bank of the Philippines</option>
                         </select>
                       </div>
                       <div class="col-md-6 mb-3">
@@ -555,7 +520,6 @@
                       <label class="form-label fw-medium">Currency</label>
                       <select class="form-select" id="currency" name="currency">
                         <option value="PHP" selected>PHP - Philippine Peso</option>
-                        <option value="USD">USD - US Dollar</option>
                       </select>
                     </div>
                   </div>
