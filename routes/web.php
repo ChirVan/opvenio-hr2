@@ -631,6 +631,12 @@ Route::get('/dashboard', function () {
     // =============== Training Management Routes =================
     // ============================================================
     Route::prefix('training')->group(function () {
+    // Create material route MUST be before wildcard {material} routes
+    Route::get('catalog/{catalog}/material/create', [TrainingCatalogController::class, 'createMaterial'])->name('training.material.create');
+    // Store a new training material
+    Route::post('catalog/{catalog}/material', [TrainingMaterialController::class, 'store'])->name('training.materials.store');
+    // Save as draft
+    Route::post('catalog/{catalog}/material/draft', [TrainingMaterialController::class, 'saveDraft'])->name('training.materials.draft');
     // Destroy a single training material (for route('training.materials.destroy'))
     Route::delete('catalog/{catalog}/material/{material}', [TrainingMaterialController::class, 'destroy'])->name('training.materials.destroy');
     // Edit a single training material (for route('training.materials.edit'))
@@ -652,8 +658,6 @@ Route::get('/dashboard', function () {
         ]);
 
         Route::get('catalog/{catalog}/detail', [TrainingCatalogController::class, 'detail'])->name('training.catalog.detail');
-
-        Route::get('catalog/{catalog}/material/create', [TrainingCatalogController::class, 'createMaterial'])->name('training.material.create');
 
         // ✅ FIXED BLOCK BELOW
         Route::prefix('assign')->name('training.assign.')->group(function () {
