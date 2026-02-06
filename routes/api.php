@@ -932,6 +932,150 @@ Route::prefix('training-room-bookings')->group(function () {
 });
 
 // ============================================================
+// ======= Successors API (for other departments) =============
+// ============================================================
+Route::prefix('successors')->group(function () {
+
+    // GET /api/successors - List all promotion records
+    Route::get('/', function (Request $request) {
+        try {
+            $query = DB::connection('succession_planning')->table('promotions');
+
+            // Optional filters
+            if ($request->has('status')) {
+                $query->where('status', $request->query('status'));
+            }
+            if ($request->has('employee_id')) {
+                $query->where('employee_id', $request->query('employee_id'));
+            }
+
+            $promotions = $query->orderBy('created_at', 'desc')->get();
+
+            // Enrich missing job titles from HR4 API
+            $needsJobTitle = $promotions->filter(fn($p) => empty($p->job_title) || $p->job_title === 'Not Specified' || $p->job_title === '-');
+            if ($needsJobTitle->isNotEmpty()) {
+                try {
+                    $employeeApiService = app(\App\Services\EmployeeApiService::class);
+                    $allEmployees = $employeeApiService->getEmployees();
+                    if ($allEmployees) {
+                        $employeeMap = collect($allEmployees)->keyBy('employee_id');
+                        foreach ($needsJobTitle as $promotion) {
+                            $emp = $employeeMap[$promotion->employee_id] ?? null;
+                            if ($emp) {
+                                $jobTitle = $emp['job_title'] ?? $emp['job']['job_title'] ?? null;
+                                if ($jobTitle) {
+                                    $promotion->job_title = $jobTitle;
+                                    DB::connection('succession_planning')
+                                        ->table('promotions')
+                                        ->where('id', $promotion->id)
+                                        ->update(['job_title' => $jobTitle, 'updated_at' => now()]);
+                                }
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Continue without enrichment
+                }
+            }
+
+            $data = $promotions->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'employee_id' => $p->employee_id,
+                    'employee_name' => $p->employee_name,
+                    'employee_email' => $p->employee_email,
+                    'current_job' => $p->job_title,
+                    'potential_job' => $p->potential_job,
+                    'assessment_score' => $p->assessment_score,
+                    'status' => $p->status,
+                    'created_at' => $p->created_at,
+                    'updated_at' => $p->updated_at,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'count' => $data->count(),
+                'data' => $data->values(),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Successors API error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch successors data',
+            ], 500);
+        }
+    });
+
+    // GET /api/successors/{employee_id} - Get a single successor record
+    Route::get('/{employee_id}', function (string $employee_id) {
+        try {
+            $promotion = DB::connection('succession_planning')
+                ->table('promotions')
+                ->where('employee_id', $employee_id)
+                ->first();
+
+            if (!$promotion) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Successor record not found',
+                ], 404);
+            }
+
+            // Enrich job title if missing
+            if (empty($promotion->job_title) || $promotion->job_title === 'Not Specified' || $promotion->job_title === '-') {
+                try {
+                    $employeeApiService = app(\App\Services\EmployeeApiService::class);
+                    $allEmployees = $employeeApiService->getEmployees();
+                    if ($allEmployees) {
+                        $emp = collect($allEmployees)->firstWhere('employee_id', $employee_id);
+                        if ($emp) {
+                            $jobTitle = $emp['job_title'] ?? $emp['job']['job_title'] ?? null;
+                            if ($jobTitle) {
+                                $promotion->job_title = $jobTitle;
+                                DB::connection('succession_planning')
+                                    ->table('promotions')
+                                    ->where('id', $promotion->id)
+                                    ->update(['job_title' => $jobTitle, 'updated_at' => now()]);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Continue without enrichment
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $promotion->id,
+                    'employee_id' => $promotion->employee_id,
+                    'employee_name' => $promotion->employee_name,
+                    'employee_email' => $promotion->employee_email,
+                    'current_job' => $promotion->job_title,
+                    'potential_job' => $promotion->potential_job,
+                    'assessment_score' => $promotion->assessment_score,
+                    'category' => $promotion->category,
+                    'strengths' => $promotion->strengths,
+                    'recommendations' => $promotion->recommendations,
+                    'status' => $promotion->status,
+                    'created_at' => $promotion->created_at,
+                    'updated_at' => $promotion->updated_at,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Successors API error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch successor data',
+            ], 500);
+        }
+    });
+});
+
+// ============================================================
 // ======= Jobs API (for Succession Planning) =================
 // ============================================================
 Route::get('/jobs', function () {

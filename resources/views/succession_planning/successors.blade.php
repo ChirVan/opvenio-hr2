@@ -21,6 +21,33 @@
 				<div class="p-6">
 					@php
 						$promotions = \App\Modules\succession_planning\Models\Promotion::all();
+
+						// Enrich job titles from HR4 API for records with missing/placeholder titles
+						$needsJobTitle = $promotions->filter(fn($p) => empty($p->job_title) || $p->job_title === 'Not Specified' || $p->job_title === '-');
+						if ($needsJobTitle->isNotEmpty()) {
+							try {
+								$employeeApiService = app(\App\Services\EmployeeApiService::class);
+								$allEmployees = $employeeApiService->getEmployees();
+								if ($allEmployees) {
+									$employeeMap = collect($allEmployees)->keyBy('employee_id');
+									foreach ($needsJobTitle as $promotion) {
+										$emp = $employeeMap[$promotion->employee_id] ?? null;
+										if ($emp) {
+											$jobTitle = $emp['job_title'] ?? $emp['job']['job_title'] ?? null;
+											if ($jobTitle) {
+												$promotion->job_title = $jobTitle;
+												\Illuminate\Support\Facades\DB::connection('succession_planning')
+													->table('promotions')
+													->where('id', $promotion->id)
+													->update(['job_title' => $jobTitle, 'updated_at' => now()]);
+											}
+										}
+									}
+								}
+							} catch (\Exception $e) {
+								// Silently continue if API fails
+							}
+						}
 					@endphp
 					<div class="flex justify-end mb-4">
 						<button onclick="window.print()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs shadow transition flex items-center gap-2">
@@ -37,7 +64,6 @@
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Current Job</th>
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Potential Job</th>
 									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
-									<th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider no-print">Action</th>
 								</tr>
 							</thead>
 							<tbody class="bg-white divide-y divide-gray-100">
@@ -63,26 +89,11 @@
 												</span>
 											@endif
 										</td>
-										<td class="px-6 py-4 whitespace-nowrap no-print">
-											@if($promotion->status == 'promoted')
-												<span class="inline-flex items-center px-3 py-1 text-xs text-gray-500">
-													<i class='bx bx-check-circle text-blue-500 mr-1'></i> Completed
-												</span>
-											@elseif($promotion->status == 'approved')
-												<button 
-													onclick="executePromotion({{ $promotion->id }}, '{{ $promotion->employee_name }}', '{{ $promotion->potential_job }}')"
-													class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-semibold text-xs shadow-md transition-all duration-200 flex items-center gap-2"
-												>
-													<i class='bx bx-rocket'></i> Execute Promotion
-												</button>
-											@else
-												<span class="text-xs text-gray-400">Pending approval</span>
-											@endif
-										</td>
+
 									</tr>
 								@empty
 									<tr>
-										<td colspan="7" class="px-6 py-4 text-center text-gray-500">No promotions found.</td>
+										<td colspan="5" class="px-6 py-4 text-center text-gray-500">No promotions found.</td>
 									</tr>
 								@endforelse
 							</tbody>
