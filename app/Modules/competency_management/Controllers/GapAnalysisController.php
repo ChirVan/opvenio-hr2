@@ -271,36 +271,48 @@ class GapAnalysisController extends Controller
                 'unsatisfactory' => 1
             ];
 
+            // Extract competency ratings from evaluation_data
+            // The evaluation form (TrainingEvaluationController) stores them nested under 'competencies' key
+            // with keys: skill_proficiency, job_knowledge, planning_organizing, accountability, work_improvement
+            // Also support the legacy flat format (competency_1, competency_2, etc.) for backward compatibility
+            $competencyRatings = $evaluationData['competencies'] ?? [];
+            
+            $rating1 = $competencyRatings['skill_proficiency'] ?? $evaluationData['competency_1'] ?? 'inconsistent';
+            $rating2 = $competencyRatings['job_knowledge'] ?? $evaluationData['competency_2'] ?? 'inconsistent';
+            $rating3 = $competencyRatings['planning_organizing'] ?? $evaluationData['competency_3'] ?? 'inconsistent';
+            $rating4 = $competencyRatings['accountability'] ?? $evaluationData['competency_4'] ?? 'inconsistent';
+            $rating5 = $competencyRatings['work_improvement'] ?? $evaluationData['competency_5'] ?? 'inconsistent';
+
             // Use the EXACT competency labels from the evaluation form (evaluate_step2.blade.php)
             $competencies = [
                 'assignment_skills' => [
                     'label' => 'Assignment Skills',
                     'description' => 'Skill and proficiency in carrying out assignment',
-                    'current' => $scoreMapping[$evaluationData['competency_1'] ?? 'inconsistent'],
+                    'current' => $scoreMapping[$rating1] ?? 2,
                     'required' => 4.0
                 ],
                 'job_knowledge' => [
                     'label' => 'Job Knowledge', 
                     'description' => 'Possesses skills and knowledge to perform job effectively',
-                    'current' => $scoreMapping[$evaluationData['competency_2'] ?? 'inconsistent'],
+                    'current' => $scoreMapping[$rating2] ?? 2,
                     'required' => 4.0
                 ],
                 'planning_organizing' => [
                     'label' => 'Planning & Organizing',
                     'description' => 'Skill at planning, organizing and prioritizing workload', 
-                    'current' => $scoreMapping[$evaluationData['competency_3'] ?? 'inconsistent'],
+                    'current' => $scoreMapping[$rating3] ?? 2,
                     'required' => 4.5
                 ],
                 'accountability' => [
                     'label' => 'Accountability',
                     'description' => 'Holds self accountable for assigned responsibilities; sees task through to completion, in a timely manner',
-                    'current' => $scoreMapping[$evaluationData['competency_4'] ?? 'inconsistent'],
+                    'current' => $scoreMapping[$rating4] ?? 2,
                     'required' => 4.0
                 ],
                 'efficiency_improvement' => [
                     'label' => 'Process Improvement',
                     'description' => 'Proficiency at improving work methods and procedures as a means toward greater efficiency',
-                    'current' => $scoreMapping[$evaluationData['competency_5'] ?? 'inconsistent'],
+                    'current' => $scoreMapping[$rating5] ?? 2,
                     'required' => 4.0
                 ]
             ];

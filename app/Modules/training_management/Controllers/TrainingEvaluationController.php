@@ -257,7 +257,7 @@ class TrainingEvaluationController extends Controller
             // 1. Get employee data - with fallback
             $employee = [];
             try {
-                $employee = $this->employeeApiService->getEmployeeById($employeeId);
+                $employee = $this->employeeApiService->getEmployee($employeeId) ?? [];
                 Log::info("Employee API data fetched", ['employee' => $employee]);
             } catch (\Throwable $e) {
                 Log::warning("Employee API failed, using fallback", ['error' => $e->getMessage()]);
@@ -270,8 +270,9 @@ class TrainingEvaluationController extends Controller
             // 3. Build employee profile
             $employeeName = $employee['full_name'] ?? $assessmentData['employee_name'] ?? 'Employee ' . $employeeId;
             $employeeEmail = $employee['email'] ?? '';
-            $jobTitle = $employee['job_title'] ?? 'Not Specified';
-            $department = $employee['department'] ?? 'Not Specified';
+            // job_title may be nested under 'job' key from raw API or flattened by EmployeeApiService
+            $jobTitle = $employee['job_title'] ?? $employee['job']['job_title'] ?? 'Not Specified';
+            $department = $employee['department'] ?? $employee['position']['department'] ?? 'Not Specified';
 
             Log::info("Building employee profile", [
                 'name' => $employeeName,
@@ -402,11 +403,11 @@ class TrainingEvaluationController extends Controller
             Log::info("Processing FAILED evaluation for employee: {$employeeId}");
 
             // Get employee data
-            $employee = $this->employeeApiService->getEmployeeById($employeeId);
+            $employee = $this->employeeApiService->getEmployee($employeeId) ?? [];
             $assessmentData = $this->getEmployeeAssessmentData($employeeId);
 
             $employeeName = $employee['full_name'] ?? $assessmentData['employee_name'] ?? 'Unknown';
-            $jobTitle = $employee['job_title'] ?? 'Not Specified';
+            $jobTitle = $employee['job_title'] ?? $employee['job']['job_title'] ?? 'Not Specified';
 
             // Identify weak competencies (unsatisfactory or inconsistent ratings)
             $weakCompetencies = $this->identifyWeakCompetencies($evaluationData['competencies']);

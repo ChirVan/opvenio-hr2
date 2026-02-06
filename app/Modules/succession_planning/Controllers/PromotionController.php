@@ -26,28 +26,44 @@ class PromotionController
             'status' => 'required|string',
         ]);
 
-        // Insert into succession_planning.promotions table
-        $id = DB::connection('succession_planning')->table('promotions')->insertGetId([
-            'employee_id' => $data['employee_id'],
-            'employee_name' => $data['employee_name'],
-            'employee_email' => $data['employee_email'],
-            'job_title' => $data['job_title'],
-            'potential_job' => $data['potential_job'],
-            'assessment_score' => $data['assessment_score'] ?? 0.0,
-            'category' => $data['category'] ?? 'Leadership',
-            'strengths' => $data['strengths'] ?? '',
-            'recommendations' => $data['recommendations'] ?? '',
-            'status' => $data['status'],
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Check if employee already has a pending record (e.g. from training evaluation pass)
+        $existing = DB::connection('succession_planning')->table('promotions')
+            ->where('employee_id', $data['employee_id'])
+            ->where('status', 'pending')
+            ->first();
 
-        // Update status to approved after insert
-        DB::connection('succession_planning')->table('promotions')
-            ->where('id', $id)
-            ->update(['status' => 'approved']);
+        if ($existing) {
+            // Update existing pending record with the selected potential job and approve it
+            DB::connection('succession_planning')->table('promotions')
+                ->where('id', $existing->id)
+                ->update([
+                    'potential_job' => $data['potential_job'],
+                    'assessment_score' => $data['assessment_score'] ?? $existing->assessment_score,
+                    'category' => $data['category'] ?? $existing->category,
+                    'strengths' => $data['strengths'] ?? $existing->strengths,
+                    'recommendations' => $data['recommendations'] ?? $existing->recommendations,
+                    'status' => 'approved',
+                    'updated_at' => now(),
+                ]);
+        } else {
+            // Insert new record and approve
+            DB::connection('succession_planning')->table('promotions')->insert([
+                'employee_id' => $data['employee_id'],
+                'employee_name' => $data['employee_name'],
+                'employee_email' => $data['employee_email'],
+                'job_title' => $data['job_title'],
+                'potential_job' => $data['potential_job'],
+                'assessment_score' => $data['assessment_score'] ?? 0.0,
+                'category' => $data['category'] ?? 'Leadership',
+                'strengths' => $data['strengths'] ?? '',
+                'recommendations' => $data['recommendations'] ?? '',
+                'status' => 'approved',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
-        Session::flash('success', 'Promotion record added and approved successfully!');
+        Session::flash('success', 'Promotion record approved successfully!');
         return Redirect::back();
     }
 

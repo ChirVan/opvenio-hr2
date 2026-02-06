@@ -188,7 +188,7 @@
 
                                                 <!-- Action -->
                                                 <td style="padding: 12px;">
-                                                    @if(in_array($talent->employee_id, $promotedEmployeeIds))
+                                                    @if($talent->status === 'approved' || in_array($talent->employee_id, $promotedEmployeeIds))
                                                         <button class="btn btn-sm btn-secondary" disabled style="padding: 6px 12px; border-radius: 4px; font-size: 11px;">
                                                             <i class="fas fa-user-check"></i> In Pipeline
                                                         </button>

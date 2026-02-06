@@ -325,7 +325,7 @@ Route::get('/dashboard', function () {
         })
         ->values();
 
-    $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
+    $promotedIds = DB::connection('succession_planning')->table('promotions')->whereIn('status', ['approved', 'promoted'])->pluck('employee_id')->toArray();
 
     return view('dashboard', compact(
         'totalCourses',
@@ -409,6 +409,9 @@ Route::get('/dashboard', function () {
                     return isset($employee['employee_id']);
                 })
                 ->mapWithKeys(function ($employee) {
+                    // Flatten nested job/position data for easy access
+                    $employee['job_title'] = $employee['job']['job_title'] ?? $employee['job_title'] ?? '-';
+                    $employee['department'] = $employee['position']['department'] ?? $employee['department'] ?? '-';
                     return [trim((string)$employee['employee_id']) => $employee];
                 });
 
@@ -424,7 +427,51 @@ Route::get('/dashboard', function () {
                 
                 // Get evaluation data from latest result
                 $evalData = json_decode($latestResult->evaluation_data, true);
-                $evaluationScore = isset($evalData['average_score']) ? $evalData['average_score'] : 0;
+                
+                // Calculate evaluation score from competency ratings
+                // Support both formats:
+                // Old format: { "competency_1": "exceptional", ..., "average_score": 4.8 }
+                // New format: { "competencies": { "skill_proficiency": "exceptional", ... } }
+                $scoreMap = [
+                    'exceptional' => 5.0, 'highly_effective' => 4.0,
+                    'proficient' => 3.0, 'inconsistent' => 2.0, 'unsatisfactory' => 1.0,
+                ];
+                
+                $evaluationScore = 0;
+                if (!empty($evalData)) {
+                    // Try nested competencies format first
+                    $competencyRatings = $evalData['competencies'] ?? [];
+                    
+                    if (!empty($competencyRatings) && is_array($competencyRatings)) {
+                        $total = 0; $count = 0;
+                        foreach ($competencyRatings as $rating) {
+                            if (is_string($rating) && isset($scoreMap[strtolower($rating)])) {
+                                $total += $scoreMap[strtolower($rating)];
+                                $count++;
+                            }
+                        }
+                        $evaluationScore = $count > 0 ? round($total / $count, 2) : 0;
+                    }
+                    
+                    // Fallback to flat competency_1..5 format
+                    if ($evaluationScore == 0) {
+                        $total = 0; $count = 0;
+                        for ($i = 1; $i <= 5; $i++) {
+                            $key = "competency_{$i}";
+                            if (isset($evalData[$key]) && isset($scoreMap[strtolower($evalData[$key])])) {
+                                $total += $scoreMap[strtolower($evalData[$key])];
+                                $count++;
+                            }
+                        }
+                        $evaluationScore = $count > 0 ? round($total / $count, 2) : 0;
+                    }
+                    
+                    // Last fallback: use pre-calculated average_score if present
+                    if ($evaluationScore == 0 && isset($evalData['average_score'])) {
+                        $evaluationScore = floatval($evalData['average_score']);
+                    }
+                }
+                
                 $evaluationScorePercent = round(($evaluationScore / 5) * 100);
                 
                 // Calculate leadership readiness from competency scores
@@ -489,9 +536,7 @@ Route::get('/dashboard', function () {
             // 2. Development Needed (Below Expert - needs skill improvement)
             $developmentNeeded = $groupedResults->filter(fn($e) => !$e->is_expert)->sortByDesc('evaluation_score')->values();
 
-            $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
-          
-            $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
+            $promotedIds = DB::connection('succession_planning')->table('promotions')->whereIn('status', ['approved', 'promoted'])->pluck('employee_id')->toArray();
 
             // Get AI recommendations from promotions table
             $aiRecommendations = DB::connection('succession_planning')
