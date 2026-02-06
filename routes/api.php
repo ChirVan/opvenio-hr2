@@ -745,9 +745,9 @@ Route::get('/jobs', function () {
             ->withOptions(['verify' => false])
             ->withHeaders([
                 'Accept' => 'application/json',
-                'X-API-Key' => '' // Replace with actual API key
+                'X-API-Key' => ''
             ])
-            ->get('https://hr4.microfinancial-1.com/api/employees/job'); // Replace with actual API URL
+            ->get('https://hr4.microfinancial-1.com/api/employees/job');
         
         if (!$response->successful()) {
             Log::warning("Jobs API failed: " . $response->status());

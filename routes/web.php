@@ -490,7 +490,20 @@ Route::get('/dashboard', function () {
             $developmentNeeded = $groupedResults->filter(fn($e) => !$e->is_expert)->sortByDesc('evaluation_score')->values();
 
             $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
-            return view('succession_planning.potential_successor', compact('approvedEmployees', 'developmentNeeded', 'promotedIds'));
+          
+            $promotedIds = DB::connection('succession_planning')->table('promotions')->pluck('employee_id')->toArray();
+
+            // Get AI recommendations from promotions table
+            $aiRecommendations = DB::connection('succession_planning')
+                ->table('promotions')
+                ->whereNotNull('potential_job')
+                ->where('potential_job', '!=', '')
+                ->select(['employee_id', 'potential_job', 'recommendations'])
+                ->get()
+                ->keyBy('employee_id')
+                ->toArray();
+
+            return view('succession_planning.potential_successor', compact('approvedEmployees', 'developmentNeeded', 'promotedIds', 'aiRecommendations'));
         })->name('succession.potential-successors');
     });
 
