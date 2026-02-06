@@ -10,52 +10,47 @@ use Illuminate\Support\Facades\Log;
 class TalentPoolController extends Controller
 {
     /**
-     * Display the talent pool with approved employees
+     * Display the talent pool with approved employees from promotions table
      */
     public function index()
     {
-        // Get approved employees from assessment results
-        $talentPool = DB::connection('ess')
-            ->table('assessment_results as ar')
-            ->join('hr2_opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
-            ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-            ->leftJoin('hr2_learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
-            ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
-            ->where('ar.status', 'passed') // Only approved employees
-            ->select([
-                'ar.id',
-                'ar.employee_id',
-                'u.name as employee_name',
-                'u.email as employee_email',
-                'q.quiz_title',
-                'ac.category_name',
-                'ar.evaluation_data',
-                'ar.evaluated_at',
-                'ar.completed_at',
-                'ar.score'
-            ])
-            ->orderBy('ar.evaluated_at', 'desc')
+        // Get employees from promotions table (written by Training Evaluation when passed)
+        $talentPool = DB::connection('succession_planning')
+            ->table('promotions')
+            ->where('status', 'pending') // Only show pending, not promoted
+            ->orderBy('created_at', 'desc')
             ->get();
 
-        // Get all employee_ids already sent to promotion
-        $promotedEmployeeIds = \App\Modules\succession_planning\Models\Promotion::pluck('employee_id')->toArray();
-
-        // Process evaluation data for display
+        // Process for display
         $processedTalentPool = $talentPool->map(function ($employee) {
-            $evaluationData = json_decode($employee->evaluation_data, true);
+            $recommendations = json_decode($employee->recommendations, true) ?? [];
+            
             return (object) [
                 'id' => $employee->id,
                 'employee_id' => $employee->employee_id,
                 'employee_name' => $employee->employee_name,
                 'employee_email' => $employee->employee_email,
-                'quiz_title' => $employee->quiz_title,
-                'category_name' => $employee->category_name,
-                'evaluated_at' => $employee->evaluated_at,
-                'completed_at' => $employee->completed_at,
-                'average_score' => $evaluationData['average_score'] ?? 0,
-                'evaluation_data' => $evaluationData
+                'job_title' => $employee->job_title,
+                'potential_job' => $employee->potential_job,
+                'assessment_score' => $employee->assessment_score,
+                'category' => $employee->category,
+                'strengths' => $employee->strengths,
+                'recommendations' => $recommendations,
+                'ai_reasoning' => $recommendations['ai_reasoning'] ?? '',
+                'match_score' => $recommendations['match_score'] ?? 0,
+                'readiness' => $recommendations['readiness'] ?? 'Unknown',
+                'status' => $employee->status,
+                'created_at' => $employee->created_at,
+                'updated_at' => $employee->updated_at,
             ];
         });
+
+        // Get employee IDs that are already promoted (status = 'promoted')
+        $promotedEmployeeIds = DB::connection('succession_planning')
+            ->table('promotions')
+            ->where('status', 'promoted')
+            ->pluck('employee_id')
+            ->toArray();
 
         return view('succession_planning.talent', compact('processedTalentPool', 'promotedEmployeeIds'));
     }
@@ -65,54 +60,35 @@ class TalentPoolController extends Controller
      */
     public function showPotential($employee_id)
     {
-        // Fetch the talent data using the same logic as index, but filter by employee_id
-        $talent = DB::connection('ess')
-            ->table('assessment_results as ar')
-            ->join('hr2_opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
-            ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-            ->leftJoin('hr2_learning_management.quizzes as q', 'aa.quiz_id', '=', 'q.id')
-            ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
-            ->where('ar.status', 'passed')
-            ->where('ar.employee_id', $employee_id)
-            ->select([
-                'ar.id',
-                'ar.employee_id',
-                'u.name as employee_name',
-                'u.email as employee_email',
-                'q.quiz_title',
-                'ac.category_name',
-                'ar.evaluation_data',
-                'ar.evaluated_at',
-                'ar.completed_at',
-                'ar.score'
-            ])
-            ->orderBy('ar.evaluated_at', 'desc')
+        // Fetch from promotions table
+        $talent = DB::connection('succession_planning')
+            ->table('promotions')
+            ->where('employee_id', $employee_id)
             ->first();
 
-        // Fetch job_title from EmployeeApiService
-        $jobTitle = null;
-        try {
-            $employeeApiService = new \App\Services\EmployeeApiService();
-            $employees = $employeeApiService->getEmployees();
-            if ($employees && is_array($employees)) {
-                foreach ($employees as $emp) {
-                    if (isset($emp['employee_id']) && $emp['employee_id'] == $employee_id) {
-                        $jobTitle = $emp['job_title'] ?? null;
-                        break;
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch job title from API', ['error' => $e->getMessage()]);
+        if (!$talent) {
+            return redirect()->route('succession.talent-pool')
+                ->with('error', 'Employee not found in talent pool.');
         }
 
-        // Process evaluation data for display
-        if ($talent) {
-            $evaluationData = json_decode($talent->evaluation_data, true);
-            $talent->average_score = $evaluationData['average_score'] ?? 0;
-            $talent->evaluation_data = $evaluationData;
-            $talent->job_title = $jobTitle;
-        }
+        $recommendations = json_decode($talent->recommendations, true) ?? [];
+
+        $talent = (object) [
+            'id' => $talent->id,
+            'employee_id' => $talent->employee_id,
+            'employee_name' => $talent->employee_name,
+            'employee_email' => $talent->employee_email,
+            'job_title' => $talent->job_title,
+            'potential_job' => $talent->potential_job,
+            'assessment_score' => $talent->assessment_score,
+            'category' => $talent->category,
+            'strengths' => $talent->strengths,
+            'recommendations' => $recommendations,
+            'ai_reasoning' => $recommendations['ai_reasoning'] ?? '',
+            'match_score' => $recommendations['match_score'] ?? 0,
+            'readiness' => $recommendations['readiness'] ?? 'Unknown',
+            'status' => $talent->status,
+        ];
 
         return view('succession_planning.potential', compact('talent'));
     }
@@ -124,67 +100,40 @@ class TalentPoolController extends Controller
     {
         Log::info('Promotion form submitted', ['request_data' => $request->all()]);
 
-        // Validate the request
         $validated = $request->validate([
             'employee_id' => 'required|string',
-            'job_title' => 'required|string',
             'potential_job' => 'required|string',
-            'strengths' => 'nullable|string',
-            'recommendations' => 'nullable|string',
         ]);
 
-        Log::info('Promotion form validated', ['validated' => $validated]);
-
         try {
-            // Get additional employee data
-            $employeeData = DB::connection('ess')
-                ->table('assessment_results as ar')
-                ->join('hr2_opvenio_hr2.users as u', 'ar.employee_id', '=', 'u.employee_id')
-                ->leftJoin('hr2_learning_management.assessment_assignments as aa', 'ar.assignment_id', '=', 'aa.id')
-                ->leftJoin('hr2_learning_management.assessment_categories as ac', 'aa.assessment_category_id', '=', 'ac.id')
-                ->where('ar.employee_id', $validated['employee_id'])
-                ->where('ar.status', 'passed')
-                ->select([
-                    'u.name as employee_name',
-                    'u.email as employee_email',
-                    'ar.score',
-                    'ac.category_name'
-                ])
-                ->first();
+            // Update the existing promotion record
+            $updated = DB::connection('succession_planning')
+                ->table('promotions')
+                ->where('employee_id', $validated['employee_id'])
+                ->update([
+                    'potential_job' => $validated['potential_job'],
+                    'status' => 'approved', // Mark as approved for promotion
+                    'updated_at' => now(),
+                ]);
 
-            if (!$employeeData) {
-                Log::warning('Employee data not found for promotion', ['employee_id' => $validated['employee_id']]);
-                return redirect()->back()->with('error', 'Employee data not found.');
+            if ($updated) {
+                Log::info('Promotion updated successfully', ['employee_id' => $validated['employee_id']]);
+                return redirect()->route('succession.talent-pool')
+                    ->with('success', 'Employee promotion updated successfully!');
+            } else {
+                return redirect()->back()
+                    ->with('error', 'Employee not found in promotions.');
             }
 
-            // Create promotion record
-            $promotion = \App\Modules\succession_planning\Models\Promotion::create([
-                'employee_id' => $validated['employee_id'],
-                'employee_name' => $employeeData->employee_name,
-                'employee_email' => $employeeData->employee_email,
-                'job_title' => $validated['job_title'],
-                'potential_job' => $validated['potential_job'],
-                'assessment_score' => $employeeData->score ?? null,
-                'category' => $employeeData->category_name ?? null,
-                'strengths' => $validated['strengths'] ?? null,
-                'recommendations' => $validated['recommendations'] ?? null,
-                'status' => 'pending',
-            ]);
-
-            Log::info('Promotion record created successfully', ['promotion_id' => $promotion->id]);
-
-            return redirect()->route('succession.talent-pool')
-                ->with('success', 'Employee successfully sent for promotion consideration!');
-
         } catch (\Exception $e) {
-            Log::error('Promotion save failed', [
+            Log::error('Promotion update failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
             
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Failed to save promotion: ' . $e->getMessage());
+                ->with('error', 'Failed to update promotion: ' . $e->getMessage());
         }
     }
 }
