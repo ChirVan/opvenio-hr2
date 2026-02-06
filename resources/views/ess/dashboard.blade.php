@@ -424,32 +424,15 @@
           <div class="section-header">
             <h5 class="section-title"><i class='bx bx-bell'></i>Recent Activities</h5>
           </div>
-          <div class="section-body">
-            <div class="activity-item">
-              <div class="activity-icon success">
-                <i class='bx bx-check'></i>
-              </div>
-              <div class="activity-content">
-                <h6>Completed Training Module</h6>
-                <small>2 hours ago</small>
-              </div>
-            </div>
-            <div class="activity-item">
+          <div class="section-body" id="activities-container">
+            <!-- Loading state -->
+            <div class="activity-item" id="activities-loading">
               <div class="activity-icon primary">
-                <i class='bx bx-calendar-check'></i>
+                <i class='bx bx-loader-alt bx-spin'></i>
               </div>
               <div class="activity-content">
-                <h6>Leave Request Approved</h6>
-                <small>Yesterday</small>
-              </div>
-            </div>
-            <div class="activity-item">
-              <div class="activity-icon warning">
-                <i class='bx bx-star'></i>
-              </div>
-              <div class="activity-content">
-                <h6>Performance Review Scheduled</h6>
-                <small>3 days ago</small>
+                <h6>Loading activities...</h6>
+                <small>Please wait</small>
               </div>
             </div>
           </div>
@@ -540,7 +523,72 @@
 
       // Fetch work schedule from HR3 API
       await loadWorkSchedule(userEmployeeId);
+
+      // Fetch recent activities
+      await loadRecentActivities(userEmail);
     });
+
+    // Load recent activities from API
+    async function loadRecentActivities(email) {
+      const container = document.getElementById('activities-container');
+      
+      if (!email) {
+        renderEmptyActivities(container);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/ess/activities/${encodeURIComponent(email)}`);
+        const result = await response.json();
+        console.log('Activities API Response:', result);
+
+        if (result.success && result.activities && result.activities.length > 0) {
+          renderActivities(container, result.activities);
+        } else {
+          renderEmptyActivities(container);
+        }
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+        renderEmptyActivities(container);
+      }
+    }
+
+    // Render activities from API data
+    function renderActivities(container, activities) {
+      let html = '';
+      
+      activities.forEach(activity => {
+        html += `
+          <div class="activity-item">
+            <div class="activity-icon ${activity.icon_class}">
+              <i class='bx ${activity.icon}'></i>
+            </div>
+            <div class="activity-content">
+              <h6>${activity.title}</h6>
+              <small>${activity.description}</small>
+              <small class="d-block text-muted" style="font-size: 0.65rem;">${activity.time_ago}</small>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+
+    // Render empty state for activities
+    function renderEmptyActivities(container) {
+      container.innerHTML = `
+        <div class="activity-item">
+          <div class="activity-icon" style="background: #f1f5f9; color: #94a3b8;">
+            <i class='bx bx-info-circle'></i>
+          </div>
+          <div class="activity-content">
+            <h6>No recent activities</h6>
+            <small>Your activities will appear here as you complete trainings and assessments.</small>
+          </div>
+        </div>
+      `;
+    }
 
     // Load work schedule from HR3 API
     async function loadWorkSchedule(employeeId) {

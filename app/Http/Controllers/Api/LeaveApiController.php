@@ -115,10 +115,13 @@ class LeaveApiController extends Controller
                 'employee_id' => 'required|string',
                 'employee_name' => 'required|string',
                 'employee_email' => 'required|email',
-                'leave_type' => 'required|string|in:Vacation,Sick,Emergency,Personal',
+                'leave_type' => 'required|string',
+                'leave_type_id' => 'nullable|integer',
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after_or_equal:start_date',
                 'reason' => 'required|string',
+                'is_half_day' => 'nullable|boolean',
+                'half_day_period' => 'nullable|string|in:AM,PM',
             ]);
 
             if ($validator->fails()) {
@@ -129,13 +132,135 @@ class LeaveApiController extends Controller
                 ], 422);
             }
 
+            // Calculate days requested
+            $startDate = \Carbon\Carbon::parse($request->start_date);
+            $endDate = \Carbon\Carbon::parse($request->end_date);
+            $isHalfDay = $request->is_half_day ?? false;
+            $daysRequested = $isHalfDay ? 0.5 : ($startDate->diffInDays($endDate) + 1);
+
+            // Get leave type info for validation
+            $leaveType = null;
+            if ($request->leave_type_id) {
+                $leaveType = DB::connection('ess')
+                    ->table('leave_types')
+                    ->where('id', $request->leave_type_id)
+                    ->first();
+            }
+
+            // Validate against limits if leave type found
+            if ($leaveType) {
+                $currentYear = $startDate->year;
+                
+                // Check balance
+                $balance = DB::connection('ess')
+                    ->table('leave_balances')
+                    ->where('employee_id', $request->employee_id)
+                    ->where('leave_type_id', $leaveType->id)
+                    ->where('year', $currentYear)
+                    ->first();
+
+                if ($balance) {
+                    $approvedDays = DB::connection('ess')
+                        ->table('leaves')
+                        ->where('employee_id', $request->employee_id)
+                        ->where('leave_type', $leaveType->name)
+                        ->where('status', 'approved')
+                        ->whereYear('start_date', $currentYear)
+                        ->sum('days_requested');
+
+                    $pendingDays = DB::connection('ess')
+                        ->table('leaves')
+                        ->where('employee_id', $request->employee_id)
+                        ->where('leave_type', $leaveType->name)
+                        ->where('status', 'pending')
+                        ->whereYear('start_date', $currentYear)
+                        ->sum('days_requested');
+
+                    $available = $balance->total_credits - $approvedDays - $pendingDays;
+
+                    if ($daysRequested > $available) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Insufficient leave balance. Available: {$available} day(s), Requested: {$daysRequested} day(s)."
+                        ], 400);
+                    }
+                }
+
+                // Check monthly limit
+                $monthlyCount = DB::connection('ess')
+                    ->table('leaves')
+                    ->where('employee_id', $request->employee_id)
+                    ->where('leave_type', $leaveType->name)
+                    ->whereIn('status', ['pending', 'approved'])
+                    ->whereMonth('start_date', $startDate->month)
+                    ->whereYear('start_date', $currentYear)
+                    ->count();
+
+                if ($monthlyCount >= $leaveType->max_per_month) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Maximum {$leaveType->max_per_month} request(s) per month for this leave type."
+                    ], 400);
+                }
+
+                // Check max days per request
+                if ($daysRequested > $leaveType->max_days_per_request) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Maximum {$leaveType->max_days_per_request} day(s) per request for this leave type."
+                    ], 400);
+                }
+            }
+
+            // Check for overlapping requests
+            $overlap = DB::connection('ess')
+                ->table('leaves')
+                ->where('employee_id', $request->employee_id)
+                ->whereIn('status', ['pending', 'approved'])
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('start_date', [$request->start_date, $request->end_date])
+                        ->orWhereBetween('end_date', [$request->start_date, $request->end_date])
+                        ->orWhere(function ($q) use ($request) {
+                            $q->where('start_date', '<=', $request->start_date)
+                              ->where('end_date', '>=', $request->end_date);
+                        });
+                })
+                ->first();
+
+            if ($overlap) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You already have a leave request for these dates.'
+                ], 400);
+            }
+
+            // Check if there's already a pending leave request (only 1 allowed at a time)
+            $pendingRequest = DB::connection('ess')
+                ->table('leaves')
+                ->where('employee_id', $request->employee_id)
+                ->where('status', 'pending')
+                ->first();
+
+            if ($pendingRequest) {
+                $pendingStartDate = \Carbon\Carbon::parse($pendingRequest->start_date)->format('M d, Y');
+                $pendingEndDate = \Carbon\Carbon::parse($pendingRequest->end_date)->format('M d, Y');
+                return response()->json([
+                    'success' => false,
+                    'message' => "You already have a pending leave request ({$pendingRequest->leave_type}: {$pendingStartDate} - {$pendingEndDate}). Please wait for it to be approved or rejected before submitting a new request."
+                ], 400);
+            }
+
             $id = DB::connection('ess')->table('leaves')->insertGetId([
                 'employee_id' => $request->employee_id,
                 'employee_name' => $request->employee_name,
                 'employee_email' => $request->employee_email,
                 'leave_type' => $request->leave_type,
+                'leave_type_id' => $request->leave_type_id,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
+                'days_requested' => $daysRequested,
+                'is_half_day' => $isHalfDay,
+                'half_day_period' => $request->half_day_period,
                 'reason' => $request->reason,
                 'status' => 'pending',
                 'remarks' => $request->remarks ?? 'Awaiting approval',
@@ -143,12 +268,23 @@ class LeaveApiController extends Controller
                 'updated_at' => now(),
             ]);
 
+            // Update pending credits in balance
+            if ($leaveType && $balance) {
+                DB::connection('ess')
+                    ->table('leave_balances')
+                    ->where('employee_id', $request->employee_id)
+                    ->where('leave_type_id', $leaveType->id)
+                    ->where('year', $startDate->year)
+                    ->increment('pending_credits', $daysRequested);
+            }
+
             $leave = DB::connection('ess')->table('leaves')->where('id', $id)->first();
 
             Log::info("New leave request created", [
                 'id' => $id,
                 'employee_id' => $request->employee_id,
                 'leave_type' => $request->leave_type,
+                'days_requested' => $daysRequested,
             ]);
 
             return response()->json([
@@ -422,6 +558,442 @@ class LeaveApiController extends Controller
                 'success' => false,
                 'message' => 'Failed to fetch leave statistics',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all active leave types
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getLeaveTypes()
+    {
+        try {
+            $leaveTypes = DB::connection('ess')
+                ->table('leave_types')
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $leaveTypes
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching leave types: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch leave types',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get employee leave balances
+     * 
+     * @param string $employeeEmail
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getBalances($employeeEmail)
+    {
+        try {
+            $currentYear = now()->year;
+            
+            // Get employee info
+            $user = \App\Models\User::where('email', $employeeEmail)->first();
+            $employeeId = $user ? $user->employee_id : null;
+
+            if (!$employeeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee not found'
+                ], 404);
+            }
+
+            // Get all active leave types
+            $leaveTypes = DB::connection('ess')
+                ->table('leave_types')
+                ->where('is_active', true)
+                ->get();
+
+            $balances = [];
+
+            foreach ($leaveTypes as $type) {
+                // Check if balance record exists for this year
+                $balance = DB::connection('ess')
+                    ->table('leave_balances')
+                    ->where('employee_id', $employeeId)
+                    ->where('leave_type_id', $type->id)
+                    ->where('year', $currentYear)
+                    ->first();
+
+                if (!$balance) {
+                    // Create default balance for this employee and leave type
+                    DB::connection('ess')->table('leave_balances')->insert([
+                        'employee_id' => $employeeId,
+                        'employee_email' => $employeeEmail,
+                        'leave_type_id' => $type->id,
+                        'year' => $currentYear,
+                        'total_credits' => $type->default_credits,
+                        'used_credits' => 0,
+                        'pending_credits' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    $balance = (object)[
+                        'total_credits' => $type->default_credits,
+                        'used_credits' => 0,
+                        'pending_credits' => 0,
+                    ];
+                }
+
+                // Calculate approved leaves for this year
+                $approvedDays = DB::connection('ess')
+                    ->table('leaves')
+                    ->where('employee_id', $employeeId)
+                    ->where('leave_type', $type->name)
+                    ->where('status', 'approved')
+                    ->whereYear('start_date', $currentYear)
+                    ->sum('days_requested');
+
+                // Calculate pending leaves for this year
+                $pendingDays = DB::connection('ess')
+                    ->table('leaves')
+                    ->where('employee_id', $employeeId)
+                    ->where('leave_type', $type->name)
+                    ->where('status', 'pending')
+                    ->whereYear('start_date', $currentYear)
+                    ->sum('days_requested');
+
+                $usedCredits = $approvedDays ?: $balance->used_credits;
+                $pendingCredits = $pendingDays ?: $balance->pending_credits;
+                $availableCredits = $balance->total_credits - $usedCredits - $pendingCredits;
+
+                $balances[] = [
+                    'leave_type_id' => $type->id,
+                    'code' => $type->code,
+                    'name' => $type->name,
+                    'description' => $type->description,
+                    'total_credits' => (float) $balance->total_credits,
+                    'used_credits' => (float) $usedCredits,
+                    'pending_credits' => (float) $pendingCredits,
+                    'available_credits' => max(0, (float) $availableCredits),
+                    'max_days_per_request' => $type->max_days_per_request,
+                    'max_per_month' => $type->max_per_month,
+                    'advance_notice_days' => $type->advance_notice_days,
+                    'requires_medical_cert' => (bool) $type->requires_medical_cert,
+                    'is_paid' => (bool) $type->is_paid,
+                    'icon' => $type->icon,
+                    'color_class' => $type->color_class,
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'year' => $currentYear,
+                'employee_id' => $employeeId,
+                'data' => $balances
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching leave balances: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch leave balances',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate leave request before submission
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function validateLeaveRequest(Request $request)
+    {
+        try {
+            $errors = [];
+            $warnings = [];
+
+            $employeeEmail = $request->employee_email;
+            $leaveTypeId = $request->leave_type_id;
+            $startDate = $request->start_date;
+            $endDate = $request->end_date;
+            $isHalfDay = $request->is_half_day ?? false;
+
+            // Get employee info
+            $user = \App\Models\User::where('email', $employeeEmail)->first();
+            $employeeId = $user ? $user->employee_id : null;
+
+            if (!$employeeId) {
+                return response()->json([
+                    'success' => false,
+                    'valid' => false,
+                    'errors' => ['Employee not found']
+                ]);
+            }
+
+            // Check if there's already a pending leave request (only 1 allowed at a time)
+            $pendingRequest = DB::connection('ess')
+                ->table('leaves')
+                ->where('employee_id', $employeeId)
+                ->where('status', 'pending')
+                ->first();
+
+            if ($pendingRequest) {
+                $pendingStartDate = \Carbon\Carbon::parse($pendingRequest->start_date)->format('M d, Y');
+                $pendingEndDate = \Carbon\Carbon::parse($pendingRequest->end_date)->format('M d, Y');
+                $errors[] = "You already have a pending leave request ({$pendingRequest->leave_type}: {$pendingStartDate} - {$pendingEndDate}). Please wait for it to be approved or rejected.";
+            }
+
+            // Get leave type
+            $leaveType = DB::connection('ess')
+                ->table('leave_types')
+                ->where('id', $leaveTypeId)
+                ->first();
+
+            if (!$leaveType) {
+                return response()->json([
+                    'success' => false,
+                    'valid' => false,
+                    'errors' => ['Invalid leave type']
+                ]);
+            }
+
+            // Calculate days requested
+            $start = \Carbon\Carbon::parse($startDate);
+            $end = \Carbon\Carbon::parse($endDate);
+            $daysRequested = $isHalfDay ? 0.5 : ($start->diffInDays($end) + 1);
+
+            // 1. Check advance notice requirement
+            $today = \Carbon\Carbon::today();
+            $noticeDays = $today->diffInDays($start, false);
+            if ($noticeDays < $leaveType->advance_notice_days) {
+                $errors[] = "This leave type requires at least {$leaveType->advance_notice_days} day(s) advance notice.";
+            }
+
+            // 2. Check max days per request
+            if ($daysRequested > $leaveType->max_days_per_request) {
+                $errors[] = "Maximum {$leaveType->max_days_per_request} day(s) per request for this leave type.";
+            }
+
+            // 3. Check monthly limit
+            $currentMonth = $start->month;
+            $currentYear = $start->year;
+            $monthlyCount = DB::connection('ess')
+                ->table('leaves')
+                ->where('employee_id', $employeeId)
+                ->where('leave_type', $leaveType->name)
+                ->whereIn('status', ['pending', 'approved'])
+                ->whereMonth('start_date', $currentMonth)
+                ->whereYear('start_date', $currentYear)
+                ->count();
+
+            if ($monthlyCount >= $leaveType->max_per_month) {
+                $errors[] = "You have reached the maximum of {$leaveType->max_per_month} request(s) per month for this leave type.";
+            }
+
+            // 4. Check available balance
+            $balance = DB::connection('ess')
+                ->table('leave_balances')
+                ->where('employee_id', $employeeId)
+                ->where('leave_type_id', $leaveTypeId)
+                ->where('year', $currentYear)
+                ->first();
+
+            if ($balance) {
+                $approvedDays = DB::connection('ess')
+                    ->table('leaves')
+                    ->where('employee_id', $employeeId)
+                    ->where('leave_type', $leaveType->name)
+                    ->where('status', 'approved')
+                    ->whereYear('start_date', $currentYear)
+                    ->sum('days_requested');
+
+                $pendingDays = DB::connection('ess')
+                    ->table('leaves')
+                    ->where('employee_id', $employeeId)
+                    ->where('leave_type', $leaveType->name)
+                    ->where('status', 'pending')
+                    ->whereYear('start_date', $currentYear)
+                    ->sum('days_requested');
+
+                $available = $balance->total_credits - $approvedDays - $pendingDays;
+
+                if ($daysRequested > $available) {
+                    $errors[] = "Insufficient leave balance. Available: {$available} day(s), Requested: {$daysRequested} day(s).";
+                }
+            }
+
+            // 5. Check for overlapping leave requests
+            $overlap = DB::connection('ess')
+                ->table('leaves')
+                ->where('employee_id', $employeeId)
+                ->whereIn('status', ['pending', 'approved'])
+                ->where(function ($query) use ($startDate, $endDate) {
+                    $query->whereBetween('start_date', [$startDate, $endDate])
+                        ->orWhereBetween('end_date', [$startDate, $endDate])
+                        ->orWhere(function ($q) use ($startDate, $endDate) {
+                            $q->where('start_date', '<=', $startDate)
+                              ->where('end_date', '>=', $endDate);
+                        });
+                })
+                ->first();
+
+            if ($overlap) {
+                $errors[] = "You already have a leave request for these dates.";
+            }
+
+            // Warnings
+            if ($leaveType->requires_medical_cert) {
+                $warnings[] = "This leave type requires a medical certificate for approval.";
+            }
+
+            if (!$leaveType->is_paid) {
+                $warnings[] = "This is an unpaid leave type.";
+            }
+
+            return response()->json([
+                'success' => true,
+                'valid' => count($errors) === 0,
+                'days_requested' => $daysRequested,
+                'errors' => $errors,
+                'warnings' => $warnings
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error validating leave request: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'valid' => false,
+                'errors' => ['An error occurred while validating the request']
+            ], 500);
+        }
+    }
+
+    /**
+     * Get leave calendar data for an employee
+     * 
+     * @param string $employeeEmail
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getCalendar($employeeEmail, Request $request)
+    {
+        try {
+            // Get employee info
+            $user = \App\Models\User::where('email', $employeeEmail)->first();
+            $employeeId = $user ? $user->employee_id : null;
+
+            if (!$employeeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee not found',
+                    'events' => []
+                ]);
+            }
+
+            // Get month and year from request, default to current month
+            $month = $request->input('month', now()->month);
+            $year = $request->input('year', now()->year);
+
+            // Get start and end of month with buffer for multi-day leaves
+            $startOfMonth = \Carbon\Carbon::createFromDate($year, $month, 1)->subDays(7);
+            $endOfMonth = \Carbon\Carbon::createFromDate($year, $month, 1)->endOfMonth()->addDays(7);
+
+            // Fetch leaves that overlap with the month
+            $leaves = DB::connection('ess')
+                ->table('leaves')
+                ->where('employee_id', $employeeId)
+                ->whereIn('status', ['pending', 'approved'])
+                ->where(function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->whereBetween('start_date', [$startOfMonth, $endOfMonth])
+                        ->orWhereBetween('end_date', [$startOfMonth, $endOfMonth])
+                        ->orWhere(function ($q) use ($startOfMonth, $endOfMonth) {
+                            $q->where('start_date', '<=', $startOfMonth)
+                              ->where('end_date', '>=', $endOfMonth);
+                        });
+                })
+                ->orderBy('start_date')
+                ->get();
+
+            // Format as calendar events
+            $events = [];
+            foreach ($leaves as $leave) {
+                $color = $leave->status === 'approved' ? '#10b981' : '#f59e0b'; // Green for approved, amber for pending
+                $textColor = '#ffffff';
+                
+                // Get leave type color
+                $leaveType = DB::connection('ess')
+                    ->table('leave_types')
+                    ->where('name', $leave->leave_type)
+                    ->first();
+
+                if ($leaveType) {
+                    switch ($leaveType->color_class) {
+                        case 'vacation': $color = $leave->status === 'approved' ? '#2563eb' : '#93c5fd'; break;
+                        case 'sick': $color = $leave->status === 'approved' ? '#dc2626' : '#fca5a5'; break;
+                        case 'emergency': $color = $leave->status === 'approved' ? '#d97706' : '#fcd34d'; break;
+                        case 'bereavement': $color = $leave->status === 'approved' ? '#db2777' : '#f9a8d4'; break;
+                        case 'maternity': $color = $leave->status === 'approved' ? '#ec4899' : '#fbcfe8'; break;
+                        case 'paternity': $color = $leave->status === 'approved' ? '#0284c7' : '#7dd3fc'; break;
+                        case 'incentive': $color = $leave->status === 'approved' ? '#ca8a04' : '#fde047'; break;
+                        case 'lwop': $color = $leave->status === 'approved' ? '#64748b' : '#cbd5e1'; break;
+                        default: $color = $leave->status === 'approved' ? '#10b981' : '#86efac';
+                    }
+                }
+
+                $events[] = [
+                    'id' => $leave->id,
+                    'title' => $leave->leave_type . ($leave->status === 'pending' ? ' (Pending)' : ''),
+                    'start' => $leave->start_date,
+                    'end' => \Carbon\Carbon::parse($leave->end_date)->addDay()->format('Y-m-d'), // Add 1 day for inclusive end
+                    'color' => $color,
+                    'textColor' => $textColor,
+                    'status' => $leave->status,
+                    'leave_type' => $leave->leave_type,
+                    'days' => $leave->days_requested ?? 1,
+                    'reason' => $leave->reason,
+                    'allDay' => true,
+                ];
+            }
+
+            // Get pending count for display
+            $pendingCount = DB::connection('ess')
+                ->table('leaves')
+                ->where('employee_id', $employeeId)
+                ->where('status', 'pending')
+                ->count();
+
+            // Check if there's a pending request
+            $hasPending = $pendingCount > 0;
+
+            return response()->json([
+                'success' => true,
+                'month' => $month,
+                'year' => $year,
+                'pending_count' => $pendingCount,
+                'max_pending' => 1,
+                'has_pending' => $hasPending,
+                'events' => $events
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching leave calendar: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch calendar data',
+                'events' => []
             ], 500);
         }
     }
