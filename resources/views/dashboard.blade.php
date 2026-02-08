@@ -125,7 +125,7 @@
         <!-- Dashboard Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <!-- Total Courses Card -->
-            <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 text-white">
+            <a href="{{ route('training.catalog.index') }}" class="block bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 text-white hover:from-yellow-600 hover:to-yellow-700 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 cursor-pointer">
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-yellow-100 text-sm font-medium">Total Courses</h3>
@@ -136,10 +136,10 @@
                         <i class='bx bx-book-open text-yellow-700 text-3xl'></i>
                     </div>
                 </div>
-            </div>
+            </a>
 
             <!-- Assigned Employee Card -->
-            <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+            <a href="{{ route('learning.hub') }}" class="block bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 cursor-pointer">
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-blue-100 text-sm font-medium">Assigned Employee</h3>
@@ -150,10 +150,10 @@
                         <i class='bx bx-user-check text-blue-700 text-3xl'></i>
                     </div>
                 </div>
-            </div>
+            </a>
 
             <!-- Identified Successors Card -->
-            <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+            <a href="{{ route('succession.potential-successors') }}" class="block bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white hover:from-green-600 hover:to-green-700 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 cursor-pointer">
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-green-100 text-sm font-medium">Identified Successors</h3>
@@ -164,10 +164,10 @@
                         <i class='bx bx-group text-green-700 text-3xl'></i>
                     </div>
                 </div>
-            </div>
+            </a>
 
             <!-- Re-evaluation Employee Card -->
-            <div class="bg-gradient-to-r from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white">
+            <a href="{{ route('assessment.results') }}" class="block bg-gradient-to-r from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white hover:from-red-600 hover:to-red-700 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 cursor-pointer">
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-red-100 text-sm font-medium">Re-evaluation Employee</h3>
@@ -178,7 +178,7 @@
                         <i class='bx bx-error text-red-700 text-3xl'></i>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Recent Activities Section -->

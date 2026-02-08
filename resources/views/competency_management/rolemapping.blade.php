@@ -46,10 +46,13 @@
                             Select Employee
                         @endif
                     </h2>
-                    <button onclick="refreshAnalysis()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded flex items-center gap-1.5 text-xs transition-colors">
-                        <i class="bx bx-refresh"></i>
-                        Refresh
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500" id="employeeCountLabel">{{ $employeeGapAnalysis->count() }} employee(s)</span>
+                        <button onclick="refreshAnalysis()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded flex items-center gap-1.5 text-xs transition-colors">
+                            <i class="bx bx-refresh"></i>
+                            Refresh
+                        </button>
+                    </div>
                 </div>
                 
                 @if($employeeGapAnalysis->count() === 1)
@@ -80,35 +83,58 @@
                         </div>
                     </div>
                 @else
-                    <!-- Multiple Employee Selection - Compact -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <!-- Filter & Sort Controls -->
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-3">
+                        <!-- Status Filter Tabs -->
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <button onclick="filterEmployees('all')" data-filter="all" class="emp-filter-btn active px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border border-gray-300 bg-gray-800 text-white">
+                                All
+                                <span class="ml-1 bg-white/20 px-1.5 rounded-full text-[10px]" id="countAll">{{ $employeeGapAnalysis->count() }}</span>
+                            </button>
+                            <button onclick="filterEmployees('High Performer')" data-filter="High Performer" class="emp-filter-btn px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
+                                <i class='bx bx-star text-[10px]'></i> High Performer
+                                <span class="ml-1 bg-blue-200/50 px-1.5 rounded-full text-[10px]" id="countHighPerformer">
+                                    {{ $employeeGapAnalysis->where('status', 'High Performer')->count() }}
+                                </span>
+                            </button>
+                            <button onclick="filterEmployees('Pipeline Ready')" data-filter="Pipeline Ready" class="emp-filter-btn px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border border-green-200 bg-green-50 text-green-700 hover:bg-green-100">
+                                <i class='bx bx-check-circle text-[10px]'></i> Pipeline Ready
+                                <span class="ml-1 bg-green-200/50 px-1.5 rounded-full text-[10px]" id="countPipelineReady">
+                                    {{ $employeeGapAnalysis->where('status', 'Pipeline Ready')->count() }}
+                                </span>
+                            </button>
+                            <button onclick="filterEmployees('Developing')" data-filter="Developing" class="emp-filter-btn px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100">
+                                <i class='bx bx-trending-up text-[10px]'></i> Developing
+                                <span class="ml-1 bg-orange-200/50 px-1.5 rounded-full text-[10px]" id="countDeveloping">
+                                    {{ $employeeGapAnalysis->filter(fn($e) => !in_array($e['status'], ['High Performer', 'Pipeline Ready']))->count() }}
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Search & Sort -->
+                        <div class="flex items-center gap-2 ml-auto">
+                            <div class="relative">
+                                <i class='bx bx-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm'></i>
+                                <input type="text" id="employeeSearch" placeholder="Search name..." 
+                                       oninput="filterEmployees()" 
+                                       class="pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-xs w-40 focus:ring-1 focus:ring-blue-400 focus:border-blue-400">
+                            </div>
+                            <select id="employeeSort" onchange="filterEmployees()" class="border border-gray-200 rounded-lg text-xs px-2 py-1.5 focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-white">
+                                <option value="score_desc">Score: High → Low</option>
+                                <option value="score_asc">Score: Low → High</option>
+                                <option value="name_asc">Name: A → Z</option>
+                                <option value="name_desc">Name: Z → A</option>
+                                <option value="status">Status Group</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Employee List -->
+                    <div id="employeeListContainer" class="max-h-[280px] overflow-y-auto pr-1 space-y-2 scrollbar-thin">
                         @if($employeeGapAnalysis->count() > 0)
-                            @foreach($employeeGapAnalysis->take(3) as $index => $employee)
-                                @php
-                                    $scoreColor = $employee['overall_score'] >= 90 ? 'text-blue-600' : 
-                                                ($employee['overall_score'] >= 80 ? 'text-green-600' : 'text-orange-600');
-                                    $statusColor = $employee['status'] === 'High Performer' ? 'bg-blue-100 text-blue-800' :
-                                                 ($employee['status'] === 'Pipeline Ready' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800');
-                                    $isActive = $index === 0 ? 'active' : '';
-                                    $borderColor = $index === 0 ? 'border-blue-400' : 'border-gray-200';
-                                @endphp
-                                <div class="border-2 {{ $borderColor }} rounded-lg p-3 cursor-pointer hover:border-blue-400 transition-colors employee-card {{ $isActive }}" 
-                                     onclick="selectEmployee('{{ $employee['employee_id'] }}', '{{ $employee['employee_name'] }}', {{ $employee['overall_score'] }}, '{{ $employee['status'] }}')">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex-1">
-                                            <h3 class="text-sm font-semibold text-gray-800">{{ $employee['employee_name'] }}</h3>
-                                            <p class="text-xs text-gray-600">{{ $employee['job_title'] }}</p>
-                                            <p class="text-[10px] text-gray-500">ID: {{ $employee['employee_id'] }}</p>
-                                        </div>
-                                        <div class="text-right ml-2">
-                                            <div class="text-base font-bold {{ $scoreColor }}">{{ $employee['overall_score'] }}%</div>
-                                            <span class="inline-block px-1.5 py-0.5 {{ $statusColor }} rounded text-[10px] mt-1">{{ $employee['status'] }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
+                            {{-- All employee cards rendered via JS for filtering/sorting --}}
                         @else
-                            <div class="col-span-3 text-center py-6">
+                            <div class="text-center py-6">
                                 <i class="bx bx-user-x text-3xl text-gray-400 mb-2"></i>
                                 <h3 class="text-sm font-semibold text-gray-600 mb-1">No Qualified Employees</h3>
                                 <p class="text-xs text-gray-500 mb-3">No employees with evaluated assessments found</p>
@@ -118,6 +144,12 @@
                                 </a>
                             </div>
                         @endif
+                    </div>
+
+                    <!-- No Results Message (hidden by default) -->
+                    <div id="noFilterResults" class="hidden text-center py-4">
+                        <i class='bx bx-filter-alt text-2xl text-gray-400 mb-1'></i>
+                        <p class="text-xs text-gray-500">No employees match the current filter</p>
                     </div>
                 @endif
             </div>
@@ -163,6 +195,21 @@
                                 @endif
                             </div>
                             <div class="text-[9px] text-gray-600">Plans</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Evaluation Source Info Banner -->
+                <div id="evaluationSourceBanner" class="mb-3 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg px-4 py-2.5 hidden">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div class="flex items-center gap-2">
+                            <i class='bx bx-clipboard-check text-indigo-600'></i>
+                            <span class="text-[11px] font-semibold text-indigo-800">Data Source: Training Evaluation (Step 2)</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-[10px]">
+                            <span id="evalDateLabel" class="text-gray-600"></span>
+                            <span id="evalDecisionBadge"></span>
+                            <span id="evalHardSkillsBadge"></span>
                         </div>
                     </div>
                 </div>
@@ -552,6 +599,19 @@
         .gap-meets::before { background-color: #10b981; }
         .gap-below::before { background-color: #f59e0b; }
         .gap-critical::before { background-color: #ef4444; }
+
+        /* Employee list scrollbar */
+        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Filter button active state override */
+        .emp-filter-btn.active {
+            background-color: #1f2937 !important;
+            color: #fff !important;
+            border-color: #374151 !important;
+        }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -584,7 +644,13 @@
             'planning_organizing': competencyNameToId['Project Planning'] || competencyNameToId['Strategic Thinking'] || Object.values(competencyNameToId)[0],
             'accountability': competencyNameToId['Ethics & Integrity'] || competencyNameToId['Performance Management'] || Object.values(competencyNameToId)[0],
             'efficiency_improvement': competencyNameToId['Innovation Management'] || competencyNameToId['Technology Adoption'] || Object.values(competencyNameToId)[0],
-            'process_improvement': competencyNameToId['Innovation Management'] || competencyNameToId['Technology Adoption'] || Object.values(competencyNameToId)[0]
+            'process_improvement': competencyNameToId['Innovation Management'] || competencyNameToId['Technology Adoption'] || Object.values(competencyNameToId)[0],
+            // Hard skill mappings
+            'technical_proficiency': competencyNameToId['Technology Adoption'] || competencyNameToId['Product Knowledge'] || Object.values(competencyNameToId)[0],
+            'physical_performance': competencyNameToId['Performance Management'] || Object.values(competencyNameToId)[0],
+            'output_quality': competencyNameToId['Quality Management'] || competencyNameToId['Product Knowledge'] || Object.values(competencyNameToId)[0],
+            'safety_compliance': competencyNameToId['Regulatory Knowledge'] || competencyNameToId['Ethics & Integrity'] || Object.values(competencyNameToId)[0],
+            'task_efficiency': competencyNameToId['Project Planning'] || competencyNameToId['Innovation Management'] || Object.values(competencyNameToId)[0]
         };
 
         // Function to find competency ID by key or label
@@ -628,15 +694,22 @@
                     role: {!! json_encode($employee['job_title']) !!},
                     score: {{ $employee['overall_score'] }},
                     status: {!! json_encode($employee['status']) !!},
+                    evaluated_at: {!! json_encode($employee['evaluated_at'] ?? null) !!},
+                    practical_test_average: {{ $employee['practical_test_average'] ?? 'null' }},
+                    evaluation_decision: {!! json_encode($employee['evaluation_decision'] ?? null) !!},
                     competencies: {
                         @foreach($employee['competencies'] as $key => $competency)
                             '{{ $key }}': {
                                 current: {{ $competency['current'] }},
                                 required: {{ $competency['required'] }},
-                                description: {!! json_encode($competency['description']) !!}
+                                description: {!! json_encode($competency['description']) !!},
+                                type: {!! json_encode($competency['type'] ?? 'soft') !!},
+                                practical_score: {{ $competency['practical_score'] ?? 'null' }},
+                                practical_observation: {!! json_encode($competency['practical_observation'] ?? null) !!}
                             }{{ !$loop->last ? ',' : '' }}
                         @endforeach
                     },
+                    has_hard_skills: {{ isset($employee['has_hard_skills']) && $employee['has_hard_skills'] ? 'true' : 'false' }},
                     skill_gap_assignments: {!! json_encode($employee['skill_gap_assignments'] ?? []) !!},
                     has_active_gaps: {{ isset($employee['has_active_gaps']) && $employee['has_active_gaps'] ? 'true' : 'false' }}
                 }{{ !$loop->last ? ',' : '' }}
@@ -644,10 +717,158 @@
         };
 
         let currentEmployeeId = '{{ $employeeGapAnalysis->first()['employee_id'] ?? '1' }}';
+        let activeFilter = 'all';
+
+        // ── Employee List: Render / Filter / Sort ──
+        function getStatusOrder(status) {
+            if (status === 'High Performer') return 1;
+            if (status === 'Pipeline Ready') return 2;
+            return 3; // Developing or anything else
+        }
+
+        function renderEmployeeList(employees) {
+            const container = document.getElementById('employeeListContainer');
+            const noResults  = document.getElementById('noFilterResults');
+            if (!container) return; // single-employee view
+
+            if (employees.length === 0) {
+                container.innerHTML = '';
+                noResults.classList.remove('hidden');
+                document.getElementById('employeeCountLabel').textContent = '0 shown';
+                return;
+            }
+            noResults.classList.add('hidden');
+            document.getElementById('employeeCountLabel').textContent = employees.length + ' shown';
+
+            let html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">';
+            employees.forEach(emp => {
+                const isActive = emp.employee_id === currentEmployeeId;
+                const scoreColor = emp.score >= 90 ? 'text-blue-600' : (emp.score >= 80 ? 'text-green-600' : 'text-orange-600');
+                const statusStyles = {
+                    'High Performer': { bg: 'bg-blue-50 border-blue-200', badge: 'bg-blue-100 text-blue-800', icon: 'bx-star', iconColor: 'text-blue-500' },
+                    'Pipeline Ready': { bg: 'bg-green-50 border-green-200', badge: 'bg-green-100 text-green-800', icon: 'bx-check-circle', iconColor: 'text-green-500' },
+                };
+                const st = statusStyles[emp.status] || { bg: 'bg-orange-50 border-orange-200', badge: 'bg-orange-100 text-orange-800', icon: 'bx-trending-up', iconColor: 'text-orange-500' };
+                const activeBorder = isActive ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-blue-300';
+
+                html += `
+                    <div class="border-2 ${activeBorder} rounded-lg p-3 cursor-pointer transition-all employee-card ${isActive ? 'active' : ''}"
+                         onclick="selectEmployeeById('${emp.employee_id}', this)"
+                         data-status="${emp.status}" data-name="${emp.name}" data-score="${emp.score}">
+                        <div class="flex items-center gap-2.5">
+                            <div class="h-9 w-9 ${st.bg} rounded-full flex items-center justify-center text-xs font-bold shrink-0 border">
+                                <i class='bx ${st.icon} ${st.iconColor}'></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-xs font-semibold text-gray-800 truncate">${emp.name}</h3>
+                                <p class="text-[10px] text-gray-500 truncate">${emp.role}</p>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-sm font-bold ${scoreColor}">${emp.score}%</div>
+                                <span class="inline-block px-1.5 py-0.5 ${st.badge} rounded text-[9px] font-medium">${emp.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function filterEmployees(status) {
+            // Update active filter if a specific status button was clicked
+            if (status !== undefined) {
+                activeFilter = status;
+                // Update filter button styles
+                document.querySelectorAll('.emp-filter-btn').forEach(btn => {
+                    const btnFilter = btn.getAttribute('data-filter');
+                    btn.classList.remove('active', 'bg-gray-800', 'text-white', 'border-gray-300');
+                    if (btnFilter === activeFilter) {
+                        btn.classList.add('active', 'bg-gray-800', 'text-white', 'border-gray-300');
+                    }
+                });
+            }
+
+            const searchTerm = (document.getElementById('employeeSearch')?.value || '').toLowerCase().trim();
+            const sortBy = document.getElementById('employeeSort')?.value || 'score_desc';
+
+            // Build array from employeeData
+            let employees = Object.values(employeeData).map(e => ({
+                employee_id: e.employee_id,
+                name: e.name,
+                role: e.role,
+                score: e.score,
+                status: e.status
+            }));
+
+            // Filter by status
+            if (activeFilter !== 'all') {
+                if (activeFilter === 'Developing') {
+                    employees = employees.filter(e => e.status !== 'High Performer' && e.status !== 'Pipeline Ready');
+                } else {
+                    employees = employees.filter(e => e.status === activeFilter);
+                }
+            }
+
+            // Filter by search
+            if (searchTerm) {
+                employees = employees.filter(e =>
+                    e.name.toLowerCase().includes(searchTerm) ||
+                    e.role.toLowerCase().includes(searchTerm) ||
+                    e.employee_id.toString().includes(searchTerm)
+                );
+            }
+
+            // Sort
+            switch (sortBy) {
+                case 'score_desc':
+                    employees.sort((a, b) => b.score - a.score);
+                    break;
+                case 'score_asc':
+                    employees.sort((a, b) => a.score - b.score);
+                    break;
+                case 'name_asc':
+                    employees.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+                case 'name_desc':
+                    employees.sort((a, b) => b.name.localeCompare(a.name));
+                    break;
+                case 'status':
+                    employees.sort((a, b) => getStatusOrder(a.status) - getStatusOrder(b.status) || b.score - a.score);
+                    break;
+            }
+
+            renderEmployeeList(employees);
+        }
+
+        function selectEmployeeById(employeeId, el) {
+            const emp = employeeData[employeeId];
+            if (!emp) return;
+
+            document.querySelectorAll('.employee-card').forEach(card => {
+                card.classList.remove('active', 'border-blue-500', 'ring-2', 'ring-blue-200');
+                card.classList.add('border-gray-200');
+            });
+            if (el) {
+                el.classList.add('active', 'border-blue-500', 'ring-2', 'ring-blue-200');
+                el.classList.remove('border-gray-200');
+            }
+
+            currentEmployeeId = employeeId;
+            document.getElementById('selectedEmployeeName').textContent = emp.name;
+            document.getElementById('overallScore').textContent = emp.score + '%';
+            updateGapAnalysis(employeeId);
+        }
 
         function selectEmployee(employeeId, name, score, status) {
-            document.querySelectorAll('.employee-card').forEach(card => card.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            document.querySelectorAll('.employee-card').forEach(card => {
+                card.classList.remove('active', 'border-blue-500', 'ring-2', 'ring-blue-200');
+                card.classList.add('border-gray-200');
+            });
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active', 'border-blue-500', 'ring-2', 'ring-blue-200');
+                event.currentTarget.classList.remove('border-gray-200');
+            }
             
             currentEmployeeId = employeeId;
             document.getElementById('selectedEmployeeName').textContent = name;
@@ -665,6 +886,29 @@
             
             const activePlansCount = employee.skill_gap_assignments ? employee.skill_gap_assignments.length : 0;
             document.getElementById('activePlansCount').textContent = activePlansCount;
+
+            // Update evaluation source banner
+            const banner = document.getElementById('evaluationSourceBanner');
+            if (banner) {
+                banner.classList.remove('hidden');
+                const evalDate = employee.evaluated_at 
+                    ? new Date(employee.evaluated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : 'N/A';
+                document.getElementById('evalDateLabel').innerHTML = `<i class='bx bx-calendar mr-0.5'></i> Evaluated: ${evalDate}`;
+                
+                const decision = employee.evaluation_decision;
+                const decisionBadge = decision === 'passed' 
+                    ? '<span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium"><i class=\'bx bx-check-circle mr-0.5\'></i>Passed</span>'
+                    : decision === 'failed'
+                    ? '<span class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium"><i class=\'bx bx-x-circle mr-0.5\'></i>Failed</span>'
+                    : '<span class="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium">Pending</span>';
+                document.getElementById('evalDecisionBadge').innerHTML = decisionBadge;
+                
+                const hasHard = employee.has_hard_skills;
+                document.getElementById('evalHardSkillsBadge').innerHTML = hasHard
+                    ? '<span class="bg-pink-100 text-pink-700 px-1.5 py-0.5 rounded font-medium"><i class=\'bx bx-dumbbell mr-0.5\'></i>Hard Skills Included</span>'
+                    : '<span class="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium">Soft Skills Only</span>';
+            }
             
             let gapCount = 0;
             let tableHTML = '';
@@ -675,7 +919,12 @@
                 'job_knowledge': 'Job Knowledge',
                 'planning_organizing': 'Planning & Organizing',
                 'accountability': 'Accountability',
-                'efficiency_improvement': 'Process Improvement'
+                'efficiency_improvement': 'Process Improvement',
+                'technical_proficiency': 'Technical Proficiency',
+                'physical_performance': 'Physical Performance',
+                'output_quality': 'Output Quality',
+                'safety_compliance': 'Safety Compliance',
+                'task_efficiency': 'Task Efficiency'
             };
             
             const actionColors = {
@@ -829,8 +1078,26 @@
                 activeSkillGapsSection.innerHTML = '';
             }
 
-            // Generate table rows
-            Object.keys(employee.competencies).forEach(key => {
+            // Generate table rows - grouped by skill type (soft vs hard)
+            const softSkillKeys = Object.keys(employee.competencies).filter(k => (employee.competencies[k].type || 'soft') === 'soft');
+            const hardSkillKeys = Object.keys(employee.competencies).filter(k => employee.competencies[k].type === 'hard');
+
+            // Soft Skills section header
+            if (softSkillKeys.length > 0) {
+                tableHTML += `
+                    <tr class="bg-gradient-to-r from-indigo-50 to-purple-50">
+                        <td colspan="6" class="px-4 py-2">
+                            <div class="flex items-center gap-2">
+                                <i class='bx bx-brain text-indigo-600'></i>
+                                <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Soft Skills</span>
+                                <span class="text-[10px] text-indigo-500">(Interpersonal & Cognitive)</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            softSkillKeys.forEach(key => {
                 const comp = employee.competencies[key];
                 const gap = comp.required - comp.current;
                 const gapPercent = (comp.current / comp.required) * 100;
@@ -859,7 +1126,7 @@
                 tableHTML += `
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3">
-                            <div class="text-xs font-medium text-gray-900">${competencyLabels[key]}</div>
+                            <div class="text-xs font-medium text-gray-900">${competencyLabels[key] || key}</div>
                             <div class="text-[10px] text-gray-500">${comp.description}</div>
                         </td>
                         <td class="px-4 py-3 text-center">
@@ -885,7 +1152,7 @@
                         </td>
                         <td class="px-4 py-3 text-center">
                             ${hasGap ? `
-                                <button onclick="assignSkillGapDirect('${employeeId}', '${employee.name}', '${key}', '${competencyLabels[key]}', '${priority}')" 
+                                <button onclick="assignSkillGapDirect('${employeeId}', '${employee.name}', '${key}', '${competencyLabels[key] || key}', '${priority}')" 
                                         class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-[10px] font-medium transition-colors">
                                     <i class='bx bx-plus-circle mr-0.5'></i> Assign
                                 </button>
@@ -897,8 +1164,172 @@
                 `;
             });
 
+            // Hard Skills section header
+            if (hardSkillKeys.length > 0) {
+                // Calculate practical test average for this employee
+                let practicalTotal = 0;
+                let practicalCount = 0;
+                hardSkillKeys.forEach(k => {
+                    if (employee.competencies[k].practical_score !== null && employee.competencies[k].practical_score !== undefined) {
+                        practicalTotal += employee.competencies[k].practical_score;
+                        practicalCount++;
+                    }
+                });
+                const practicalAvg = practicalCount > 0 ? (practicalTotal / practicalCount).toFixed(1) : null;
+
+                tableHTML += `
+                    <tr class="bg-gradient-to-r from-pink-50 to-red-50">
+                        <td colspan="6" class="px-4 py-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class='bx bx-dumbbell text-pink-600'></i>
+                                    <span class="text-xs font-bold text-pink-700 uppercase tracking-wider">Hard Skills</span>
+                                    <span class="text-[10px] text-pink-500">(Technical & Physical Performance)</span>
+                                </div>
+                                ${practicalAvg !== null ? `
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-pink-600 font-medium">Practical Test Avg:</span>
+                                    <span class="bg-pink-100 text-pink-800 px-1.5 py-0.5 rounded text-[10px] font-bold">${practicalAvg}%</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+
+                hardSkillKeys.forEach(key => {
+                    const comp = employee.competencies[key];
+                    const gap = comp.required - comp.current;
+                    const gapPercent = (comp.current / comp.required) * 100;
+                    
+                    let gapStatus, gapClass, priority;
+                    
+                    if (gap <= 0) {
+                        gapStatus = 'Meets';
+                        gapClass = 'gap-meets';
+                        priority = 'Low';
+                    } else if (gap <= 0.5) {
+                        gapStatus = 'Minor Gap';
+                        gapClass = 'gap-below';
+                        priority = 'Medium';
+                        gapCount++;
+                    } else {
+                        gapStatus = 'Major Gap';
+                        gapClass = 'gap-critical';
+                        priority = 'High';
+                        gapCount++;
+                    }
+
+                    const progressColor = gapPercent >= 100 ? '#10b981' : gapPercent >= 80 ? '#f59e0b' : '#ef4444';
+                    const hasGap = gap > 0;
+                    
+                    // Practical test score badge
+                    const practicalScore = comp.practical_score;
+                    const practicalObs = comp.practical_observation;
+                    const practicalScoreColor = practicalScore >= 85 ? 'bg-green-100 text-green-700 border-green-200' :
+                                                practicalScore >= 70 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                                'bg-red-100 text-red-700 border-red-200';
+
+                    tableHTML += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3">
+                                <div class="text-xs font-medium text-gray-900">
+                                    <span class="inline-flex items-center">
+                                        <i class='bx bx-wrench text-pink-500 mr-1 text-sm'></i>
+                                        ${competencyLabels[key] || key}
+                                    </span>
+                                </div>
+                                <div class="text-[10px] text-gray-500">${comp.description}</div>
+                                ${practicalScore !== null && practicalScore !== undefined ? `
+                                <div class="mt-1 flex items-center gap-1.5">
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 ${practicalScoreColor} border rounded text-[9px] font-medium">
+                                        <i class='bx bx-test-tube'></i> Test: ${practicalScore}%
+                                    </span>
+                                    ${practicalObs ? `
+                                    <button onclick="showObservation('${competencyLabels[key] || key}', ${JSON.stringify(practicalObs).replace(/'/g, "\\'")})" 
+                                            class="text-[9px] text-blue-600 hover:text-blue-800 underline cursor-pointer">
+                                        <i class='bx bx-note text-[10px]'></i> View Notes
+                                    </button>
+                                    ` : ''}
+                                </div>
+                                ` : ''}
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <div class="text-xs font-semibold text-gray-900">${comp.current.toFixed(1)}/5.0</div>
+                                <div class="competency-progress mt-1 mx-auto" style="max-width: 60px;">
+                                    <div class="competency-progress-bar" style="width: ${(comp.current/5)*100}%; background-color: ${progressColor};"></div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <div class="text-xs font-semibold text-gray-900">${comp.required.toFixed(1)}/5.0</div>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="gap-indicator ${gapClass} px-2 py-0.5 bg-gray-100 rounded-full text-[10px] font-medium">
+                                    ${gapStatus}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                    priority === 'High' ? 'bg-red-100 text-red-700' :
+                                    priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-green-100 text-green-700'
+                                }">${priority}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                ${hasGap ? `
+                                    <button onclick="assignSkillGapDirect('${employeeId}', '${employee.name}', '${key}', '${competencyLabels[key] || key}', '${priority}')" 
+                                            class="bg-pink-600 hover:bg-pink-700 text-white px-2 py-1 rounded text-[10px] font-medium transition-colors">
+                                        <i class='bx bx-plus-circle mr-0.5'></i> Assign
+                                    </button>
+                                ` : `
+                                    <span class="text-[10px] text-gray-400">-</span>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                // No hard skills evaluated yet - show informational row
+                tableHTML += `
+                    <tr class="bg-gradient-to-r from-pink-50 to-red-50">
+                        <td colspan="6" class="px-4 py-2">
+                            <div class="flex items-center gap-2">
+                                <i class='bx bx-dumbbell text-pink-600'></i>
+                                <span class="text-xs font-bold text-pink-700 uppercase tracking-wider">Hard Skills</span>
+                                <span class="text-[10px] text-pink-500">(Technical & Physical Performance)</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" class="px-4 py-3 text-center">
+                            <div class="text-xs text-gray-400 italic">
+                                <i class='bx bx-info-circle mr-1'></i>
+                                Hard skills not yet evaluated. Complete re-evaluation to include physical/technical performance data.
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
             tableBody.innerHTML = tableHTML;
             document.getElementById('gapCount').textContent = gapCount;
+        }
+
+        // Show practical test observation notes in a popup
+        function showObservation(skillName, observation) {
+            Swal.fire({
+                title: `<i class='bx bx-note text-blue-600 mr-2'></i> ${skillName}`,
+                html: `
+                    <div class="text-left">
+                        <div class="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">Supervisor's Observation Notes</div>
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${observation}</div>
+                    </div>
+                `,
+                confirmButtonColor: '#3b82f6',
+                confirmButtonText: 'Close',
+                customClass: { popup: 'text-sm', htmlContainer: 'text-left' },
+                width: '480px'
+            });
         }
 
         // Direct skill gap assignment with confirmation - adds to improvement plans
@@ -1566,6 +1997,8 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             if (Object.keys(employeeData).length > 0) {
+                // Render the full employee list with default sorting
+                filterEmployees('all');
                 const firstEmployeeId = Object.keys(employeeData)[0];
                 updateGapAnalysis(firstEmployeeId);
             }

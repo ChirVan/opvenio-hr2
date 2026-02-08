@@ -283,49 +283,126 @@ class GapAnalysisController extends Controller
             $rating4 = $competencyRatings['accountability'] ?? $evaluationData['competency_4'] ?? 'inconsistent';
             $rating5 = $competencyRatings['work_improvement'] ?? $evaluationData['competency_5'] ?? 'inconsistent';
 
+            // Extract hard skills ratings (physical/technical performance)
+            // The evaluation form stores them nested under 'hard_skills' key
+            // with keys: technical_proficiency, physical_performance, output_quality, safety_compliance, task_efficiency
+            // Also support the legacy flat format (hard_skill_1, etc.) for backward compatibility
+            $hardSkillRatings = $evaluationData['hard_skills'] ?? [];
+            
+            $hardRating1 = $hardSkillRatings['technical_proficiency'] ?? $evaluationData['hard_skill_1'] ?? null;
+            $hardRating2 = $hardSkillRatings['physical_performance'] ?? $evaluationData['hard_skill_2'] ?? null;
+            $hardRating3 = $hardSkillRatings['output_quality'] ?? $evaluationData['hard_skill_3'] ?? null;
+            $hardRating4 = $hardSkillRatings['safety_compliance'] ?? $evaluationData['hard_skill_4'] ?? null;
+            $hardRating5 = $hardSkillRatings['task_efficiency'] ?? $evaluationData['hard_skill_5'] ?? null;
+            $hasHardSkills = $hardRating1 !== null;
+
             // Use the EXACT competency labels from the evaluation form (evaluate_step2.blade.php)
+            // === SOFT SKILLS ===
             $competencies = [
                 'assignment_skills' => [
                     'label' => 'Assignment Skills',
                     'description' => 'Skill and proficiency in carrying out assignment',
                     'current' => $scoreMapping[$rating1] ?? 2,
-                    'required' => 4.0
+                    'required' => 4.0,
+                    'type' => 'soft'
                 ],
                 'job_knowledge' => [
                     'label' => 'Job Knowledge', 
                     'description' => 'Possesses skills and knowledge to perform job effectively',
                     'current' => $scoreMapping[$rating2] ?? 2,
-                    'required' => 4.0
+                    'required' => 4.0,
+                    'type' => 'soft'
                 ],
                 'planning_organizing' => [
                     'label' => 'Planning & Organizing',
                     'description' => 'Skill at planning, organizing and prioritizing workload', 
                     'current' => $scoreMapping[$rating3] ?? 2,
-                    'required' => 4.5
+                    'required' => 4.5,
+                    'type' => 'soft'
                 ],
                 'accountability' => [
                     'label' => 'Accountability',
                     'description' => 'Holds self accountable for assigned responsibilities; sees task through to completion, in a timely manner',
                     'current' => $scoreMapping[$rating4] ?? 2,
-                    'required' => 4.0
+                    'required' => 4.0,
+                    'type' => 'soft'
                 ],
                 'efficiency_improvement' => [
                     'label' => 'Process Improvement',
                     'description' => 'Proficiency at improving work methods and procedures as a means toward greater efficiency',
                     'current' => $scoreMapping[$rating5] ?? 2,
-                    'required' => 4.0
+                    'required' => 4.0,
+                    'type' => 'soft'
                 ]
             ];
+
+            // === HARD SKILLS (Physical/Technical Performance) ===
+            // Also extract practical test scores for richer data display
+            $practicalTests = $evaluationData['practical_tests'] ?? [];
+            
+            if ($hasHardSkills) {
+                $competencies['technical_proficiency'] = [
+                    'label' => 'Technical Proficiency',
+                    'description' => 'Technical proficiency and accuracy in performing job-specific tasks',
+                    'current' => $scoreMapping[$hardRating1] ?? 2,
+                    'required' => 4.0,
+                    'type' => 'hard',
+                    'practical_score' => $practicalTests['technical_proficiency']['score'] ?? null,
+                    'practical_observation' => $practicalTests['technical_proficiency']['observation'] ?? null,
+                ];
+                $competencies['physical_performance'] = [
+                    'label' => 'Physical Performance',
+                    'description' => 'Physical task execution and endurance in work-related activities',
+                    'current' => $scoreMapping[$hardRating2] ?? 2,
+                    'required' => 3.5,
+                    'type' => 'hard',
+                    'practical_score' => $practicalTests['physical_performance']['score'] ?? null,
+                    'practical_observation' => $practicalTests['physical_performance']['observation'] ?? null,
+                ];
+                $competencies['output_quality'] = [
+                    'label' => 'Output Quality',
+                    'description' => 'Quality of output and attention to detail in deliverables',
+                    'current' => $scoreMapping[$hardRating3] ?? 2,
+                    'required' => 4.0,
+                    'type' => 'hard',
+                    'practical_score' => $practicalTests['output_quality']['score'] ?? null,
+                    'practical_observation' => $practicalTests['output_quality']['observation'] ?? null,
+                ];
+                $competencies['safety_compliance'] = [
+                    'label' => 'Safety Compliance',
+                    'description' => 'Safety compliance and proper handling of equipment/resources',
+                    'current' => $scoreMapping[$hardRating4] ?? 2,
+                    'required' => 4.5,
+                    'type' => 'hard',
+                    'practical_score' => $practicalTests['safety_compliance']['score'] ?? null,
+                    'practical_observation' => $practicalTests['safety_compliance']['observation'] ?? null,
+                ];
+                $competencies['task_efficiency'] = [
+                    'label' => 'Task Efficiency',
+                    'description' => 'Speed and efficiency in completing practical tasks',
+                    'current' => $scoreMapping[$hardRating5] ?? 2,
+                    'required' => 4.0,
+                    'type' => 'hard',
+                    'practical_score' => $practicalTests['task_efficiency']['score'] ?? null,
+                    'practical_observation' => $practicalTests['task_efficiency']['observation'] ?? null,
+                ];
+            }
 
             // Update employee competencies (take latest assessment)
             $employeeGapAnalysis[$employeeId]['competencies'] = $competencies;
             $employeeGapAnalysis[$employeeId]['assessment_count']++;
+            $employeeGapAnalysis[$employeeId]['evaluated_at'] = $assessment->evaluated_at;
+            $employeeGapAnalysis[$employeeId]['practical_test_average'] = $evaluationData['practical_test_average'] ?? null;
+            $employeeGapAnalysis[$employeeId]['evaluation_decision'] = $evaluationData['decision'] ?? null;
             
             // Calculate overall score
             $totalCurrent = array_sum(array_column($competencies, 'current'));
-            $overallScore = ($totalCurrent / 25) * 100; // Convert to percentage (5 competencies * 5 max score)
+            $totalCompetencies = count($competencies);
+            $maxScore = $totalCompetencies * 5; // Each competency max is 5
+            $overallScore = ($totalCurrent / $maxScore) * 100;
             
             $employeeGapAnalysis[$employeeId]['overall_score'] = round($overallScore);
+            $employeeGapAnalysis[$employeeId]['has_hard_skills'] = $hasHardSkills;
             
             // Determine status based on score
             if ($overallScore >= 90) {

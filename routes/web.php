@@ -348,6 +348,7 @@ Route::get('/dashboard', function () {
         Route::post('/assessment/{id}/submit', [App\Http\Controllers\ESSController::class, 'submitAssessment'])->name('assessment.submit');
         Route::get('/leave', fn() => view('ess.leave'))->name('leave');
         Route::get('/payslip', fn() => view('ess.payslip'))->name('payslip');
+        Route::get('/security-settings', fn() => view('ess.security-settings'))->name('security');
         
         // Course Grant functionality
         Route::get('/training-catalog/available-courses', [App\Http\Controllers\TrainingCatalogController::class, 'getAvailableCourses'])->name('training-catalog.available-courses');
@@ -356,9 +357,9 @@ Route::get('/dashboard', function () {
     });
 
     // ============================================================
-    // ======= Assessment Results Management (Admin/HR) ===========
+    // ======= Assessment Results Management (Admin/HR/Supervisor) =
     // ============================================================
-    Route::middleware(['role:admin,hr'])->group(function () {
+    Route::middleware(['role:admin,hr,supervisor'])->group(function () {
         Route::get('/assessment-results', [App\Http\Controllers\AssessmentResultsController::class, 'index'])->name('assessment.results');
         Route::get('/assessment-results/employee/{employeeId}/evaluate', [App\Http\Controllers\AssessmentResultsController::class, 'evaluate'])->name('assessment.results.evaluate');
         Route::get('/assessment-results/single/{resultId}/evaluate', [App\Http\Controllers\AssessmentResultsController::class, 'evaluateSingle'])->name('assessment.results.evaluate.single');
@@ -553,9 +554,9 @@ Route::get('/dashboard', function () {
     });
 
     // ============================================================
-    // ============ Learning Management (Admin/HR) ================
+    // ============ Learning Management (Admin/HR/Supervisor) =====
     // ============================================================
-    Route::prefix('learning-management')->name('learning-management.')->middleware(['role:admin,hr'])->group(function () {
+    Route::prefix('learning-management')->name('learning-management.')->middleware(['role:admin,hr,supervisor'])->group(function () {
         Route::get('/assessment-results', [App\Modules\learning_management\Controllers\AssessmentResultsController::class, 'index'])->name('assessment-results.index');
         Route::get('/assessment-results/{id}/evaluate', [App\Modules\learning_management\Controllers\AssessmentResultsController::class, 'evaluate'])->name('assessment-results.evaluate');
         Route::put('/assessment-results/{id}/evaluation', [App\Modules\learning_management\Controllers\AssessmentResultsController::class, 'updateEvaluation'])->name('assessment-results.update-evaluation');
@@ -594,12 +595,16 @@ Route::get('/dashboard', function () {
     Route::post('/competency/assessment/schedule', [GapAnalysisController::class, 'scheduleAssessment'])->name('competency.assessment.schedule');
     Route::get('/competency/gap-analysis/export/{employee}', [GapAnalysisController::class, 'exportGapAnalysis'])->name('competency.gap-analysis.export');
     
-    Route::get('/competency/rolemapping/create', [RoleMappingController::class, 'create'])->name('competency.rolemapping.create');
-    Route::post('/competency/rolemapping', [RoleMappingController::class, 'store'])->name('competency.rolemapping.store');
     Route::get('/competency/rolemapping/{roleMapping}', [RoleMappingController::class, 'show'])->name('competency.rolemapping.show');
-    Route::get('/competency/rolemapping/{roleMapping}/edit', [RoleMappingController::class, 'edit'])->name('competency.rolemapping.edit');
-    Route::put('/competency/rolemapping/{roleMapping}', [RoleMappingController::class, 'update'])->name('competency.rolemapping.update');
-    Route::delete('/competency/rolemapping/{roleMapping}', [RoleMappingController::class, 'destroy'])->name('competency.rolemapping.destroy');
+
+    // Role Mapping write routes - admin/hr only (supervisors have view-only access)
+    Route::middleware(['role:admin,hr'])->group(function () {
+        Route::get('/competency/rolemapping/create', [RoleMappingController::class, 'create'])->name('competency.rolemapping.create');
+        Route::post('/competency/rolemapping', [RoleMappingController::class, 'store'])->name('competency.rolemapping.store');
+        Route::get('/competency/rolemapping/{roleMapping}/edit', [RoleMappingController::class, 'edit'])->name('competency.rolemapping.edit');
+        Route::put('/competency/rolemapping/{roleMapping}', [RoleMappingController::class, 'update'])->name('competency.rolemapping.update');
+        Route::delete('/competency/rolemapping/{roleMapping}', [RoleMappingController::class, 'destroy'])->name('competency.rolemapping.destroy');
+    });
 
     // Gap Analysis
     Route::prefix('competency')->group(function () {
@@ -736,11 +741,11 @@ Route::get('/dashboard', function () {
             Route::get('/{id}', [\App\Modules\training_management\Controllers\TrainingRoomController::class, 'show'])->name('show');
         });
 
-        // Training Evaluation Routes (Hands-on Assessment)
+        // Training Evaluation Routes (Hands-on Assessment) — Supervisors only can submit
         Route::prefix('evaluation')->name('training.evaluation.')->group(function () {
-            Route::get('/', [\App\Modules\training_management\Controllers\TrainingEvaluationController::class, 'index'])->name('index');
-            Route::get('/{employeeId}', [\App\Modules\training_management\Controllers\TrainingEvaluationController::class, 'evaluate'])->name('evaluate');
-            Route::post('/{employeeId}/submit', [\App\Modules\training_management\Controllers\TrainingEvaluationController::class, 'submitEvaluation'])->name('submit');
+            Route::get('/', [\App\Modules\training_management\Controllers\TrainingEvaluationController::class, 'index'])->name('index')->middleware(['role:admin,hr,supervisor']);
+            Route::get('/{employeeId}', [\App\Modules\training_management\Controllers\TrainingEvaluationController::class, 'evaluate'])->name('evaluate')->middleware(['role:admin,hr,supervisor']);
+            Route::post('/{employeeId}/submit', [\App\Modules\training_management\Controllers\TrainingEvaluationController::class, 'submitEvaluation'])->name('submit')->middleware(['role:supervisor']);
         });
     });
 });

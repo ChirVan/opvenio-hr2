@@ -105,11 +105,19 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is a supervisor.
+     */
+    public function isSupervisor(): bool
+    {
+        return $this->role === 'supervisor';
+    }
+
+    /**
      * Check if user can access admin features.
      */
     public function canAccessAdmin(): bool
     {
-        return in_array($this->role, ['admin', 'hr']);
+        return in_array($this->role, ['admin', 'hr', 'supervisor']);
     }
 
     /**

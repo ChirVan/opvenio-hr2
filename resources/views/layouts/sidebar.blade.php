@@ -52,6 +52,7 @@
         <div class="text-xs font-bold text-gray-400 tracking-wider px-2 mt-6">COMPETENCY & TRAINING</div>
 
         <!-- Competency Management Dropdown -->
+        @if (!auth()->user()->isSupervisor())
         <button id="competency-menu-btn"
             class="mt-3 w-full flex items-center justify-between px-4 py-3 rounded-xl
                    {{ $isCompetencyOpen ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-green-50 hover:text-emerald-600' }}
@@ -80,6 +81,32 @@
                 </a>
             </div>
         </div>
+        @else
+        {{-- Supervisor: Competency Mgmt with Role Mapping (view-only) --}}
+        <button id="competency-menu-btn"
+            class="mt-3 w-full flex items-center justify-between px-4 py-3 rounded-xl
+                   {{ $isCompetencyOpen ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-green-50 hover:text-emerald-600' }}
+                   transition-all duration-200 hover:translate-x-1 active:translate-x-0 active:scale-[0.99] font-semibold">
+            <span class="flex items-center gap-3">
+                <span class="inline-flex w-9 h-9 rounded-lg {{ $isCompetencyOpen ? 'bg-white/15' : 'bg-emerald-50' }} items-center justify-center">
+                    <i class='bx bx-target-lock text-lg {{ $isCompetencyOpen ? 'text-white' : 'text-emerald-600' }}'></i>
+                </span>
+                <span class="sidebar-text">Competency Mgmt</span>
+            </span>
+            <svg id="competency-arrow" class="w-4 h-4 {{ $isCompetencyOpen ? 'text-white rotate-180' : 'text-emerald-400' }} transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
+
+        <div id="competency-submenu" class="submenu {{ $isCompetencyOpen ? 'is-open' : '' }} mt-1">
+            <div class="pl-4 pr-2 py-2 space-y-1 border-l-2 border-gray-100 ml-6">
+                <a href="{{ route('competency.rolemapping') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('competency.rolemapping*') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1 flex items-center justify-between">
+                    Role Mapping
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold ml-1">VIEW</span>
+                </a>
+            </div>
+        </div>
+        @endif
 
         <!-- Training Management Dropdown -->
         <button id="training-menu-btn"
@@ -99,6 +126,7 @@
 
         <div id="training-submenu" class="submenu {{ $isTrainingOpen ? 'is-open' : '' }} mt-1">
             <div class="pl-4 pr-2 py-2 space-y-1 border-l-2 border-gray-100 ml-6">
+                @if (!auth()->user()->isSupervisor())
                 <a href="{{ route('training.catalog.index') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('training.catalog.*') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1">
                     Training Catalog
                 </a>
@@ -108,6 +136,7 @@
                 <a href="{{ route('training.grant-request.index') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('training.grant-request.*') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1">
                     Grant Request
                 </a>
+                @endif
                 <a href="{{ route('training.room.index') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('training.room.*') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1">
                     Training Room
                 </a>
@@ -138,6 +167,7 @@
 
         <div id="learning-submenu" class="submenu {{ $isLearningOpen ? 'is-open' : '' }} mt-1">
             <div class="pl-4 pr-2 py-2 space-y-1 border-l-2 border-gray-100 ml-6">
+                @if (!auth()->user()->isSupervisor())
                 <a href="{{ route('learning.assessment') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('learning.assessment') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1">
                     Assessment Center
                 </a>
@@ -147,13 +177,18 @@
                 <a href="{{ route('learning.self-assess') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('learning.self-assess') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1">
                     Self Assessment
                 </a>
-                <a href="{{ route('assessment.results') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('assessment.results*') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1">
+                @endif
+                <a href="{{ route('assessment.results') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('assessment.results*') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1 flex items-center justify-between">
                     Assessment Results
+                    @if (auth()->user()->isSupervisor())
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold ml-1">VIEW</span>
+                    @endif
                 </a>
             </div>
         </div>
 
         <!-- SYSTEM ADMIN Section -->
+        @if (!auth()->user()->isSupervisor())
         <div class="text-xs font-bold text-gray-400 tracking-wider px-2 mt-6">SYSTEM ADMIN</div>
 
         <!-- Succession Planning Dropdown -->
@@ -182,6 +217,7 @@
                 </a>
             </div>
         </div>
+        @endif
 
         <!-- Footer -->
         <div class="mt-8 px-2">

@@ -99,9 +99,8 @@
       color: #333;
     }
     .payslip-locked {
-      opacity: 0.5;
-      pointer-events: none;
       position: relative;
+      pointer-events: none;
     }
     .lock-overlay {
       position: absolute;
@@ -109,7 +108,9 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.3);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;

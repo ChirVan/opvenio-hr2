@@ -171,9 +171,16 @@ class TrainingEvaluationController extends Controller
      */
     public function submitEvaluation(Request $request, $employeeId)
     {
+        // Only supervisors can submit evaluations
+        if (!auth()->user()->isSupervisor()) {
+            abort(403, 'Only supervisors are authorized to submit hands-on evaluations.');
+        }
+
         Log::info("=== SUBMIT EVALUATION STARTED ===", [
             'employee_id' => $employeeId,
             'decision' => $request->decision,
+            'evaluated_by' => auth()->id(),
+            'evaluator_role' => auth()->user()->role,
         ]);
 
         $request->validate([
@@ -182,8 +189,72 @@ class TrainingEvaluationController extends Controller
             'competency_3' => 'required|string',
             'competency_4' => 'required|string',
             'competency_5' => 'required|string',
+            'hard_skill_1' => 'required|string|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
+            'hard_skill_2' => 'required|string|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
+            'hard_skill_3' => 'required|string|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
+            'hard_skill_4' => 'required|string|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
+            'hard_skill_5' => 'required|string|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
+            'practical_score_1' => 'required|integer|min:0|max:100',
+            'practical_score_2' => 'required|integer|min:0|max:100',
+            'practical_score_3' => 'required|integer|min:0|max:100',
+            'practical_score_4' => 'required|integer|min:0|max:100',
+            'practical_score_5' => 'required|integer|min:0|max:100',
+            'practical_obs_1' => 'required|string|min:50',
+            'practical_obs_2' => 'required|string|min:50',
+            'practical_obs_3' => 'required|string|min:50',
+            'practical_obs_4' => 'required|string|min:50',
+            'practical_obs_5' => 'required|string|min:50',
+            'override_justification_1' => 'nullable|string|max:500',
+            'override_justification_2' => 'nullable|string|max:500',
+            'override_justification_3' => 'nullable|string|max:500',
+            'override_justification_4' => 'nullable|string|max:500',
+            'override_justification_5' => 'nullable|string|max:500',
             'decision' => 'required|in:passed,failed',
         ]);
+
+        // ===== SCORE-RATING INTEGRITY CHECK =====
+        $scoreToRating = function ($score) {
+            if ($score >= 90) return 'exceptional';
+            if ($score >= 75) return 'highly_effective';
+            if ($score >= 60) return 'proficient';
+            if ($score >= 40) return 'inconsistent';
+            return 'unsatisfactory';
+        };
+
+        $overrides = [];
+        $integrityErrors = [];
+
+        for ($i = 1; $i <= 5; $i++) {
+            $score = (int) $request->input("practical_score_{$i}");
+            $selectedRating = $request->input("hard_skill_{$i}");
+            $expectedRating = $scoreToRating($score);
+            $justification = trim($request->input("override_justification_{$i}", ''));
+
+            if ($selectedRating !== $expectedRating) {
+                // Mismatch detected — justification is mandatory
+                if (strlen($justification) < 50) {
+                    $skillNames = ['Technical Proficiency', 'Physical Performance', 'Output Quality', 'Safety Compliance', 'Task Efficiency'];
+                    $integrityErrors[] = "Hard Skill {$i} ({$skillNames[$i-1]}): Score {$score}% suggests \"{$expectedRating}\" but you selected \"{$selectedRating}\". Override justification must be at least 50 characters.";
+                } else {
+                    $overrides[$i] = [
+                        'skill_index' => $i,
+                        'test_score' => $score,
+                        'expected_rating' => $expectedRating,
+                        'selected_rating' => $selectedRating,
+                        'justification' => $justification,
+                        'overridden_by' => auth()->id(),
+                        'overridden_at' => now()->toDateTimeString(),
+                    ];
+                    Log::warning("HARD SKILL RATING OVERRIDE", $overrides[$i]);
+                }
+            }
+        }
+
+        if (!empty($integrityErrors)) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['integrity' => implode(' | ', $integrityErrors)]);
+        }
 
         $evaluationData = [
             'competencies' => [
@@ -193,6 +264,41 @@ class TrainingEvaluationController extends Controller
                 'accountability' => $request->competency_4,
                 'work_improvement' => $request->competency_5,
             ],
+            'hard_skills' => [
+                'technical_proficiency' => $request->hard_skill_1,
+                'physical_performance' => $request->hard_skill_2,
+                'output_quality' => $request->hard_skill_3,
+                'safety_compliance' => $request->hard_skill_4,
+                'task_efficiency' => $request->hard_skill_5,
+            ],
+            'practical_tests' => [
+                'technical_proficiency' => [
+                    'score' => (int) $request->practical_score_1,
+                    'observation' => $request->practical_obs_1,
+                ],
+                'physical_performance' => [
+                    'score' => (int) $request->practical_score_2,
+                    'observation' => $request->practical_obs_2,
+                ],
+                'output_quality' => [
+                    'score' => (int) $request->practical_score_3,
+                    'observation' => $request->practical_obs_3,
+                ],
+                'safety_compliance' => [
+                    'score' => (int) $request->practical_score_4,
+                    'observation' => $request->practical_obs_4,
+                ],
+                'task_efficiency' => [
+                    'score' => (int) $request->practical_score_5,
+                    'observation' => $request->practical_obs_5,
+                ],
+            ],
+            'practical_test_average' => round(
+                ((int)$request->practical_score_1 + (int)$request->practical_score_2 + (int)$request->practical_score_3 + (int)$request->practical_score_4 + (int)$request->practical_score_5) / 5,
+                1
+            ),
+            'rating_overrides' => !empty($overrides) ? $overrides : null,
+            'override_count' => count($overrides),
             'strengths' => $request->strengths,
             'areas_for_improvement' => $request->areas_for_improvement,
             'decision' => $request->decision,
@@ -298,6 +404,7 @@ class TrainingEvaluationController extends Controller
                     'strengths' => $evaluationData['strengths'] ?? '',
                     'recommendations' => json_encode([
                         'competencies' => $evaluationData['competencies'],
+                        'hard_skills' => $evaluationData['hard_skills'] ?? [],
                         'areas_for_improvement' => $evaluationData['areas_for_improvement'] ?? '',
                     ]),
                     'status' => 'pending',
@@ -351,7 +458,9 @@ class TrainingEvaluationController extends Controller
                     'training_evaluation' => [
                         'decision' => 'passed',
                         'competencies' => $evaluationData['competencies'],
+                        'hard_skills' => $evaluationData['hard_skills'] ?? [],
                         'competency_score' => $this->calculateEvaluationScore($evaluationData['competencies']),
+                        'hard_skill_score' => $this->calculateEvaluationScore($evaluationData['hard_skills'] ?? []),
                         'strengths' => $evaluationData['strengths'] ?? '',
                         'areas_for_improvement' => $evaluationData['areas_for_improvement'] ?? '',
                     ],
@@ -410,7 +519,10 @@ class TrainingEvaluationController extends Controller
             $jobTitle = $employee['job_title'] ?? $employee['job']['job_title'] ?? 'Not Specified';
 
             // Identify weak competencies (unsatisfactory or inconsistent ratings)
-            $weakCompetencies = $this->identifyWeakCompetencies($evaluationData['competencies']);
+            $weakCompetencies = $this->identifyWeakCompetencies(
+                $evaluationData['competencies'],
+                $evaluationData['hard_skills'] ?? []
+            );
 
             // Create skill gap assignments for each weak competency
             foreach ($weakCompetencies as $competency) {
@@ -462,7 +574,7 @@ class TrainingEvaluationController extends Controller
     /**
      * Identify weak competencies from evaluation ratings
      */
-    private function identifyWeakCompetencies(array $competencies): array
+    private function identifyWeakCompetencies(array $competencies, array $hardSkills = []): array
     {
         $weakCompetencies = [];
         
@@ -474,10 +586,18 @@ class TrainingEvaluationController extends Controller
             'work_improvement' => 'Work improvement and efficiency',
         ];
 
+        $hardSkillLabels = [
+            'technical_proficiency' => 'Technical Proficiency',
+            'physical_performance' => 'Physical Performance',
+            'output_quality' => 'Output Quality',
+            'safety_compliance' => 'Safety Compliance',
+            'task_efficiency' => 'Task Efficiency',
+        ];
+
+        // Check soft skills
         foreach ($competencies as $key => $rating) {
             $ratingLower = strtolower($rating);
             
-            // Identify weak ratings
             if (in_array($ratingLower, ['unsatisfactory', 'inconsistent'])) {
                 $actionType = $ratingLower === 'unsatisfactory' ? 'critical' : 'training';
                 
@@ -486,6 +606,24 @@ class TrainingEvaluationController extends Controller
                     'label' => $competencyLabels[$key] ?? $key,
                     'rating' => $rating,
                     'action_type' => $actionType,
+                    'type' => 'soft',
+                ];
+            }
+        }
+
+        // Check hard skills
+        foreach ($hardSkills as $key => $rating) {
+            $ratingLower = strtolower($rating);
+            
+            if (in_array($ratingLower, ['unsatisfactory', 'inconsistent'])) {
+                $actionType = $ratingLower === 'unsatisfactory' ? 'critical' : 'training';
+                
+                $weakCompetencies[] = [
+                    'key' => 'hard_' . $key,
+                    'label' => $hardSkillLabels[$key] ?? $key,
+                    'rating' => $rating,
+                    'action_type' => $actionType,
+                    'type' => 'hard',
                 ];
             }
         }
@@ -521,7 +659,13 @@ class TrainingEvaluationController extends Controller
         $objectives = [];
         foreach ($evaluationData['competencies'] as $key => $rating) {
             if (in_array(strtolower($rating), ['unsatisfactory', 'inconsistent', 'proficient'])) {
-                $objectives[] = "Improve {$key} from '{$rating}' to 'Highly Effective' or better";
+                $objectives[] = "Improve soft skill '{$key}' from '{$rating}' to 'Highly Effective' or better";
+            }
+        }
+        // Include hard skills in development objectives
+        foreach (($evaluationData['hard_skills'] ?? []) as $key => $rating) {
+            if (in_array(strtolower($rating), ['unsatisfactory', 'inconsistent', 'proficient'])) {
+                $objectives[] = "Improve hard skill '{$key}' from '{$rating}' to 'Highly Effective' or better";
             }
         }
 

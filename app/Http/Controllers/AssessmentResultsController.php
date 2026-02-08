@@ -481,6 +481,11 @@ class AssessmentResultsController extends Controller
                 'competency_3' => 'required|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
                 'competency_4' => 'required|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
                 'competency_5' => 'required|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
+                'hard_skill_1' => 'required|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
+                'hard_skill_2' => 'required|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
+                'hard_skill_3' => 'required|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
+                'hard_skill_4' => 'required|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
+                'hard_skill_5' => 'required|in:exceptional,highly_effective,proficient,inconsistent,unsatisfactory',
                 'decision' => 'required|in:passed,failed',
                 'strengths' => 'nullable|string|max:1000',
                 'areas_for_improvement' => 'nullable|string|max:1000',
@@ -490,14 +495,24 @@ class AssessmentResultsController extends Controller
             return redirect()->back()->withErrors($e->validator)->withInput();
         }
 
-        // Calculate performance score based on competency ratings
-            $competencyScores = [
+        // Calculate performance score based on competency ratings (soft + hard skills)
+            $softSkillScores = [
                 $request->competency_1,
                 $request->competency_2,
                 $request->competency_3,
                 $request->competency_4,
                 $request->competency_5
             ];
+
+            $hardSkillScores = [
+                $request->hard_skill_1,
+                $request->hard_skill_2,
+                $request->hard_skill_3,
+                $request->hard_skill_4,
+                $request->hard_skill_5
+            ];
+
+            $allCompetencyScores = array_merge($softSkillScores, $hardSkillScores);
 
             // Convert ratings to numeric values for scoring
             $scoreMapping = [
@@ -510,9 +525,19 @@ class AssessmentResultsController extends Controller
 
             $numericScores = array_map(function($rating) use ($scoreMapping) {
                 return $scoreMapping[$rating];
-            }, $competencyScores);
+            }, $allCompetencyScores);
+
+            $softSkillNumeric = array_map(function($rating) use ($scoreMapping) {
+                return $scoreMapping[$rating];
+            }, $softSkillScores);
+
+            $hardSkillNumeric = array_map(function($rating) use ($scoreMapping) {
+                return $scoreMapping[$rating];
+            }, $hardSkillScores);
 
             $averageScore = array_sum($numericScores) / count($numericScores);
+            $softSkillAverage = array_sum($softSkillNumeric) / count($softSkillNumeric);
+            $hardSkillAverage = array_sum($hardSkillNumeric) / count($hardSkillNumeric);
 
             // Prepare evaluation data
             $evaluationData = [
@@ -521,7 +546,14 @@ class AssessmentResultsController extends Controller
                 'competency_3' => $request->competency_3,
                 'competency_4' => $request->competency_4,
                 'competency_5' => $request->competency_5,
+                'hard_skill_1' => $request->hard_skill_1,
+                'hard_skill_2' => $request->hard_skill_2,
+                'hard_skill_3' => $request->hard_skill_3,
+                'hard_skill_4' => $request->hard_skill_4,
+                'hard_skill_5' => $request->hard_skill_5,
                 'average_score' => round($averageScore, 2),
+                'soft_skill_average' => round($softSkillAverage, 2),
+                'hard_skill_average' => round($hardSkillAverage, 2),
                 'strengths' => $request->strengths,
                 'areas_for_improvement' => $request->areas_for_improvement,
                 'recommendations' => $request->recommendations,
@@ -609,7 +641,12 @@ class AssessmentResultsController extends Controller
                     'competency_2' => 'job_knowledge',
                     'competency_3' => 'planning_organizing',
                     'competency_4' => 'accountability',
-                    'competency_5' => 'efficiency_improvement'
+                    'competency_5' => 'efficiency_improvement',
+                    'hard_skill_1' => 'technical_proficiency',
+                    'hard_skill_2' => 'physical_performance',
+                    'hard_skill_3' => 'output_quality',
+                    'hard_skill_4' => 'safety_compliance',
+                    'hard_skill_5' => 'task_efficiency'
                 ];
                 
                 // Update all pending skill_gap_assignments for this employee to completed

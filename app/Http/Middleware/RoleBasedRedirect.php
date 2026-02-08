@@ -35,9 +35,9 @@ class RoleBasedRedirect
                 return redirect()->route('ess.dashboard');
             }
             
-            // If admin/hr is trying to access ESS, redirect to main dashboard
-            if (in_array($user->role, ['admin', 'hr']) && $currentRoute === 'ess.dashboard') {
-                Log::info('Redirecting admin/hr from ESS to main dashboard');
+            // If admin/hr/supervisor is trying to access ESS, redirect to main dashboard
+            if (in_array($user->role, ['admin', 'hr', 'supervisor']) && $currentRoute === 'ess.dashboard') {
+                Log::info('Redirecting admin/hr/supervisor from ESS to main dashboard');
                 return redirect()->route('dashboard');
             }
         }

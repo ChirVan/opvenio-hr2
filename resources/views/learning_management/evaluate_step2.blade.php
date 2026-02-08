@@ -127,10 +127,11 @@
                                     </div>
                                 </div>
 
-                                <!-- Performance Competencies -->
+                                <!-- Soft Skills / Performance Competencies -->
                                 <div class="card mb-4">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">Performance Competencies Assessment</h6>
+                                    <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                        <h6 class="mb-0"><i class='bx bx-brain mr-2'></i>Soft Skills Assessment</h6>
+                                        <small class="text-white-50">Evaluate the employee's interpersonal, organizational, and cognitive competencies</small>
                                     </div>
                                     <div class="card-body">
                                         
@@ -205,6 +206,90 @@
                                     </div>
                                 </div>
 
+                                <!-- Hard Skills / Physical Performance -->
+                                <div class="card mb-4">
+                                    <div class="card-header" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                                        <h6 class="mb-0"><i class='bx bx-dumbbell mr-2'></i>Hard Skills / Physical Performance Assessment</h6>
+                                        <small class="text-white-50">Evaluate the employee's technical, physical, and practical job competencies</small>
+                                    </div>
+                                    <div class="card-body">
+
+                                        <!-- Hard Skill 1 -->
+                                        <div class="form-group mb-4">
+                                            <label class="form-label"><strong>6. Technical proficiency and accuracy in performing job-specific tasks</strong></label>
+                                            <p class="text-muted small mb-2">Ability to use tools, equipment, or systems required for the role with precision and competence.</p>
+                                            <select class="form-control" name="hard_skill_1" required>
+                                                <option value="">Select Rating</option>
+                                                <option value="exceptional" {{ old('hard_skill_1') == 'exceptional' ? 'selected' : '' }}>Exceptional</option>
+                                                <option value="highly_effective" {{ old('hard_skill_1') == 'highly_effective' ? 'selected' : '' }}>Highly Effective</option>
+                                                <option value="proficient" {{ old('hard_skill_1') == 'proficient' ? 'selected' : '' }}>Proficient</option>
+                                                <option value="inconsistent" {{ old('hard_skill_1') == 'inconsistent' ? 'selected' : '' }}>Inconsistent</option>
+                                                <option value="unsatisfactory" {{ old('hard_skill_1') == 'unsatisfactory' ? 'selected' : '' }}>Unsatisfactory</option>
+                                            </select>
+                                            @error('hard_skill_1')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <!-- Hard Skill 2 -->
+                                        <div class="form-group mb-4">
+                                            <label class="form-label"><strong>7. Physical task execution and endurance in work-related activities</strong></label>
+                                            <p class="text-muted small mb-2">Capacity to perform physical duties, maintain stamina, and handle demanding work conditions.</p>
+                                            <select class="form-control" name="hard_skill_2" required>
+                                                <option value="">Select Rating</option>
+                                                <option value="exceptional" {{ old('hard_skill_2') == 'exceptional' ? 'selected' : '' }}>Exceptional</option>
+                                                <option value="highly_effective" {{ old('hard_skill_2') == 'highly_effective' ? 'selected' : '' }}>Highly Effective</option>
+                                                <option value="proficient" {{ old('hard_skill_2') == 'proficient' ? 'selected' : '' }}>Proficient</option>
+                                                <option value="inconsistent" {{ old('hard_skill_2') == 'inconsistent' ? 'selected' : '' }}>Inconsistent</option>
+                                                <option value="unsatisfactory" {{ old('hard_skill_2') == 'unsatisfactory' ? 'selected' : '' }}>Unsatisfactory</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Hard Skill 3 -->
+                                        <div class="form-group mb-4">
+                                            <label class="form-label"><strong>8. Quality of output and attention to detail in deliverables</strong></label>
+                                            <p class="text-muted small mb-2">Consistency in producing high-quality, error-free work results that meet standards.</p>
+                                            <select class="form-control" name="hard_skill_3" required>
+                                                <option value="">Select Rating</option>
+                                                <option value="exceptional" {{ old('hard_skill_3') == 'exceptional' ? 'selected' : '' }}>Exceptional</option>
+                                                <option value="highly_effective" {{ old('hard_skill_3') == 'highly_effective' ? 'selected' : '' }}>Highly Effective</option>
+                                                <option value="proficient" {{ old('hard_skill_3') == 'proficient' ? 'selected' : '' }}>Proficient</option>
+                                                <option value="inconsistent" {{ old('hard_skill_3') == 'inconsistent' ? 'selected' : '' }}>Inconsistent</option>
+                                                <option value="unsatisfactory" {{ old('hard_skill_3') == 'unsatisfactory' ? 'selected' : '' }}>Unsatisfactory</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Hard Skill 4 -->
+                                        <div class="form-group mb-4">
+                                            <label class="form-label"><strong>9. Safety compliance and proper handling of equipment/resources</strong></label>
+                                            <p class="text-muted small mb-2">Adherence to safety protocols, proper use of tools/equipment, and responsible resource management.</p>
+                                            <select class="form-control" name="hard_skill_4" required>
+                                                <option value="">Select Rating</option>
+                                                <option value="exceptional" {{ old('hard_skill_4') == 'exceptional' ? 'selected' : '' }}>Exceptional</option>
+                                                <option value="highly_effective" {{ old('hard_skill_4') == 'highly_effective' ? 'selected' : '' }}>Highly Effective</option>
+                                                <option value="proficient" {{ old('hard_skill_4') == 'proficient' ? 'selected' : '' }}>Proficient</option>
+                                                <option value="inconsistent" {{ old('hard_skill_4') == 'inconsistent' ? 'selected' : '' }}>Inconsistent</option>
+                                                <option value="unsatisfactory" {{ old('hard_skill_4') == 'unsatisfactory' ? 'selected' : '' }}>Unsatisfactory</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Hard Skill 5 -->
+                                        <div class="form-group mb-4">
+                                            <label class="form-label"><strong>10. Speed and efficiency in completing practical tasks</strong></label>
+                                            <p class="text-muted small mb-2">Ability to complete job tasks within expected timeframes while maintaining quality standards.</p>
+                                            <select class="form-control" name="hard_skill_5" required>
+                                                <option value="">Select Rating</option>
+                                                <option value="exceptional" {{ old('hard_skill_5') == 'exceptional' ? 'selected' : '' }}>Exceptional</option>
+                                                <option value="highly_effective" {{ old('hard_skill_5') == 'highly_effective' ? 'selected' : '' }}>Highly Effective</option>
+                                                <option value="proficient" {{ old('hard_skill_5') == 'proficient' ? 'selected' : '' }}>Proficient</option>
+                                                <option value="inconsistent" {{ old('hard_skill_5') == 'inconsistent' ? 'selected' : '' }}>Inconsistent</option>
+                                                <option value="unsatisfactory" {{ old('hard_skill_5') == 'unsatisfactory' ? 'selected' : '' }}>Unsatisfactory</option>
+                                            </select>
+                                        </div>
+
+                                    </div>
+                                </div>
+
                                 <!-- Additional Comments -->
                                 <div class="card mb-4">
                                     <div class="card-header">
@@ -249,8 +334,8 @@
 
     <script>
         function validateAndConfirm(decision) {
-            // Check if all competency ratings are selected
-            const competencies = ['competency_1', 'competency_2', 'competency_3', 'competency_4', 'competency_5'];
+            // Check if all competency ratings are selected (soft + hard skills)
+            const competencies = ['competency_1', 'competency_2', 'competency_3', 'competency_4', 'competency_5', 'hard_skill_1', 'hard_skill_2', 'hard_skill_3', 'hard_skill_4', 'hard_skill_5'];
             let allFilled = true;
             let missingFields = [];
 

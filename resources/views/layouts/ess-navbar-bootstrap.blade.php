@@ -1,42 +1,86 @@
-<!-- ESS Bootstrap Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-success fixed-top">
-    <div class="container-fluid">
-        <!-- Brand -->
-        <a class="navbar-brand fw-bold" href="{{ route('ess.dashboard') }}">
-            <i class="bx bx-buildings me-2"></i>
-            Employee Portal
+<!-- ESS Bootstrap Navbar - Aligned with Admin Navbar Theme -->
+<nav class="navbar navbar-expand-lg fixed-top shadow-sm" style="background: #ffffff; border-bottom: 1px solid #f0f0f0; height: 64px;">
+    <div class="container-fluid px-3 px-sm-4">
+        <!-- Brand / Logo -->
+        <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none py-0" href="{{ route('ess.dashboard') }}">
+            <img src="{{ asset('images/logo.png') }}" alt="Logo" style="width: 36px; height: 36px; object-fit: contain;">
+            <div class="d-none d-sm-block lh-sm">
+                <div class="fw-bold" style="font-size: 0.85rem; color: #1f2937;">Microfinance HR</div>
+                <div class="fw-semibold" style="font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">Employee Self-Service</div>
+            </div>
         </a>
 
         <!-- Right side items -->
-        <div class="d-flex align-items-center">
-            <!-- Date/Time -->
-            <span class="text-light me-3 d-none d-md-block small" id="navbarDateTime"></span>
+        <div class="d-flex align-items-center gap-2 gap-sm-3">
+            <!-- Clock Pill -->
+            <span id="navbarDateTime" class="d-none d-md-inline-block px-3 py-2 rounded-3 border" 
+                  style="font-size: 0.7rem; font-weight: 700; color: #374151; background: #f9fafb; border-color: #e5e7eb !important;">
+                --:--:--
+            </span>
+
+            <!-- Divider -->
+            <div class="d-none d-sm-block" style="width: 1px; height: 32px; background: #e5e7eb;"></div>
 
             <!-- Notifications -->
-            <button class="btn btn-outline-light btn-sm me-2" type="button">
-                <i class="bx bx-envelope"></i>
+            <button class="btn btn-light border-0 rounded-3 position-relative d-flex align-items-center justify-content-center" 
+                    type="button" style="width: 40px; height: 40px; background: transparent;" 
+                    onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                <i class="bx bxs-bell" style="font-size: 1.25rem; color: #f59e0b;"></i>
             </button>
 
-            <button class="btn btn-outline-light btn-sm me-3" type="button">
-                <i class="bx bx-bell"></i>
+            <!-- Messages -->
+            <button class="btn btn-light border-0 rounded-3 position-relative d-flex align-items-center justify-content-center" 
+                    type="button" style="width: 40px; height: 40px; background: transparent;" 
+                    onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                <i class="bx bxs-envelope" style="font-size: 1.25rem; color: #6b7280;"></i>
             </button>
+
+            <!-- Divider -->
+            <div class="d-none d-sm-block" style="width: 1px; height: 32px; background: #e5e7eb;"></div>
 
             <!-- Profile Dropdown -->
             <div class="dropdown">
-                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="bx bx-user-circle me-1"></i>
-                    {{ Auth::user()->name }}
+                <button class="btn d-flex align-items-center gap-2 rounded-3 border-0 px-2 py-2" 
+                        type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                        style="background: transparent; transition: background 0.15s;"
+                        onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                    <!-- Avatar Circle -->
+                    <div class="d-flex align-items-center justify-content-center rounded-circle border" 
+                         style="width: 36px; height: 36px; background: #ecfdf5; border-color: #d1fae5 !important; font-weight: 700; color: #059669; font-size: 0.85rem;">
+                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                    </div>
+                    <!-- Name & Role -->
+                    <div class="d-none d-md-block text-start lh-sm">
+                        <div class="fw-bold" style="font-size: 0.8rem; color: #374151;">{{ Auth::user()->name }}</div>
+                        <div class="fw-semibold" style="font-size: 0.6rem; color: #6b7280; text-transform: uppercase;">Employee</div>
+                    </div>
+                    <!-- Chevron -->
+                    <svg style="width: 16px; height: 16px; color: #9ca3af;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="#"><i class="bx bx-user me-2"></i>My Profile</a></li>
-                    <li><a class="dropdown-item" href="#"><i class="bx bx-cog me-2"></i>Settings</a></li>
-                    <li><a class="dropdown-item" href="{{ route('profile.security') }}"><i class="bx bx-shield me-2"></i>Security Settings</a></li>
-                    <li><hr class="dropdown-divider"></li>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2" style="border-radius: 12px; min-width: 220px; overflow: hidden;">
                     <li>
-                        <form method="POST" action="{{ route('logout') }}" class="d-inline">
+                        <a class="dropdown-item py-2 px-3 d-flex align-items-center gap-2" href="#" style="font-size: 0.85rem; color: #374151;">
+                            <i class="bx bx-user" style="font-size: 1.1rem; color: #6b7280;"></i> My Profile
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item py-2 px-3 d-flex align-items-center gap-2" href="#" style="font-size: 0.85rem; color: #374151;">
+                            <i class="bx bx-cog" style="font-size: 1.1rem; color: #6b7280;"></i> Settings
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item py-2 px-3 d-flex align-items-center gap-2" href="{{ route('ess.security') }}" style="font-size: 0.85rem; color: #374151;">
+                            <i class="bx bx-shield" style="font-size: 1.1rem; color: #6b7280;"></i> Security Settings
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider my-1" style="border-color: #f3f4f6;"></li>
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}" class="d-inline w-100">
                             @csrf
-                            <button type="submit" class="dropdown-item">
-                                <i class="bx bx-log-out me-2"></i>Logout
+                            <button type="submit" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2" style="font-size: 0.85rem; color: #dc2626;">
+                                <i class="bx bx-power-off" style="font-size: 1.1rem;"></i> Logout
                             </button>
                         </form>
                     </li>
@@ -46,8 +90,17 @@
     </div>
 </nav>
 
+<style>
+    .navbar .dropdown-item:hover {
+        background-color: #f9fafb !important;
+    }
+    .navbar .dropdown-item:last-child:hover {
+        background-color: #fef2f2 !important;
+    }
+</style>
+
 <script>
-    // Update date/time
+    // Update date/time - matching admin navbar clock style
     function updateDateTime() {
         const now = new Date();
         const options = { 
