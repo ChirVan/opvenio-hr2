@@ -7,6 +7,78 @@
         @include('layouts.sidebar')
     @endsection
 
+    @php
+        // ── Pre-compute analytics data in PHP for charts ──
+        $totalCandidates = $processedTalentPool->count();
+
+        // Readiness distribution
+        $readyNowCount = 0; $highPotentialCount = 0; $moderateCount = 0; $emergingCount = 0; $developingCount = 0;
+        // Risk distribution
+        $lowRiskCount = 0; $medRiskCount = 0; $highRiskCount = 0;
+        // Score arrays for scatter / distribution
+        $scatterData = [];
+        // Category breakdown
+        $categoryScores = [];
+        // Competency rating distribution
+        $compDist = ['exceptional' => 0, 'highly_effective' => 0, 'proficient' => 0, 'inconsistent' => 0, 'unsatisfactory' => 0];
+        // Top performers
+        $topPerformers = $processedTalentPool->sortByDesc('succession_readiness')->take(5);
+        // Pipeline status
+        $inPipelineCount = 0; $actionableCount = 0;
+
+        foreach ($processedTalentPool as $t) {
+            $cs = $t->average_score ?? 0;
+            $ps = min(($t->score ?? 0) / 20, 5);
+            $sr = ($cs * 0.7) + ($ps * 0.3);
+
+            // Readiness
+            if ($sr >= 4.5) $readyNowCount++;
+            elseif ($sr >= 4.0) $highPotentialCount++;
+            elseif ($sr >= 3.5) $moderateCount++;
+            elseif ($sr >= 3.0) $emergingCount++;
+            else $developingCount++;
+
+            // Risk
+            if ($sr < 3.0) $highRiskCount++;
+            elseif ($sr < 3.5) $medRiskCount++;
+            else $lowRiskCount++;
+
+            // Scatter
+            $scatterData[] = ['x' => round($cs, 2), 'y' => round($ps, 2), 'name' => $t->employee_name];
+
+            // Category
+            $cat = $t->category_name ?? 'General';
+            if (!isset($categoryScores[$cat])) $categoryScores[$cat] = ['total' => 0, 'count' => 0];
+            $categoryScores[$cat]['total'] += $sr;
+            $categoryScores[$cat]['count']++;
+
+            // Competency distribution
+            if ($t->evaluation_data) {
+                $comps = $t->evaluation_data['competencies'] ?? [];
+                if (empty($comps)) {
+                    for ($i = 1; $i <= 5; $i++) {
+                        $k = "competency_{$i}";
+                        if (isset($t->evaluation_data[$k])) $comps[$k] = $t->evaluation_data[$k];
+                    }
+                }
+                foreach ($comps as $rating) {
+                    $r = strtolower($rating);
+                    if (isset($compDist[$r])) $compDist[$r]++;
+                }
+            }
+
+            // Pipeline
+            if ($t->status === 'approved' || in_array($t->employee_id, $promotedEmployeeIds)) $inPipelineCount++;
+            else $actionableCount++;
+        }
+
+        $avgReadiness = $totalCandidates > 0 ? round($processedTalentPool->avg('succession_readiness'), 2) : 0;
+        $benchStrength = $totalCandidates > 0 ? round((($readyNowCount + $highPotentialCount) / $totalCandidates) * 100, 1) : 0;
+    @endphp
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <div class="py-3">
         <!-- Page Header -->
         <div class="mb-6">
@@ -15,6 +87,265 @@
         </div>
 
         <div class="container-fluid">
+
+            {{-- ═══════════════════════════════════════════════════════════════
+                 ANALYTICS DASHBOARD
+                 ═══════════════════════════════════════════════════════════════ --}}
+            @if($totalCandidates > 0)
+            <div id="analyticsSection" class="mb-4">
+                <!-- Toggle Button -->
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="mb-0" style="font-weight: 700; color: #1f2937;">
+                        <i class="fas fa-chart-pie text-primary me-2"></i>Talent Analytics Dashboard
+                    </h5>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleAnalytics()" id="analyticsToggleBtn" style="border-radius: 8px; font-size: 12px;">
+                        <i class="fas fa-chevron-up me-1" id="analyticsToggleIcon"></i> Collapse
+                    </button>
+                </div>
+
+                <div id="analyticsContent">
+                    <!-- ── KPI Summary Cards ── -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3 col-xl">
+                            <div class="card border-0 h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+                                <div class="card-body text-white py-3 px-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <div style="font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px;">Total Talent</div>
+                                            <div style="font-size: 1.6rem; font-weight: 800; line-height: 1.2;">{{ $totalCandidates }}</div>
+                                        </div>
+                                        <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-users" style="font-size: 1.1rem;"></i>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 10px; opacity: 0.75; margin-top: 4px;">{{ $inPipelineCount }} in pipeline</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-xl">
+                            <div class="card border-0 h-100" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border-radius: 12px;">
+                                <div class="card-body text-white py-3 px-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <div style="font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px;">Ready Now</div>
+                                            <div style="font-size: 1.6rem; font-weight: 800; line-height: 1.2;">{{ $readyNowCount }}</div>
+                                        </div>
+                                        <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-rocket" style="font-size: 1.1rem;"></i>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 10px; opacity: 0.75; margin-top: 4px;">Score ≥ 4.5</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-xl">
+                            <div class="card border-0 h-100" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px;">
+                                <div class="card-body text-white py-3 px-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <div style="font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px;">Bench Strength</div>
+                                            <div style="font-size: 1.6rem; font-weight: 800; line-height: 1.2;">{{ $benchStrength }}%</div>
+                                        </div>
+                                        <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-dumbbell" style="font-size: 1.1rem;"></i>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 10px; opacity: 0.75; margin-top: 4px;">Ready + High Potential</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-xl">
+                            <div class="card border-0 h-100" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 12px;">
+                                <div class="card-body text-white py-3 px-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <div style="font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px;">Avg Readiness</div>
+                                            <div style="font-size: 1.6rem; font-weight: 800; line-height: 1.2;">{{ number_format($avgReadiness, 1) }}</div>
+                                        </div>
+                                        <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-tachometer-alt" style="font-size: 1.1rem;"></i>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 10px; opacity: 0.75; margin-top: 4px;">out of 5.0 scale</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-xl">
+                            <div class="card border-0 h-100" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px;">
+                                <div class="card-body text-white py-3 px-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <div style="font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px;">High Risk</div>
+                                            <div style="font-size: 1.6rem; font-weight: 800; line-height: 1.2;">{{ $highRiskCount }}</div>
+                                        </div>
+                                        <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-exclamation-triangle" style="font-size: 1.1rem;"></i>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 10px; opacity: 0.75; margin-top: 4px;">Need development</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Charts Row 1: Readiness Distribution + Risk Pie + Performance vs Competency ── -->
+                    <div class="row g-3 mb-4">
+                        <!-- Readiness Distribution (Doughnut) -->
+                        <div class="col-md-4">
+                            <div class="card border-0 h-100" style="border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+                                <div class="card-body">
+                                    <h6 style="font-weight: 700; font-size: 13px; color: #374151; margin-bottom: 16px;">
+                                        <i class="fas fa-chart-pie text-primary me-1"></i> Readiness Distribution
+                                    </h6>
+                                    <div style="position: relative; height: 220px;">
+                                        <canvas id="readinessChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Risk Assessment (Horizontal Bar) -->
+                        <div class="col-md-4">
+                            <div class="card border-0 h-100" style="border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+                                <div class="card-body">
+                                    <h6 style="font-weight: 700; font-size: 13px; color: #374151; margin-bottom: 16px;">
+                                        <i class="fas fa-shield-alt text-danger me-1"></i> Risk Assessment
+                                    </h6>
+                                    <div style="position: relative; height: 220px;">
+                                        <canvas id="riskChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Performance vs Competency (Scatter) -->
+                        <div class="col-md-4">
+                            <div class="card border-0 h-100" style="border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+                                <div class="card-body">
+                                    <h6 style="font-weight: 700; font-size: 13px; color: #374151; margin-bottom: 16px;">
+                                        <i class="fas fa-braille text-info me-1"></i> Performance vs Competency
+                                    </h6>
+                                    <div style="position: relative; height: 220px;">
+                                        <canvas id="scatterChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Charts Row 2: Category Avg + Competency Ratings + Top Performers ── -->
+                    <div class="row g-3 mb-4">
+                        <!-- Category Average Scores (Bar) -->
+                        <div class="col-md-4">
+                            <div class="card border-0 h-100" style="border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+                                <div class="card-body">
+                                    <h6 style="font-weight: 700; font-size: 13px; color: #374151; margin-bottom: 16px;">
+                                        <i class="fas fa-tags text-success me-1"></i> Avg Score by Category
+                                    </h6>
+                                    <div style="position: relative; height: 220px;">
+                                        <canvas id="categoryChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Competency Rating Distribution (Polar Area) -->
+                        <div class="col-md-4">
+                            <div class="card border-0 h-100" style="border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+                                <div class="card-body">
+                                    <h6 style="font-weight: 700; font-size: 13px; color: #374151; margin-bottom: 16px;">
+                                        <i class="fas fa-star-half-alt text-warning me-1"></i> Competency Ratings
+                                    </h6>
+                                    <div style="position: relative; height: 220px;">
+                                        <canvas id="competencyRatingChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Performers List -->
+                        <div class="col-md-4">
+                            <div class="card border-0 h-100" style="border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+                                <div class="card-body">
+                                    <h6 style="font-weight: 700; font-size: 13px; color: #374151; margin-bottom: 16px;">
+                                        <i class="fas fa-trophy text-warning me-1"></i> Top 5 Performers
+                                    </h6>
+                                    <div class="top-performers-list">
+                                        @foreach($topPerformers as $idx => $tp)
+                                        @php
+                                            $tpSr = ($tp->average_score * 0.7) + (min(($tp->score ?? 0)/20, 5) * 0.3);
+                                            $rankColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#4facfe', '#a78bfa'];
+                                        @endphp
+                                        <div class="d-flex align-items-center py-2 {{ !$loop->last ? 'border-bottom' : '' }}" style="border-color: #f3f4f6 !important;">
+                                            <div class="d-flex align-items-center justify-content-center rounded-circle me-2" 
+                                                 style="width: 28px; height: 28px; background: {{ $rankColors[$idx] ?? '#6b7280' }}; color: white; font-size: 11px; font-weight: 800; flex-shrink: 0;">
+                                                {{ $idx + 1 }}
+                                            </div>
+                                            <div class="flex-grow-1" style="min-width: 0;">
+                                                <div style="font-weight: 600; font-size: 12px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                    {{ $tp->employee_name }}
+                                                </div>
+                                                <div style="font-size: 10px; color: #9ca3af;">{{ $tp->category_name }}</div>
+                                            </div>
+                                            <div class="text-end ms-2" style="flex-shrink: 0;">
+                                                <span class="badge" style="background: {{ $tpSr >= 4.5 ? '#ecfdf5' : ($tpSr >= 4.0 ? '#eff6ff' : '#fffbeb') }}; color: {{ $tpSr >= 4.5 ? '#059669' : ($tpSr >= 4.0 ? '#2563eb' : '#d97706') }}; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;">
+                                                    {{ number_format($tpSr, 2) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        @endforeach
+                                        @if($topPerformers->isEmpty())
+                                            <div class="text-center text-muted py-4" style="font-size: 12px;">No data available</div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Pipeline Health Bar ── -->
+                    <div class="card border-0 mb-3" style="border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+                        <div class="card-body py-3">
+                            <h6 style="font-weight: 700; font-size: 13px; color: #374151; margin-bottom: 12px;">
+                                <i class="fas fa-stream text-primary me-1"></i> Succession Pipeline Health
+                            </h6>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="progress flex-grow-1" style="height: 24px; border-radius: 12px; background: #f3f4f6; overflow: hidden;">
+                                    @if($totalCandidates > 0)
+                                    <div class="progress-bar" style="width: {{ ($readyNowCount/$totalCandidates)*100 }}%; background: #059669; font-size: 10px; font-weight: 700;" title="Ready Now">
+                                        @if(($readyNowCount/$totalCandidates)*100 > 8) Ready @endif
+                                    </div>
+                                    <div class="progress-bar" style="width: {{ ($highPotentialCount/$totalCandidates)*100 }}%; background: #10b981; font-size: 10px; font-weight: 700;" title="High Potential">
+                                        @if(($highPotentialCount/$totalCandidates)*100 > 8) High @endif
+                                    </div>
+                                    <div class="progress-bar" style="width: {{ ($moderateCount/$totalCandidates)*100 }}%; background: #3b82f6; font-size: 10px; font-weight: 700;" title="Moderate">
+                                        @if(($moderateCount/$totalCandidates)*100 > 8) Mod @endif
+                                    </div>
+                                    <div class="progress-bar" style="width: {{ ($emergingCount/$totalCandidates)*100 }}%; background: #f59e0b; font-size: 10px; font-weight: 700;" title="Emerging">
+                                        @if(($emergingCount/$totalCandidates)*100 > 8) Emrg @endif
+                                    </div>
+                                    <div class="progress-bar" style="width: {{ ($developingCount/$totalCandidates)*100 }}%; background: #9ca3af; font-size: 10px; font-weight: 700;" title="Developing">
+                                        @if(($developingCount/$totalCandidates)*100 > 8) Dev @endif
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-3" style="font-size: 11px;">
+                                <span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: #059669;"></span>Ready Now ({{ $readyNowCount }})</span>
+                                <span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: #10b981;"></span>High Potential ({{ $highPotentialCount }})</span>
+                                <span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: #3b82f6;"></span>Moderate ({{ $moderateCount }})</span>
+                                <span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: #f59e0b;"></span>Emerging ({{ $emergingCount }})</span>
+                                <span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: #9ca3af;"></span>Developing ({{ $developingCount }})</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            {{-- ═══════════════════════════════════════════════════════════════
+                 TALENT TABLE (existing)
+                 ═══════════════════════════════════════════════════════════════ --}}
             <div class="row">
                 <div class="col-12">
                     <div class="card">
@@ -213,58 +544,6 @@
                                             @endforeach
                                         </tbody>
                                     </table>
-                                </div>
-
-                                <!-- Strategic Metrics Dashboard -->
-                                <div class="row mt-4">
-                                    <div class="col-md-2">
-                                        <div class="card text-center" style="border-left: 4px solid #007bff;">
-                                            <div class="card-body py-3">
-                                                <h4 class="text-primary mb-1">{{ $processedTalentPool->count() }}</h4>
-                                                <small class="text-muted">Total Candidates</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="card text-center" style="border-left: 4px solid #28a745;">
-                                            <div class="card-body py-3">
-                                                <h4 class="text-success mb-1">{{ $processedTalentPool->where('average_score', '>=', 4.5)->count() }}</h4>
-                                                <small class="text-muted">Ready Now</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="card text-center" style="border-left: 4px solid #20c997;">
-                                            <div class="card-body py-3">
-                                                <h4 class="text-info mb-1">{{ $processedTalentPool->where('average_score', '>=', 4.0)->where('average_score', '<', 4.5)->count() }}</h4>
-                                                <small class="text-muted">High Potential</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="card text-center" style="border-left: 4px solid #ffc107;">
-                                            <div class="card-body py-3">
-                                                <h4 class="text-warning mb-1">{{ $processedTalentPool->where('average_score', '>=', 3.0)->where('average_score', '<', 4.0)->count() }}</h4>
-                                                <small class="text-muted">Developing</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="card text-center" style="border-left: 4px solid #17a2b8;">
-                                            <div class="card-body py-3">
-                                                <h4 class="text-info mb-1">{{ $processedTalentPool->unique('category_name')->count() }}</h4>
-                                                <small class="text-muted">Skill Areas</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="card text-center" style="border-left: 4px solid #6c757d;">
-                                            <div class="card-body py-3">
-                                                <h4 class="text-secondary mb-1">{{ number_format($processedTalentPool->avg('average_score'), 1) }}</h4>
-                                                <small class="text-muted">Avg Score</small>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             @else
                                 <div class="text-center py-5">
@@ -472,5 +751,172 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
         });
+
+        // ─── ANALYTICS TOGGLE ───
+        function toggleAnalytics() {
+            const content = document.getElementById('analyticsContent');
+            const icon = document.getElementById('analyticsToggleIcon');
+            const btn = document.getElementById('analyticsToggleBtn');
+            if (content.style.display === 'none') {
+                content.style.display = '';
+                icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+                btn.innerHTML = '<i class="fas fa-chevron-up me-1" id="analyticsToggleIcon"></i> Collapse';
+            } else {
+                content.style.display = 'none';
+                icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+                btn.innerHTML = '<i class="fas fa-chevron-down me-1" id="analyticsToggleIcon"></i> Expand';
+            }
+        }
+
+        // ─── CHART.JS INITIALISATION ───
+        @if($totalCandidates > 0)
+        document.addEventListener('DOMContentLoaded', function() {
+            const brandColors = {
+                green: '#059669', greenLight: '#10b981',
+                blue: '#3b82f6', blueLight: '#60a5fa',
+                amber: '#f59e0b', amberLight: '#fbbf24',
+                red: '#ef4444', redLight: '#f87171',
+                purple: '#8b5cf6', gray: '#9ca3af'
+            };
+
+            // ── 1. Readiness Distribution (Doughnut) ──
+            new Chart(document.getElementById('readinessChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ready Now', 'High Potential', 'Moderate', 'Emerging', 'Developing'],
+                    datasets: [{
+                        data: [{{ $readyNowCount }}, {{ $highPotentialCount }}, {{ $moderateCount }}, {{ $emergingCount }}, {{ $developingCount }}],
+                        backgroundColor: ['#059669', '#10b981', '#3b82f6', '#f59e0b', '#9ca3af'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 10, weight: '600' }, padding: 10, usePointStyle: true, pointStyleWidth: 8 } }
+                    }
+                }
+            });
+
+            // ── 2. Risk Assessment (Horizontal Bar) ──
+            new Chart(document.getElementById('riskChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+                    datasets: [{
+                        data: [{{ $lowRiskCount }}, {{ $medRiskCount }}, {{ $highRiskCount }}],
+                        backgroundColor: ['#059669', '#f59e0b', '#ef4444'],
+                        borderRadius: 6,
+                        barThickness: 28,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#f3f4f6' } },
+                        y: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
+                    }
+                }
+            });
+
+            // ── 3. Performance vs Competency (Scatter) ──
+            const scatterData = @json($scatterData);
+            new Chart(document.getElementById('scatterChart'), {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Employees',
+                        data: scatterData,
+                        backgroundColor: scatterData.map(d => {
+                            const sr = (d.x * 0.7) + (d.y * 0.3);
+                            return sr >= 4.5 ? '#059669' : sr >= 4.0 ? '#10b981' : sr >= 3.5 ? '#3b82f6' : sr >= 3.0 ? '#f59e0b' : '#ef4444';
+                        }),
+                        borderColor: 'transparent',
+                        pointRadius: 7,
+                        pointHoverRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const d = scatterData[ctx.dataIndex];
+                                    return `${d.name}: Comp ${d.x} | Perf ${d.y}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Competency (0-5)', font: { size: 10 } }, min: 0, max: 5, ticks: { font: { size: 9 } }, grid: { color: '#f3f4f6' } },
+                        y: { title: { display: true, text: 'Performance (0-5)', font: { size: 10 } }, min: 0, max: 5, ticks: { font: { size: 9 } }, grid: { color: '#f3f4f6' } }
+                    }
+                }
+            });
+
+            // ── 4. Category Average Scores (Bar) ──
+            const categoryData = @json($categoryScores);
+            const catLabels = Object.keys(categoryData);
+            const catValues = catLabels.map(k => (categoryData[k].total / categoryData[k].count).toFixed(2));
+            const barColors = ['#3b82f6', '#8b5cf6', '#059669', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#f97316'];
+            new Chart(document.getElementById('categoryChart'), {
+                type: 'bar',
+                data: {
+                    labels: catLabels.map(l => l.length > 12 ? l.substring(0, 12) + '…' : l),
+                    datasets: [{
+                        label: 'Avg Readiness',
+                        data: catValues,
+                        backgroundColor: catLabels.map((_, i) => barColors[i % barColors.length]),
+                        borderRadius: 6,
+                        barThickness: 24,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 5, ticks: { font: { size: 10 }, stepSize: 1 }, grid: { color: '#f3f4f6' } },
+                        x: { ticks: { font: { size: 9 } }, grid: { display: false } }
+                    }
+                }
+            });
+
+            // ── 5. Competency Rating Distribution (Polar Area) ──
+            const compData = @json($compDist);
+            new Chart(document.getElementById('competencyRatingChart'), {
+                type: 'polarArea',
+                data: {
+                    labels: ['Exceptional', 'Highly Effective', 'Proficient', 'Inconsistent', 'Unsatisfactory'],
+                    datasets: [{
+                        data: [compData.exceptional, compData.highly_effective, compData.proficient, compData.inconsistent, compData.unsatisfactory],
+                        backgroundColor: ['rgba(5,150,105,0.6)', 'rgba(16,185,129,0.6)', 'rgba(59,130,246,0.6)', 'rgba(245,158,11,0.6)', 'rgba(239,68,68,0.6)'],
+                        borderColor: ['#059669', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 9, weight: '600' }, padding: 8, usePointStyle: true, pointStyleWidth: 8 } }
+                    },
+                    scales: {
+                        r: { ticks: { font: { size: 9 }, stepSize: 1 }, grid: { color: '#e5e7eb' } }
+                    }
+                }
+            });
+        });
+        @endif
     </script>
 </x-app-layout>

@@ -9,6 +9,74 @@
         @include('layouts.sidebar')
     @endsection
 
+    @php
+        // ── Pre-compute analytics data ──
+        $allEmployees = collect()->merge($approvedEmployees)->merge($developmentNeeded ?? collect());
+        $totalAll = $allEmployees->count();
+        $totalExperts = $approvedEmployees->count();
+        $totalDevelopment = isset($developmentNeeded) ? $developmentNeeded->count() : 0;
+
+        // Readiness distribution (from approvedEmployees)
+        $aReadyNow = 0; $aHighPotential = 0; $aModerate = 0; $aDeveloping = 0;
+        // Risk distribution (all)
+        $aLowRisk = 0; $aMedRisk = 0; $aHighRisk = 0;
+        // Scatter data
+        $aScatterData = [];
+        // Job title distribution
+        $jobDist = [];
+        // Pipeline status
+        $aInPipeline = 0; $aActionable = 0;
+        // Score ranges for histogram
+        $scoreRanges = ['90-100%' => 0, '80-89%' => 0, '70-79%' => 0, '60-69%' => 0, '<60%' => 0];
+
+        foreach ($allEmployees as $emp) {
+            $es = $emp->evaluation_score ?? 0;
+            $esp = $emp->evaluation_score_percent ?? 0;
+            $ls = $emp->leadership_score ?? 0;
+
+            // Readiness
+            if ($es >= 4.5) $aReadyNow++;
+            elseif ($es >= 4.0) $aHighPotential++;
+            elseif ($es >= 3.0) $aModerate++;
+            else $aDeveloping++;
+
+            // Risk
+            $rl = $emp->risk_level ?? 'Medium Risk';
+            if (str_contains($rl, 'Low')) $aLowRisk++;
+            elseif (str_contains($rl, 'High')) $aHighRisk++;
+            else $aMedRisk++;
+
+            // Scatter
+            $aScatterData[] = ['x' => round($es, 2), 'y' => round($esp), 'name' => $emp->full_name, 'expert' => $emp->is_expert ?? false];
+
+            // Job distribution
+            $jt = $emp->job_title ?? 'Unknown';
+            $jobDist[$jt] = ($jobDist[$jt] ?? 0) + 1;
+
+            // Pipeline
+            if (in_array($emp->employee_id, $promotedIds)) $aInPipeline++;
+            else $aActionable++;
+
+            // Score ranges
+            if ($esp >= 90) $scoreRanges['90-100%']++;
+            elseif ($esp >= 80) $scoreRanges['80-89%']++;
+            elseif ($esp >= 70) $scoreRanges['70-79%']++;
+            elseif ($esp >= 60) $scoreRanges['60-69%']++;
+            else $scoreRanges['<60%']++;
+        }
+
+        $avgEvalScore = $totalAll > 0 ? round($allEmployees->avg('evaluation_score'), 2) : 0;
+        $avgLeadership = $totalAll > 0 ? round($allEmployees->avg('leadership_score'), 2) : 0;
+        $expertRate = $totalAll > 0 ? round(($totalExperts / $totalAll) * 100, 1) : 0;
+        $pipelineRate = $totalExperts > 0 ? round(($aInPipeline / $totalExperts) * 100, 1) : 0;
+
+        // Top 5 by evaluation score
+        $topSuccessors = $allEmployees->sortByDesc('evaluation_score')->take(5);
+    @endphp
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <div class="py-6 px-4">
         <div class="bg-gradient-to-r from-blue-600 to-purple-700 rounded-t-lg shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
@@ -24,6 +92,180 @@
                 </div>
             </div>
         </div>
+
+        {{-- ═══════════════════════════════════════════════════════════════
+             ANALYTICS DASHBOARD
+             ═══════════════════════════════════════════════════════════════ --}}
+        @if($totalAll > 0)
+        <div class="bg-white shadow-lg px-6 pt-5 pb-4">
+            <div class="flex items-center justify-between mb-4">
+                <h5 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i class="bx bx-bar-chart-alt-2 text-blue-600 text-xl"></i> Succession Analytics
+                </h5>
+                <button onclick="toggleSuccessionAnalytics()" id="saToggleBtn" class="px-3 py-1.5 text-xs font-semibold text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    <i class="bx bx-chevron-up mr-1" id="saToggleIcon"></i>Collapse
+                </button>
+            </div>
+
+            <div id="saContent">
+                {{-- ── KPI CARDS ── --}}
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+                    <div class="rounded-xl p-3 text-white" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+                        <div class="text-xs opacity-80 uppercase tracking-wide font-semibold">All Evaluated</div>
+                        <div class="text-2xl font-extrabold mt-1">{{ $totalAll }}</div>
+                        <div class="text-[10px] opacity-70 mt-0.5">{{ $totalExperts }} expert · {{ $totalDevelopment }} dev</div>
+                    </div>
+                    <div class="rounded-xl p-3 text-white" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                        <div class="text-xs opacity-80 uppercase tracking-wide font-semibold">Expert Rate</div>
+                        <div class="text-2xl font-extrabold mt-1">{{ $expertRate }}%</div>
+                        <div class="text-[10px] opacity-70 mt-0.5">≥80% eval score</div>
+                    </div>
+                    <div class="rounded-xl p-3 text-white" style="background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);">
+                        <div class="text-xs opacity-80 uppercase tracking-wide font-semibold">Avg Eval Score</div>
+                        <div class="text-2xl font-extrabold mt-1">{{ number_format($avgEvalScore, 1) }}</div>
+                        <div class="text-[10px] opacity-70 mt-0.5">out of 5.0</div>
+                    </div>
+                    <div class="rounded-xl p-3 text-white" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                        <div class="text-xs opacity-80 uppercase tracking-wide font-semibold">Avg Leadership</div>
+                        <div class="text-2xl font-extrabold mt-1">{{ number_format($avgLeadership, 1) }}</div>
+                        <div class="text-[10px] opacity-70 mt-0.5">out of 5.0</div>
+                    </div>
+                    <div class="rounded-xl p-3 text-white" style="background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);">
+                        <div class="text-xs opacity-80 uppercase tracking-wide font-semibold">In Pipeline</div>
+                        <div class="text-2xl font-extrabold mt-1">{{ $aInPipeline }}</div>
+                        <div class="text-[10px] opacity-70 mt-0.5">{{ $pipelineRate }}% of experts</div>
+                    </div>
+                    <div class="rounded-xl p-3 text-white" style="background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);">
+                        <div class="text-xs opacity-80 uppercase tracking-wide font-semibold">High Risk</div>
+                        <div class="text-2xl font-extrabold mt-1">{{ $aHighRisk }}</div>
+                        <div class="text-[10px] opacity-70 mt-0.5">need development</div>
+                    </div>
+                </div>
+
+                {{-- ── CHARTS ROW 1 ── --}}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    {{-- Readiness Distribution (Doughnut) --}}
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <h6 class="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+                            <i class="bx bx-pie-chart-alt-2 text-indigo-500"></i> Readiness Distribution
+                        </h6>
+                        <div style="position: relative; height: 210px;">
+                            <canvas id="saReadinessChart"></canvas>
+                        </div>
+                    </div>
+
+                    {{-- Score Distribution (Bar Histogram) --}}
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <h6 class="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+                            <i class="bx bx-bar-chart text-blue-500"></i> Score Distribution
+                        </h6>
+                        <div style="position: relative; height: 210px;">
+                            <canvas id="saScoreHistChart"></canvas>
+                        </div>
+                    </div>
+
+                    {{-- Risk Assessment (Horizontal Bar) --}}
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <h6 class="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+                            <i class="bx bx-shield-alt-2 text-red-500"></i> Risk Assessment
+                        </h6>
+                        <div style="position: relative; height: 210px;">
+                            <canvas id="saRiskChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ── CHARTS ROW 2 ── --}}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    {{-- Expert vs Development (Scatter) --}}
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <h6 class="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+                            <i class="bx bx-scatter-chart text-green-500"></i> Eval Score vs Percentage
+                        </h6>
+                        <div style="position: relative; height: 210px;">
+                            <canvas id="saScatterChart"></canvas>
+                        </div>
+                    </div>
+
+                    {{-- Job Title Distribution (Horizontal Bar) --}}
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <h6 class="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+                            <i class="bx bx-briefcase text-purple-500"></i> By Current Role
+                        </h6>
+                        <div style="position: relative; height: 210px;">
+                            <canvas id="saJobChart"></canvas>
+                        </div>
+                    </div>
+
+                    {{-- Top 5 Successor Candidates --}}
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <h6 class="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+                            <i class="bx bx-trophy text-yellow-500"></i> Top 5 Candidates
+                        </h6>
+                        <div>
+                            @foreach($topSuccessors as $idx => $ts)
+                            @php
+                                $rankColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#6366f1', '#a78bfa'];
+                                $tsEs = $ts->evaluation_score ?? 0;
+                            @endphp
+                            <div class="flex items-center py-2 {{ !$loop->last ? 'border-b border-gray-200' : '' }}">
+                                <div class="flex items-center justify-center rounded-full mr-2.5" style="width: 26px; height: 26px; background: {{ $rankColors[$idx] ?? '#6b7280' }}; color: white; font-size: 11px; font-weight: 800; flex-shrink: 0;">
+                                    {{ $idx + 1 }}
+                                </div>
+                                <div class="flex-grow min-w-0">
+                                    <div class="text-xs font-bold text-gray-800 truncate">{{ $ts->full_name }}</div>
+                                    <div class="text-[10px] text-gray-400">{{ $ts->job_title }}</div>
+                                </div>
+                                <div class="ml-2 flex-shrink-0">
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-bold {{ $tsEs >= 4.5 ? 'bg-green-100 text-green-700' : ($tsEs >= 4.0 ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700') }}">
+                                        {{ number_format($tsEs, 1) }}/5
+                                    </span>
+                                </div>
+                            </div>
+                            @endforeach
+                            @if($topSuccessors->isEmpty())
+                                <div class="text-center text-gray-400 py-6 text-xs">No data available</div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ── PIPELINE HEALTH BAR ── --}}
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <h6 class="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                        <i class="bx bx-git-branch text-blue-600"></i> Succession Pipeline Overview
+                    </h6>
+                    <div class="flex items-center mb-2">
+                        <div class="flex-grow bg-gray-200 rounded-full h-5 overflow-hidden">
+                            @if($totalAll > 0)
+                            <div class="h-full flex">
+                                <div style="width: {{ ($aReadyNow/$totalAll)*100 }}%; background: #059669;" class="flex items-center justify-center text-white text-[9px] font-bold" title="Ready Now">
+                                    @if(($aReadyNow/$totalAll)*100 > 8) {{ $aReadyNow }} @endif
+                                </div>
+                                <div style="width: {{ ($aHighPotential/$totalAll)*100 }}%; background: #2563eb;" class="flex items-center justify-center text-white text-[9px] font-bold" title="High Potential">
+                                    @if(($aHighPotential/$totalAll)*100 > 8) {{ $aHighPotential }} @endif
+                                </div>
+                                <div style="width: {{ ($aModerate/$totalAll)*100 }}%; background: #f59e0b;" class="flex items-center justify-center text-white text-[9px] font-bold" title="Moderate">
+                                    @if(($aModerate/$totalAll)*100 > 8) {{ $aModerate }} @endif
+                                </div>
+                                <div style="width: {{ ($aDeveloping/$totalAll)*100 }}%; background: #9ca3af;" class="flex items-center justify-center text-white text-[9px] font-bold" title="Developing">
+                                    @if(($aDeveloping/$totalAll)*100 > 8) {{ $aDeveloping }} @endif
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-4 text-[11px] text-gray-600">
+                        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#059669;"></span>Ready Now ({{ $aReadyNow }})</span>
+                        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#2563eb;"></span>High Potential ({{ $aHighPotential }})</span>
+                        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#f59e0b;"></span>Moderate ({{ $aModerate }})</span>
+                        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#9ca3af;"></span>Developing ({{ $aDeveloping }})</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <div class="bg-white rounded-b-lg shadow-lg">
             @if(Session::has('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -207,9 +449,19 @@
                                         <td class="px-6 py-4">
                                             <div class="space-y-2">
                                                 @if(in_array($employee->employee_id, $promotedIds))
-                                                    <button type="button" class="w-full px-4 py-2 bg-gray-400 text-white rounded-lg font-medium text-xs shadow transition flex items-center justify-center gap-2" disabled>
-                                                        <i class='bx bx-check-circle'></i> In Pipeline
-                                                    </button>
+                                                    @php
+                                                        $promoRecord = \App\Modules\succession_planning\Models\Promotion::where('employee_id', $employee->employee_id)->first();
+                                                        $promoStatus = $promoRecord->status ?? 'approved';
+                                                    @endphp
+                                                    @if($promoStatus === 'pending_acceptance')
+                                                        <button type="button" class="w-full px-4 py-2 bg-amber-500 text-white rounded-lg font-medium text-xs shadow transition flex items-center justify-center gap-2" disabled>
+                                                            <i class='bx bx-time-five'></i> Awaiting Employee
+                                                        </button>
+                                                    @else
+                                                        <button type="button" class="w-full px-4 py-2 bg-gray-400 text-white rounded-lg font-medium text-xs shadow transition flex items-center justify-center gap-2" disabled>
+                                                            <i class='bx bx-check-circle'></i> In Pipeline
+                                                        </button>
+                                                    @endif
                                                 @else
                                                     @if($isPipelineReady)
                                                         <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium text-xs shadow-md transition-all duration-200 flex items-center justify-center gap-2">
@@ -1184,5 +1436,144 @@
         document.addEventListener('DOMContentLoaded', function() {
             fetchJobs();
         });
+
+        // ─── ANALYTICS TOGGLE ───
+        function toggleSuccessionAnalytics() {
+            const content = document.getElementById('saContent');
+            const btn = document.getElementById('saToggleBtn');
+            if (content.style.display === 'none') {
+                content.style.display = '';
+                btn.innerHTML = '<i class="bx bx-chevron-up mr-1" id="saToggleIcon"></i>Collapse';
+            } else {
+                content.style.display = 'none';
+                btn.innerHTML = '<i class="bx bx-chevron-down mr-1" id="saToggleIcon"></i>Expand';
+            }
+        }
+
+        // ─── CHART.JS INITIALIZATION ───
+        @if($totalAll > 0)
+        (function() {
+            const chartDefaults = { responsive: true, maintainAspectRatio: false };
+
+            // 1. Readiness Distribution (Doughnut)
+            new Chart(document.getElementById('saReadinessChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ready Now', 'High Potential', 'Moderate', 'Developing'],
+                    datasets: [{
+                        data: [{{ $aReadyNow }}, {{ $aHighPotential }}, {{ $aModerate }}, {{ $aDeveloping }}],
+                        backgroundColor: ['#059669', '#2563eb', '#f59e0b', '#9ca3af'],
+                        borderWidth: 2, borderColor: '#ffffff', hoverOffset: 6
+                    }]
+                },
+                options: {
+                    ...chartDefaults, cutout: '62%',
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 10, weight: '600' }, padding: 10, usePointStyle: true, pointStyleWidth: 8 } } }
+                }
+            });
+
+            // 2. Score Distribution (Bar Histogram)
+            const scoreRanges = @json($scoreRanges);
+            new Chart(document.getElementById('saScoreHistChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(scoreRanges),
+                    datasets: [{
+                        label: 'Employees',
+                        data: Object.values(scoreRanges),
+                        backgroundColor: ['#059669', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderRadius: 6, barThickness: 28
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#f3f4f6' } },
+                        x: { ticks: { font: { size: 9, weight: '600' } }, grid: { display: false } }
+                    }
+                }
+            });
+
+            // 3. Risk Assessment (Horizontal Bar)
+            new Chart(document.getElementById('saRiskChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+                    datasets: [{
+                        data: [{{ $aLowRisk }}, {{ $aMedRisk }}, {{ $aHighRisk }}],
+                        backgroundColor: ['#059669', '#f59e0b', '#ef4444'],
+                        borderRadius: 6, barThickness: 28
+                    }]
+                },
+                options: {
+                    ...chartDefaults, indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#f3f4f6' } },
+                        y: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
+                    }
+                }
+            });
+
+            // 4. Eval Score vs Percentage (Scatter)
+            const scatterData = @json($aScatterData);
+            new Chart(document.getElementById('saScatterChart'), {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Employees',
+                        data: scatterData,
+                        backgroundColor: scatterData.map(d => d.expert ? '#059669' : '#f59e0b'),
+                        borderColor: 'transparent',
+                        pointRadius: 7, pointHoverRadius: 10
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => {
+                                    const d = scatterData[ctx.dataIndex];
+                                    return `${d.name}: ${d.x}/5.0 (${d.y}%)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Eval Score (0-5)', font: { size: 10 } }, min: 0, max: 5, ticks: { font: { size: 9 } }, grid: { color: '#f3f4f6' } },
+                        y: { title: { display: true, text: 'Eval % (0-100)', font: { size: 10 } }, min: 0, max: 100, ticks: { font: { size: 9 } }, grid: { color: '#f3f4f6' } }
+                    }
+                }
+            });
+
+            // 5. Job Title Distribution (Horizontal Bar)
+            const jobData = @json($jobDist);
+            const jobLabels = Object.keys(jobData).sort((a, b) => jobData[b] - jobData[a]).slice(0, 8);
+            const jobValues = jobLabels.map(k => jobData[k]);
+            const jobColors = ['#6366f1', '#8b5cf6', '#a78bfa', '#3b82f6', '#2563eb', '#059669', '#f59e0b', '#ec4899'];
+            new Chart(document.getElementById('saJobChart'), {
+                type: 'bar',
+                data: {
+                    labels: jobLabels.map(l => l.length > 16 ? l.substring(0, 16) + '…' : l),
+                    datasets: [{
+                        data: jobValues,
+                        backgroundColor: jobLabels.map((_, i) => jobColors[i % jobColors.length]),
+                        borderRadius: 5, barThickness: 20
+                    }]
+                },
+                options: {
+                    ...chartDefaults, indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 9 } }, grid: { color: '#f3f4f6' } },
+                        y: { ticks: { font: { size: 9, weight: '600' } }, grid: { display: false } }
+                    }
+                }
+            });
+        })();
+        @endif
     </script>
 </x-app-layout>

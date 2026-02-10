@@ -83,6 +83,21 @@
 												<span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-green-200 text-green-800">
 													<i class='bx bx-check mr-1'></i>Approved
 												</span>
+												@if($promotion->employee_response === 'accepted')
+													<div class="mt-1 text-xs text-green-600 font-semibold flex items-center gap-1">
+														<i class='bx bx-check-circle'></i> Employee agreed to promote
+													</div>
+												@endif
+											@elseif($promotion->status == 'pending_acceptance')
+												<span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+													<i class='bx bx-time-five mr-1'></i>Awaiting Employee
+												</span>
+												<div class="mt-1 text-xs text-amber-600">Waiting for employee response</div>
+											@elseif($promotion->status == 'declined' || ($promotion->employee_response ?? null) === 'declined')
+												<span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+													<i class='bx bx-x-circle mr-1'></i>Declined
+												</span>
+												<div class="mt-1 text-xs text-red-500">Employee declined the offer</div>
 											@else
 												<span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">
 													{{ ucfirst($promotion->status) }}

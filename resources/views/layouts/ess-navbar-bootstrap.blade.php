@@ -21,12 +21,38 @@
             <!-- Divider -->
             <div class="d-none d-sm-block" style="width: 1px; height: 32px; background: #e5e7eb;"></div>
 
-            <!-- Notifications -->
-            <button class="btn btn-light border-0 rounded-3 position-relative d-flex align-items-center justify-content-center" 
-                    type="button" style="width: 40px; height: 40px; background: transparent;" 
-                    onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+            <!-- Notifications - links to promotion offers -->
+            <a href="{{ route('ess.promotion-offers') }}" class="btn btn-light border-0 rounded-3 position-relative d-flex align-items-center justify-content-center" 
+                    style="width: 40px; height: 40px; background: transparent; text-decoration: none;" 
+                    onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'"
+                    title="Promotion Offers">
                 <i class="bx bxs-bell" style="font-size: 1.25rem; color: #f59e0b;"></i>
-            </button>
+                @php
+                    $pendingOfferCount = 0;
+                    try {
+                        $essUser = \Illuminate\Support\Facades\Auth::user();
+                        $essEmpId = null;
+                        $essEmployeeApi = app(\App\Services\EmployeeApiService::class);
+                        $essAllEmps = $essEmployeeApi->getEmployees();
+                        if ($essAllEmps) {
+                            $essMatch = collect($essAllEmps)->firstWhere('email', $essUser->email);
+                            if ($essMatch) $essEmpId = $essMatch['employee_id'] ?? $essMatch['id'] ?? null;
+                        }
+                        if ($essEmpId) {
+                            $pendingOfferCount = \Illuminate\Support\Facades\DB::connection('succession_planning')
+                                ->table('promotions')
+                                ->where('employee_id', $essEmpId)
+                                ->where('status', 'pending_acceptance')
+                                ->count();
+                        }
+                    } catch (\Exception $e) {}
+                @endphp
+                @if($pendingOfferCount > 0)
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                        {{ $pendingOfferCount }}
+                    </span>
+                @endif
+            </a>
 
             <!-- Messages -->
             <button class="btn btn-light border-0 rounded-3 position-relative d-flex align-items-center justify-content-center" 

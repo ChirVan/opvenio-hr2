@@ -33,7 +33,8 @@ class PromotionController
             ->first();
 
         if ($existing) {
-            // Update existing pending record with the selected potential job and approve it
+            // Update existing pending record with the selected potential job
+            // Status becomes pending_acceptance — waiting for employee to agree
             DB::connection('succession_planning')->table('promotions')
                 ->where('id', $existing->id)
                 ->update([
@@ -42,11 +43,14 @@ class PromotionController
                     'category' => $data['category'] ?? $existing->category,
                     'strengths' => $data['strengths'] ?? $existing->strengths,
                     'recommendations' => $data['recommendations'] ?? $existing->recommendations,
-                    'status' => 'approved',
+                    'status' => 'pending_acceptance',
+                    'employee_response' => null,
+                    'employee_response_note' => null,
+                    'employee_responded_at' => null,
                     'updated_at' => now(),
                 ]);
         } else {
-            // Insert new record and approve
+            // Insert new record — pending_acceptance until employee agrees
             DB::connection('succession_planning')->table('promotions')->insert([
                 'employee_id' => $data['employee_id'],
                 'employee_name' => $data['employee_name'],
@@ -57,13 +61,16 @@ class PromotionController
                 'category' => $data['category'] ?? 'Leadership',
                 'strengths' => $data['strengths'] ?? '',
                 'recommendations' => $data['recommendations'] ?? '',
-                'status' => 'approved',
+                'status' => 'pending_acceptance',
+                'employee_response' => null,
+                'employee_response_note' => null,
+                'employee_responded_at' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
         }
 
-        Session::flash('success', 'Promotion record approved successfully!');
+        Session::flash('success', 'Employee has been notified for promotion acceptance.');
         return Redirect::back();
     }
 
@@ -155,6 +162,49 @@ class PromotionController
                 'message' => 'An error occurred: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Employee accepts or declines a promotion offer
+     */
+    public function respondToPromotion(Request $request, $id)
+    {
+        $request->validate([
+            'response' => 'required|in:accepted,declined',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        $promotion = DB::connection('succession_planning')
+            ->table('promotions')
+            ->where('id', $id)
+            ->first();
+
+        if (!$promotion) {
+            return response()->json(['success' => false, 'message' => 'Promotion record not found.'], 404);
+        }
+
+        if ($promotion->status !== 'pending_acceptance') {
+            return response()->json(['success' => false, 'message' => 'This promotion offer is no longer pending.'], 400);
+        }
+
+        $isAccepted = $request->response === 'accepted';
+
+        DB::connection('succession_planning')->table('promotions')
+            ->where('id', $id)
+            ->update([
+                'status' => $isAccepted ? 'approved' : 'declined',
+                'employee_response' => $request->response,
+                'employee_response_note' => $request->note,
+                'employee_responded_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $isAccepted
+                ? 'You have accepted the promotion offer. Congratulations!'
+                : 'You have declined the promotion offer.',
+        ]);
     }
 
     /**

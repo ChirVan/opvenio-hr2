@@ -74,7 +74,7 @@
                     Competencies
                 </a>
                 <a href="{{ route('competency.rolemapping') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('competency.rolemapping*') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1">
-                    Role Mapping
+                    Competency Matrix
                 </a>
                 <a href="{{ route('competency.gap-analysis') }}" class="block px-3 py-2 rounded-lg text-sm {{ request()->routeIs('competency.gap-analysis*') ? 'text-emerald-600 bg-green-50 font-medium' : 'text-gray-600 hover:bg-green-50 hover:text-emerald-600' }} transition-all duration-200 hover:translate-x-1">
                     Gap Analysis

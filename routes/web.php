@@ -325,7 +325,7 @@ Route::get('/dashboard', function () {
         })
         ->values();
 
-    $promotedIds = DB::connection('succession_planning')->table('promotions')->whereIn('status', ['approved', 'promoted'])->pluck('employee_id')->toArray();
+    $promotedIds = DB::connection('succession_planning')->table('promotions')->whereIn('status', ['approved', 'promoted', 'pending_acceptance'])->pluck('employee_id')->toArray();
 
     return view('dashboard', compact(
         'totalCourses',
@@ -354,6 +354,10 @@ Route::get('/dashboard', function () {
         Route::get('/training-catalog/available-courses', [App\Http\Controllers\TrainingCatalogController::class, 'getAvailableCourses'])->name('training-catalog.available-courses');
         Route::get('/training-catalog/{courseId}/materials', [App\Http\Controllers\TrainingCatalogController::class, 'getCourseTrainingMaterials'])->name('training-catalog.materials');
         Route::post('/training-catalog/request-course', [App\Http\Controllers\TrainingCatalogController::class, 'requestCourse'])->name('training-catalog.request-course');
+
+        // Promotion Offer (accept/decline)
+        Route::get('/promotion-offers', [App\Http\Controllers\ESSController::class, 'promotionOffers'])->name('promotion-offers');
+        Route::post('/promotion-offers/{id}/respond', [App\Modules\succession_planning\Controllers\PromotionController::class, 'respondToPromotion'])->name('promotion-offers.respond');
     });
 
     // ============================================================
@@ -537,7 +541,7 @@ Route::get('/dashboard', function () {
             // 2. Development Needed (Below Expert - needs skill improvement)
             $developmentNeeded = $groupedResults->filter(fn($e) => !$e->is_expert)->sortByDesc('evaluation_score')->values();
 
-            $promotedIds = DB::connection('succession_planning')->table('promotions')->whereIn('status', ['approved', 'promoted'])->pluck('employee_id')->toArray();
+            $promotedIds = DB::connection('succession_planning')->table('promotions')->whereIn('status', ['approved', 'promoted', 'pending_acceptance'])->pluck('employee_id')->toArray();
 
             // Get AI recommendations from promotions table
             $aiRecommendations = DB::connection('succession_planning')

@@ -28,6 +28,47 @@ class ESSController extends Controller
     }
 
     /**
+     * Show promotion offers for the logged-in employee
+     */
+    public function promotionOffers()
+    {
+        $user = Auth::user();
+
+        // Try to match employee by email across the HR API
+        $employeeId = null;
+        try {
+            $employees = $this->employeeApiService->getEmployees();
+            if ($employees) {
+                $match = collect($employees)->firstWhere('email', $user->email);
+                if ($match) {
+                    $employeeId = $match['employee_id'] ?? $match['id'] ?? null;
+                }
+            }
+        } catch (\Exception $e) {
+            // silent
+        }
+
+        // Fallback: check users table
+        if (!$employeeId) {
+            $userRecord = DB::table('users')->where('email', $user->email)->first();
+            if ($userRecord && isset($userRecord->employee_id)) {
+                $employeeId = $userRecord->employee_id;
+            }
+        }
+
+        $offers = collect();
+        if ($employeeId) {
+            $offers = DB::connection('succession_planning')
+                ->table('promotions')
+                ->where('employee_id', $employeeId)
+                ->orderByDesc('created_at')
+                ->get();
+        }
+
+        return view('ess.promotion-offers', compact('offers', 'employeeId'));
+    }
+
+    /**
      * Show the LMS page with user-specific data
      */
     public function lms()

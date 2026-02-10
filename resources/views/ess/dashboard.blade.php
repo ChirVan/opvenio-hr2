@@ -377,6 +377,14 @@
         <p class="quick-action-title">Payslip</p>
         <p class="quick-action-subtitle">Salary</p>
       </a>
+
+      <a href="{{ route('ess.promotion-offers') }}" class="quick-action-item">
+        <div class="quick-action-icon" style="background: #fef3c7; color: #d97706;">
+          <i class='bx bx-rocket'></i>
+        </div>
+        <p class="quick-action-title">Promotions</p>
+        <p class="quick-action-subtitle">Offers</p>
+      </a>
     </div>
 
     <!-- Info Cards Row -->

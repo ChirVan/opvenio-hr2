@@ -18,5 +18,12 @@ class Promotion extends Model
         'strengths',
         'recommendations',
         'status',
+        'employee_response',
+        'employee_response_note',
+        'employee_responded_at',
+    ];
+
+    protected $casts = [
+        'employee_responded_at' => 'datetime',
     ];
 }
