@@ -1,174 +1,235 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Payslip - {{ config('app.name') }}</title>
+  <title>Payslip — {{ config('app.name') }}</title>
 
-  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Boxicons -->
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 
   <style>
+    :root {
+      --primary: #0ea5a6;
+      --primary-dark: #059669;
+      --primary-light: #d1fae5;
+      --secondary: #64748b;
+      --dark: #0f172a;
+      --light: #f8fafc;
+      --blue: #3b82f6;
+      --blue-light: #dbeafe;
+      --orange: #f59e0b;
+      --orange-light: #fef3c7;
+      --red: #ef4444;
+      --red-light: #fee2e2;
+      --card-shadow: 0 6px 18px rgba(15,23,42,0.06);
+      --card-shadow-hover: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
+    }
+
+    html, body { height: 100%; }
     body {
-      background-color: #f5f7f6;
-      font-family: 'Segoe UI', sans-serif;
+      background: var(--light);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--dark);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
+
+    .app-shell { display: flex; min-height: 100vh; }
+    .sidebar { width: 260px; background: white; border-right: 1px solid #eef2f7; padding: 1.25rem; }
+    .main { flex: 1; padding: 1.5rem 2rem; }
+
     .page-header {
-      background: linear-gradient(135deg, #198754 0%, #157347 100%);
+      background: linear-gradient(90deg, var(--primary), #16a34a);
       color: white;
-      border-radius: 12px;
-      padding: 25px 30px;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+      border-radius: 16px;
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 1rem;
     }
-    .card {
-      border: none;
-      border-radius: 14px;
-      transition: all 0.25s ease;
-      background-color: #ffffff;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
     }
-    .card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+    .page-header h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: .25rem; }
+    .page-header p { margin-bottom: 0; opacity: .92; font-size: .9rem; }
+
+    .btn-back {
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: white;
+      font-size: 0.8rem;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      text-decoration: none;
     }
-    .salary-item {
+    .btn-back:hover { background: rgba(255,255,255,0.24); color: white; }
+
+    .section-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(0,0,0,0.04);
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .section-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #f1f5f9;
       display: flex;
       justify-content: space-between;
-      margin-bottom: 10px;
-      color: #333;
+      align-items: center;
+      gap: 1rem;
     }
-    .salary-item strong {
-      color: #157347;
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
-    .salary-item.deduction strong {
-      color: #dc3545;
+    .section-title i { color: var(--primary); font-size: 1.1rem; }
+    .section-body { padding: 1.25rem; }
+
+    .card-soft {
+      border: none;
+      border-radius: 16px;
+      background: white;
+      box-shadow: var(--card-shadow);
     }
-    .divider {
-      border-top: 1px dashed #ccc;
-      margin: 15px 0;
-    }
-    .btn-check-bank {
-      background-color: #157347;
-      color: white;
-      border-radius: 8px;
-    }
-    .btn-check-bank:hover {
-      background-color: #116d3b;
-      color: white;
-    }
+    .card-soft:hover { box-shadow: var(--card-shadow-hover); }
+
     .status-badge {
       font-size: 0.75rem;
       padding: 4px 10px;
       border-radius: 20px;
+      font-weight: 600;
     }
-    .status-pending {
-      background-color: #fff3cd;
-      color: #856404;
+    .status-pending { background-color: #fff3cd; color: #856404; }
+    .status-approved { background-color: #d1fae5; color: #065f46; }
+    .status-rejected { background-color: #fee2e2; color: #991b1b; }
+    .status-none { background-color: #e2e3e5; color: #383d41; }
+
+    .salary-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      color: #334155;
+      font-size: 0.9rem;
     }
-    .status-approved {
-      background-color: #d4edda;
-      color: #155724;
+    .salary-item strong { color: var(--primary-dark); }
+    .salary-item.deduction strong { color: var(--red); }
+    .divider { border-top: 1px dashed #d7dfe7; margin: 15px 0; }
+
+    .btn-check-bank {
+      background: var(--primary);
+      color: white;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
     }
-    .status-rejected {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-    .status-none {
-      background-color: #e2e3e5;
-      color: #383d41;
-    }
+    .btn-check-bank:hover { background: var(--primary-dark); color: white; }
+
     .bank-info-item {
       display: flex;
       justify-content: space-between;
       padding: 8px 0;
       border-bottom: 1px solid #eee;
-    }
-    .bank-info-item:last-child {
-      border-bottom: none;
-    }
-    .bank-info-label {
-      color: #6c757d;
       font-size: 0.9rem;
     }
-    .bank-info-value {
-      font-weight: 600;
-      color: #333;
-    }
+    .bank-info-item:last-child { border-bottom: none; }
+    .bank-info-label { color: var(--secondary); }
+    .bank-info-value { font-weight: 700; color: #334155; }
+
     .payslip-locked {
       position: relative;
       pointer-events: none;
     }
     .lock-overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(255,255,255,0.3);
+      inset: 0;
+      background: rgba(255,255,255,0.45);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 14px;
+      border-radius: 16px;
       z-index: 10;
+      padding: 1rem;
+      text-align: center;
     }
+
     .period-selector {
-      background: #f8f9fa;
-      border-radius: 10px;
+      background: #f8fafc;
+      border-radius: 12px;
       padding: 15px;
       margin-bottom: 20px;
+      border: 1px solid #e2e8f0;
     }
-    /* Payroll Registration Form Styles */
+
     .payment-method-option .payment-label {
       padding: 8px 16px;
       border: 2px solid #dee2e6;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
       transition: all 0.2s ease;
       display: inline-block;
+      background: white;
     }
     .payment-method-option .form-check-input:checked + .payment-label {
-      border-color: #198754;
-      background-color: #d1e7dd;
-      color: #0f5132;
+      border-color: var(--primary);
+      background-color: var(--primary-light);
+      color: #065f46;
     }
-    .payment-method-option .form-check-input {
-      display: none;
-    }
+    .payment-method-option .form-check-input { display: none; }
+
     .upload-area {
       transition: all 0.2s ease;
       cursor: pointer;
     }
     .upload-area:hover {
-      border-color: #198754 !important;
+      border-color: var(--primary) !important;
       background-color: #f8fff9 !important;
     }
     .upload-area.dragover {
-      border-color: #198754 !important;
+      border-color: var(--primary) !important;
       background-color: #d1e7dd !important;
     }
+
     .detail-card {
-      background: #f8f9fa;
-      border-radius: 8px;
+      background: #f8fafc;
+      border-radius: 12px;
       padding: 12px 15px;
+      border: 1px solid #e2e8f0;
     }
     .detail-label {
       font-size: 0.75rem;
-      color: #6c757d;
+      color: var(--secondary);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 4px;
     }
     .detail-value {
       font-size: 1rem;
-      font-weight: 600;
-      color: #212529;
+      font-weight: 700;
+      color: #0f172a;
     }
+
     .status-icon-wrapper {
       width: 48px;
       height: 48px;
@@ -178,233 +239,225 @@
       justify-content: center;
       font-size: 1.5rem;
     }
-    .status-icon-wrapper.pending {
-      background-color: #fff3cd;
-      color: #856404;
+    .status-icon-wrapper.pending { background-color: #fff3cd; color: #856404; }
+    .status-icon-wrapper.approved { background-color: #d1e7dd; color: #0f5132; }
+    .status-icon-wrapper.rejected { background-color: #f8d7da; color: #842029; }
+
+    .small-note { color: var(--secondary); font-size: 0.8rem; }
+
+    @media (max-width: 992px) {
+      .sidebar { display: none; }
+      .main { padding: 1.25rem; }
     }
-    .status-icon-wrapper.approved {
-      background-color: #d1e7dd;
-      color: #0f5132;
-    }
-    .status-icon-wrapper.rejected {
-      background-color: #f8d7da;
-      color: #842029;
-    }
-    #bankDetailsModal .modal-dialog {
-      max-width: 700px;
-    }
-    #bankDetailsModal .modal-body {
-      max-height: 75vh;
-      overflow-y: auto;
-    }
-    .form-label {
-      margin-bottom: 0.4rem;
-    }
-    .form-control, .form-select {
-      padding: 0.6rem 0.875rem;
+
+    @media (max-width: 768px) {
+      .page-header { padding: 1.15rem; }
+      .page-header h2 { font-size: 1.2rem; }
+      .section-header { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
-  @include('layouts.ess-navbar-bootstrap')
+  <div class="app-shell">
+    @include('layouts.ess-aside')
 
-  <div class="container-fluid py-4" style="margin-top: 80px;">
-    <!-- Header -->
-    <div class="page-header mb-4 d-flex justify-content-between align-items-center">
-      <div>
-        <h2 class="mb-1">Payslip Overview</h2>
-        <p class="mb-0 opacity-75">View your salary breakdown and payment details</p>
-      </div>
-      <a href="{{ route('ess.dashboard') }}" class="btn btn-light text-success fw-semibold">
-        <i class='bx bx-arrow-back me-2'></i>Back to Dashboard
-      </a>
-    </div>
+    <main class="main">
+      @include('layouts.ess-navbar')
 
-    <!-- Loading State -->
-    <div id="loadingState" class="text-center py-5">
-      <div class="spinner-border text-success" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <p class="mt-3 text-muted">Loading payslip information...</p>
-    </div>
-
-    <!-- Main Content -->
-    <div id="mainContent" class="d-none">
-      <div class="row justify-content-center">
-        <!-- Bank Details Status Card -->
-        <div class="col-lg-7 mb-4">
-          <div class="card p-4" id="bankStatusCard">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h6 class="fw-semibold mb-1"><i class='bx bx-bank me-2 text-success'></i>Bank Account Status</h6>
-                <span id="bankStatusBadge" class="status-badge status-none">Not Submitted</span>
-              </div>
-              <button class="btn btn-check-bank" data-bs-toggle="modal" data-bs-target="#bankDetailsModal">
-                <i class='bx bx-show me-1'></i>View Details
-              </button>
+      <div class="container-fluid p-0" style="max-width: 1200px;">
+        <div class="page-header mb-4">
+          <div class="d-flex justify-content-between align-items-center gap-3">
+            <div>
+              <h2>Payslip Overview</h2>
+              <p>View your salary breakdown and payment details</p>
             </div>
-            <div id="bankStatusMessage" class="mt-3 small text-muted"></div>
+            <a href="{{ route('ess.dashboard') }}" class="btn btn-back">
+              <i class='bx bx-arrow-back me-1'></i>Back to Dashboard
+            </a>
           </div>
         </div>
 
-        <!-- Paid Payslip Information Card (Only shown when status is 'paid') -->
-        <div class="col-lg-7 mb-4 d-none" id="paidPayslipCard">
-          <div class="card p-4 border-success">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <div>
-                <h6 class="fw-semibold mb-1"><i class='bx bx-check-circle me-2 text-success'></i>Payment Confirmed</h6>
-                <span class="status-badge status-approved">Paid</span>
-              </div>
-              <span class="badge bg-success" id="paidPayPeriodBadge">--</span>
-            </div>
-            
-            <div class="bg-success bg-opacity-10 rounded p-3 mb-3">
-              <div class="row text-center">
-                <div class="col-4">
-                  <small class="text-muted d-block">Net Pay</small>
-                  <h5 class="text-success fw-bold mb-0" id="paidNetPay">₱0.00</h5>
-                </div>
-                <div class="col-4">
-                  <small class="text-muted d-block">Pay Date</small>
-                  <p class="fw-semibold mb-0" id="paidPayDate">--</p>
-                </div>
-                <div class="col-4">
-                  <small class="text-muted d-block">Reference No.</small>
-                  <p class="fw-semibold mb-0" id="paidReferenceNo">--</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-6">
-                <div class="detail-card mb-2">
-                  <div class="detail-label">Gross Pay</div>
-                  <div class="detail-value text-success" id="paidGrossPay">₱0.00</div>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="detail-card mb-2">
-                  <div class="detail-label">Total Deductions</div>
-                  <div class="detail-value text-danger" id="paidTotalDeductions">-₱0.00</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-3 pt-3 border-top">
-              <div class="d-flex justify-content-between align-items-center">
-                <small class="text-muted">
-                  <i class='bx bx-bank me-1'></i>Deposited to: <span id="paidBankInfo" class="fw-semibold">--</span>
-                </small>
-                <button class="btn btn-sm btn-outline-success" onclick="downloadPaidPayslip()">
-                  <i class='bx bx-download me-1'></i>Download Receipt
-                </button>
-              </div>
-            </div>
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-5">
+          <div class="spinner-border text-success" role="status">
+            <span class="visually-hidden">Loading...</span>
           </div>
+          <p class="mt-3 text-muted">Loading payslip information...</p>
         </div>
 
-        <!-- Payslip Card -->
-        <div class="col-lg-7">
-          <div class="card p-4 position-relative" id="payslipCard">
-            <!-- Lock Overlay (shown when bank details not approved) -->
-            <div class="lock-overlay d-none" id="payslipLockOverlay">
-              <div class="text-center">
-                <i class='bx bx-lock-alt text-warning' style="font-size: 3rem;"></i>
-                <h5 class="mt-2">Payslip Locked</h5>
-                <p class="text-muted mb-3">Please submit and get your bank details approved to view payslips.</p>
-                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bankDetailsModal">
-                  <i class='bx bx-bank me-1'></i>Submit Bank Details
-                </button>
-              </div>
-            </div>
-
-            <!-- Period Selector -->
-            <div class="period-selector" id="periodSelector">
-              <div class="row align-items-center">
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold text-muted">Select Pay Period</label>
-                  <select class="form-select" id="payPeriodSelect">
-                    <option value="">Select period...</option>
-                    <!-- Will be populated dynamically -->
-                  </select>
-                </div>
-                <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                  <button class="btn btn-outline-success" id="downloadPayslipBtn" disabled>
-                    <i class='bx bx-download me-1'></i>Download PDF
+        <!-- Main Content -->
+        <div id="mainContent" class="d-none">
+          <div class="row justify-content-center g-3">
+            <!-- Bank Details Status Card -->
+            <div class="col-lg-7">
+              <div class="section-card mb-3" id="bankStatusCard">
+                <div class="section-header">
+                  <div>
+                    <h5 class="section-title mb-1"><i class='bx bx-bank'></i>Bank Account Status</h5>
+                    <span id="bankStatusBadge" class="status-badge status-none">Not Submitted</span>
+                  </div>
+                  <button class="btn btn-check-bank" data-bs-toggle="modal" data-bs-target="#bankDetailsModal">
+                    <i class='bx bx-show me-1'></i>View Details
                   </button>
                 </div>
+                <div class="section-body small-note" id="bankStatusMessage"></div>
               </div>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="fw-semibold text-success mb-0"><i class='bx bx-receipt me-2'></i>Payslip Summary</h5>
-              <span id="payPeriodLabel" class="badge bg-success">--</span>
-            </div>
+            <!-- Paid Payslip Information Card -->
+            <div class="col-lg-7 mb-3 d-none" id="paidPayslipCard">
+              <div class="section-card border-success">
+                <div class="section-body">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h6 class="fw-semibold mb-1"><i class='bx bx-check-circle me-2 text-success'></i>Payment Confirmed</h6>
+                      <span class="status-badge status-approved">Paid</span>
+                    </div>
+                    <span class="badge bg-success" id="paidPayPeriodBadge">--</span>
+                  </div>
 
-            <!-- Employee Info -->
-            <div class="bg-light rounded p-3 mb-3">
-              <div class="row">
-                <div class="col-6">
-                  <small class="text-muted">Employee ID</small>
-                  <p class="mb-0 fw-semibold" id="empIdDisplay">--</p>
-                </div>
-                <div class="col-6">
-                  <small class="text-muted">Employee Name</small>
-                  <p class="mb-0 fw-semibold" id="empNameDisplay">--</p>
+                  <div class="bg-success bg-opacity-10 rounded p-3 mb-3">
+                    <div class="row text-center">
+                      <div class="col-4">
+                        <small class="text-muted d-block">Net Pay</small>
+                        <h5 class="text-success fw-bold mb-0" id="paidNetPay">₱0.00</h5>
+                      </div>
+                      <div class="col-4">
+                        <small class="text-muted d-block">Pay Date</small>
+                        <p class="fw-semibold mb-0" id="paidPayDate">--</p>
+                      </div>
+                      <div class="col-4">
+                        <small class="text-muted d-block">Reference No.</small>
+                        <p class="fw-semibold mb-0" id="paidReferenceNo">--</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row g-3">
+                    <div class="col-6">
+                      <div class="detail-card">
+                        <div class="detail-label">Gross Pay</div>
+                        <div class="detail-value text-success" id="paidGrossPay">₱0.00</div>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="detail-card">
+                        <div class="detail-label">Total Deductions</div>
+                        <div class="detail-value text-danger" id="paidTotalDeductions">-₱0.00</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                    <small class="text-muted">
+                      <i class='bx bx-bank me-1'></i>Deposited to: <span id="paidBankInfo" class="fw-semibold">--</span>
+                    </small>
+                    <button class="btn btn-sm btn-outline-success" onclick="downloadPaidPayslip()">
+                      <i class='bx bx-download me-1'></i>Download Receipt
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div class="row mt-2">
-                <div class="col-6">
-                  <small class="text-muted">Department</small>
-                  <p class="mb-0 fw-semibold" id="empDeptDisplay">--</p>
+            </div>
+
+            <!-- Payslip Card -->
+            <div class="col-lg-7">
+              <div class="section-card position-relative" id="payslipCard">
+                <div class="lock-overlay d-none" id="payslipLockOverlay">
+                  <div>
+                    <i class='bx bx-lock-alt text-warning' style="font-size: 3rem;"></i>
+                    <h5 class="mt-2">Payslip Locked</h5>
+                    <p class="text-muted mb-3">Please submit and get your bank details approved to view payslips.</p>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bankDetailsModal">
+                      <i class='bx bx-bank me-1'></i>Submit Bank Details
+                    </button>
+                  </div>
                 </div>
-                <div class="col-6">
-                  <small class="text-muted">Position</small>
-                  <p class="mb-0 fw-semibold" id="empPositionDisplay">--</p>
+
+                <div class="section-body">
+                  <div class="period-selector" id="periodSelector">
+                    <div class="row align-items-center g-3">
+                      <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-muted">Select Pay Period</label>
+                        <select class="form-select" id="payPeriodSelect">
+                          <option value="">Select period...</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                        <button class="btn btn-outline-success" id="downloadPayslipBtn" disabled>
+                          <i class='bx bx-download me-1'></i>Download PDF
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h5 class="fw-semibold text-success mb-0"><i class='bx bx-receipt me-2'></i>Payslip Summary</h5>
+                    <span id="payPeriodLabel" class="badge bg-success">--</span>
+                  </div>
+
+                  <div class="bg-light rounded p-3 mb-3">
+                    <div class="row g-2">
+                      <div class="col-6">
+                        <small class="text-muted">Employee ID</small>
+                        <p class="mb-0 fw-semibold" id="empIdDisplay">--</p>
+                      </div>
+                      <div class="col-6">
+                        <small class="text-muted">Employee Name</small>
+                        <p class="mb-0 fw-semibold" id="empNameDisplay">--</p>
+                      </div>
+                    </div>
+                    <div class="row g-2 mt-2">
+                      <div class="col-6">
+                        <small class="text-muted">Department</small>
+                        <p class="mb-0 fw-semibold" id="empDeptDisplay">--</p>
+                      </div>
+                      <div class="col-6">
+                        <small class="text-muted">Position</small>
+                        <p class="mb-0 fw-semibold" id="empPositionDisplay">--</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <h6 class="text-success fw-semibold mt-3 mb-2"><i class='bx bx-plus-circle me-1'></i>Earnings</h6>
+                  <div class="salary-item"><span>Basic Salary</span><strong id="basicSalary">₱0.00</strong></div>
+                  <div class="salary-item"><span>Transport Allowance</span><strong id="transportAllowance">₱0.00</strong></div>
+                  <div class="salary-item"><span>Meal Allowance</span><strong id="mealAllowance">₱0.00</strong></div>
+                  <div class="salary-item"><span>Overtime Pay</span><strong id="overtimePay">₱0.00</strong></div>
+                  <div class="salary-item"><span>Other Earnings</span><strong id="otherEarnings">₱0.00</strong></div>
+                  <div class="salary-item fw-semibold bg-light rounded px-2 py-1">
+                    <span>Gross Pay</span><strong id="grossPay" class="text-success">₱0.00</strong>
+                  </div>
+
+                  <div class="divider"></div>
+
+                  <h6 class="text-danger fw-semibold mb-2"><i class='bx bx-minus-circle me-1'></i>Deductions</h6>
+                  <div class="salary-item deduction"><span>SSS Contribution</span><strong id="sssDeduction">-₱0.00</strong></div>
+                  <div class="salary-item deduction"><span>PhilHealth</span><strong id="philhealthDeduction">-₱0.00</strong></div>
+                  <div class="salary-item deduction"><span>Pag-IBIG</span><strong id="pagibigDeduction">-₱0.00</strong></div>
+                  <div class="salary-item deduction"><span>Withholding Tax</span><strong id="taxDeduction">-₱0.00</strong></div>
+                  <div class="salary-item deduction"><span>Other Deductions</span><strong id="otherDeductions">-₱0.00</strong></div>
+                  <div class="salary-item fw-semibold bg-light rounded px-2 py-1">
+                    <span>Total Deductions</span><strong id="totalDeductions" class="text-danger">-₱0.00</strong>
+                  </div>
+
+                  <div class="divider"></div>
+
+                  <div class="salary-item fw-bold fs-5 bg-success bg-opacity-10 rounded px-3 py-2 mb-3">
+                    <span>Net Pay</span><strong id="netPay" class="text-success">₱0.00</strong>
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <small class="text-muted">Payslip generated: <span id="payslipGeneratedDate">--</span></small>
+                    <small class="text-muted">Pay Date: <span id="payDate">--</span></small>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Earnings Section -->
-            <h6 class="text-success fw-semibold mt-3 mb-2"><i class='bx bx-plus-circle me-1'></i>Earnings</h6>
-            <div class="salary-item"><span>Basic Salary</span><strong id="basicSalary">₱0.00</strong></div>
-            <div class="salary-item"><span>Transport Allowance</span><strong id="transportAllowance">₱0.00</strong></div>
-            <div class="salary-item"><span>Meal Allowance</span><strong id="mealAllowance">₱0.00</strong></div>
-            <div class="salary-item"><span>Overtime Pay</span><strong id="overtimePay">₱0.00</strong></div>
-            <div class="salary-item"><span>Other Earnings</span><strong id="otherEarnings">₱0.00</strong></div>
-            <div class="salary-item fw-semibold bg-light rounded px-2 py-1">
-              <span>Gross Pay</span><strong id="grossPay" class="text-success">₱0.00</strong>
-            </div>
-
-            <div class="divider"></div>
-
-            <!-- Deductions Section -->
-            <h6 class="text-danger fw-semibold mb-2"><i class='bx bx-minus-circle me-1'></i>Deductions</h6>
-            <div class="salary-item deduction"><span>SSS Contribution</span><strong id="sssDeduction">-₱0.00</strong></div>
-            <div class="salary-item deduction"><span>PhilHealth</span><strong id="philhealthDeduction">-₱0.00</strong></div>
-            <div class="salary-item deduction"><span>Pag-IBIG</span><strong id="pagibigDeduction">-₱0.00</strong></div>
-            <div class="salary-item deduction"><span>Withholding Tax</span><strong id="taxDeduction">-₱0.00</strong></div>
-            <div class="salary-item deduction"><span>Other Deductions</span><strong id="otherDeductions">-₱0.00</strong></div>
-            <div class="salary-item fw-semibold bg-light rounded px-2 py-1">
-              <span>Total Deductions</span><strong id="totalDeductions" class="text-danger">-₱0.00</strong>
-            </div>
-
-            <div class="divider"></div>
-
-            <!-- Net Pay -->
-            <div class="salary-item fw-bold fs-5 bg-success bg-opacity-10 rounded px-3 py-2">
-              <span>Net Pay</span><strong id="netPay" class="text-success">₱0.00</strong>
-            </div>
-
-            <!-- Footer -->
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <small class="text-muted">Payslip generated: <span id="payslipGeneratedDate">--</span></small>
-              <small class="text-muted">Pay Date: <span id="payDate">--</span></small>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 
   <!-- Bank Details Modal -->
@@ -433,7 +486,6 @@
           <!-- Bank Details Form -->
           <div id="bankDetailsFormView" class="d-none">
             <form id="bankDetailsForm">
-              <!-- Form Header -->
               <div class="bg-light border-bottom px-4 py-3">
                 <div class="d-flex align-items-center">
                   <div class="bg-success bg-opacity-10 rounded-circle p-2 me-3">
@@ -447,7 +499,6 @@
               </div>
 
               <div class="p-4">
-                <!-- Section 1: Payment Method -->
                 <div class="mb-4">
                   <h6 class="fw-semibold text-success mb-3 d-flex align-items-center">
                     <span class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 12px;">1</span>
@@ -468,17 +519,14 @@
                   </div>
                 </div>
 
-                <!-- Divider -->
                 <hr class="my-4 border-2">
 
-                <!-- Section 2: Bank/E-Wallet Information -->
                 <div class="mb-4" id="bankInfoSection">
                   <h6 class="fw-semibold text-success mb-3 d-flex align-items-center">
                     <span class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 12px;">2</span>
                     <span id="sectionTitle">Bank Information</span>
                   </h6>
-                  
-                  <!-- Bank Selection (shown for Bank Transfer) -->
+
                   <div id="bankSelectionFields">
                     <div class="row">
                       <div class="col-md-6 mb-3">
@@ -509,7 +557,6 @@
                     </div>
                   </div>
 
-                  <!-- Account Type (shown for Bank Transfer) -->
                   <div class="row" id="accountTypeRow">
                     <div class="col-md-6 mb-3">
                       <label class="form-label fw-medium">Account Type <span class="text-danger">*</span></label>
@@ -526,17 +573,14 @@
                   </div>
                 </div>
 
-                <!-- Divider -->
                 <hr class="my-4 border-2">
 
-                <!-- Section 3: Verification -->
                 <div class="mb-4">
                   <h6 class="fw-semibold text-success mb-3 d-flex align-items-center">
                     <span class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 12px;">3</span>
                     Document Verification
                   </h6>
 
-                  <!-- Valid ID Upload -->
                   <div class="border rounded-3 p-3 bg-light mb-3">
                     <label class="form-label fw-medium mb-2">
                       <i class='bx bx-id-card me-1'></i>Upload Valid ID <span class="text-danger">*</span>
@@ -593,7 +637,6 @@
                     </small>
                   </div>
 
-                  <!-- Proof of Bank Account Upload -->
                   <div class="border rounded-3 p-3 bg-light">
                     <label class="form-label fw-medium mb-2">
                       <i class='bx bx-upload me-1'></i>Upload Proof of Bank Account <span class="text-muted fw-normal">(Recommended)</span>
@@ -620,16 +663,13 @@
                   </div>
                 </div>
 
-                <!-- Divider -->
                 <hr class="my-4 border-2">
 
-                <!-- Section 4: Declaration -->
                 <div class="mb-4">
                   <h6 class="fw-semibold text-success mb-3 d-flex align-items-center">
                     <span class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 12px;">4</span>
                     Declaration
                   </h6>
-                  
                   <div class="bg-warning bg-opacity-10 border border-warning rounded-3 p-3">
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" id="declarationCheck" required>
@@ -645,10 +685,8 @@
                   </div>
                 </div>
 
-                <!-- Divider -->
                 <hr class="my-4 border-2">
 
-                <!-- Important Notice -->
                 <div class="alert alert-info d-flex align-items-start mb-4">
                   <i class='bx bx-info-circle fs-4 me-2 mt-1'></i>
                   <div>
@@ -661,13 +699,12 @@
                   </div>
                 </div>
 
-                <!-- Form Actions -->
-                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top flex-wrap gap-2">
                   <button type="button" class="btn btn-outline-secondary px-4" id="cancelBankFormBtn">
                     <i class='bx bx-x me-1'></i>Cancel
                   </button>
-                  <div>
-                    <button type="button" class="btn btn-outline-success me-2" onclick="saveDraft()">
+                  <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-success" onclick="saveDraft()">
                       <i class='bx bx-save me-1'></i>Save as Draft
                     </button>
                     <button type="submit" class="btn btn-success px-4" id="submitBtn">
@@ -681,9 +718,8 @@
 
           <!-- Existing Bank Details View -->
           <div id="existingBankDetailsView" class="d-none">
-            <!-- Status Header -->
             <div class="px-4 py-3 border-bottom" id="statusHeader">
-              <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
                 <div class="d-flex align-items-center">
                   <div class="status-icon-wrapper me-3" id="statusIconWrapper">
                     <i class='bx bx-time-five' id="statusIcon"></i>
@@ -699,12 +735,11 @@
               </div>
             </div>
 
-            <!-- Account Details -->
             <div class="p-4">
               <h6 class="fw-semibold mb-3 text-muted">
                 <i class='bx bx-credit-card me-1'></i>Registered Account Information
               </h6>
-              
+
               <div class="row">
                 <div class="col-md-6">
                   <div class="detail-card mb-3">
@@ -736,12 +771,11 @@
                 </div>
               </div>
 
-              <!-- Valid ID Information -->
               <hr class="my-4" style="border-color: #dee2e6;">
               <h6 class="fw-semibold mb-3 text-muted">
                 <i class='bx bx-id-card me-1'></i>Valid ID Information
               </h6>
-              
+
               <div class="row">
                 <div class="col-md-6">
                   <div class="detail-card mb-3">
@@ -757,9 +791,8 @@
                 </div>
               </div>
 
-              <!-- Submission Info -->
               <div class="bg-light rounded-3 p-3 mt-3">
-                <div class="row">
+                <div class="row g-3">
                   <div class="col-md-4">
                     <small class="text-muted d-block">Submitted Date</small>
                     <span class="fw-medium" id="viewSubmittedDate">--</span>
@@ -775,7 +808,6 @@
                 </div>
               </div>
 
-              <!-- Rejection Info -->
               <div id="rejectionInfoSection" class="d-none mt-3">
                 <div class="alert alert-danger mb-0">
                   <div class="d-flex">
@@ -791,7 +823,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 
   <!-- Bootstrap JS -->

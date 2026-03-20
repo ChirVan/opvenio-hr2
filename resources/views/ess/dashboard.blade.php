@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Employee Portal - {{ config('app.name') }}</title>
+  <title>Employee Portal — {{ config('app.name') }}</title>
 
   <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -14,709 +14,541 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      --primary: #10b981;
-      --primary-dark: #059669;
-      --primary-light: #d1fae5;
-      --secondary: #64748b;
-      --dark: #1e293b;
-      --light: #f8fafc;
-      --card-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
-      --card-shadow-hover: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
-    }
-    
-    body {
-      background-color: var(--light);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      color: var(--dark);
-    }
-    
-    .portal-header {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-      color: white;
-      border-radius: 16px;
-      padding: 1.75rem 2rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .portal-header::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -20%;
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-      border-radius: 50%;
-    }
-    
-    .portal-header h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    }
-    
-    .portal-header p {
-      opacity: 0.9;
-      font-size: 0.9rem;
-      margin-bottom: 0;
-    }
-    
-    .quick-actions {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-    
-    .quick-action-item {
-      background: white;
-      border-radius: 12px;
-      padding: 1rem;
-      text-align: center;
-      text-decoration: none;
-      color: var(--dark);
-      box-shadow: var(--card-shadow);
-      transition: all 0.2s ease;
-      border: 1px solid rgba(0,0,0,0.04);
-    }
-    
-    .quick-action-item:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--card-shadow-hover);
-      color: var(--dark);
-      border-color: var(--primary-light);
-    }
-    
-    .quick-action-icon {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      margin: 0 auto 0.5rem;
-      font-size: 1.25rem;
-    }
-    
-    .quick-action-icon.learning { background: #dbeafe; color: #2563eb; }
-    .quick-action-icon.leave { background: #fef3c7; color: #d97706; }
-    .quick-action-icon.payslip { background: #d1fae5; color: #059669; }
-    
-    .quick-action-title {
-      font-size: 0.8rem;
-      font-weight: 500;
-      margin-bottom: 0;
-    }
-    
-    .quick-action-subtitle {
-      font-size: 0.7rem;
-      color: var(--secondary);
-      margin-bottom: 0;
-    }
-    
-    .section-card {
-      background: white;
-      border-radius: 14px;
-      box-shadow: var(--card-shadow);
-      border: 1px solid rgba(0,0,0,0.04);
-      overflow: hidden;
-    }
-    
-    .section-header {
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid #f1f5f9;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    
-    .section-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--dark);
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    
-    .section-title i {
-      color: var(--primary);
-    }
-    
-    .section-body {
-      padding: 0;
-    }
-    
-    .activity-item {
-      display: flex;
-      align-items: center;
-      padding: 0.875rem 1.25rem;
-      border-bottom: 1px solid #f8fafc;
-      transition: background 0.15s ease;
-    }
-    
-    .activity-item:last-child {
-      border-bottom: none;
-    }
-    
-    .activity-item:hover {
-      background: #fafbfc;
-    }
-    
-    .activity-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 0.75rem;
-      font-size: 0.9rem;
-    }
-    
-    .activity-icon.success { background: #d1fae5; color: #059669; }
-    .activity-icon.primary { background: #dbeafe; color: #2563eb; }
-    .activity-icon.warning { background: #fef3c7; color: #d97706; }
-    
-    .activity-content h6 {
-      font-size: 0.825rem;
-      font-weight: 500;
-      margin-bottom: 0.125rem;
-      color: var(--dark);
-    }
-    
-    .activity-content small {
-      font-size: 0.7rem;
-      color: var(--secondary);
-    }
-    
-    .schedule-table {
-      margin: 0;
-    }
-    
-    .schedule-table thead th {
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--secondary);
-      padding: 0.75rem 1rem;
-      background: #f8fafc;
-      border: none;
-    }
-    
-    .schedule-table tbody td {
-      padding: 0.625rem 1rem;
-      font-size: 0.8rem;
-      border: none;
-      border-bottom: 1px solid #f8fafc;
-      vertical-align: middle;
-    }
-    
-    .schedule-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-    
-    .day-label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 500;
-    }
-    
-    .day-icon {
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-    }
-    
-    .day-icon.active { background: #d1fae5; color: #059669; }
-    .day-icon.rest { background: #f1f5f9; color: #94a3b8; }
-    
-    .status-badge {
-      font-size: 0.675rem;
-      font-weight: 500;
-      padding: 0.25rem 0.5rem;
-      border-radius: 6px;
-    }
-    
-    .status-badge.on-duty {
-      background: #d1fae5;
-      color: #059669;
-    }
-    
-    .status-badge.rest-day {
-      background: #f1f5f9;
-      color: #64748b;
-    }
-    
-    .section-footer {
-      padding: 0.75rem 1.25rem;
-      background: #fafbfc;
-      border-top: 1px solid #f1f5f9;
-    }
-    
-    .section-footer p {
-      font-size: 0.7rem;
-      color: var(--secondary);
-      margin: 0;
-    }
-    
-    .info-card {
-      background: white;
-      border-radius: 12px;
-      padding: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      box-shadow: var(--card-shadow);
-      border: 1px solid rgba(0,0,0,0.04);
-    }
-    
-    .info-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      flex-shrink: 0;
-    }
-    
-    .info-icon.blue { background: #dbeafe; color: #2563eb; }
-    .info-icon.green { background: #d1fae5; color: #059669; }
-    .info-icon.purple { background: #f3e8ff; color: #7c3aed; }
-    
-    .info-content {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
-    
-    .info-label {
-      font-size: 0.7rem;
-      color: var(--secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .info-value {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--dark);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    :root{
+      --primary: #0ea5a6; /* teal-ish */
+      --muted: #6b7280;
+      --bg: #f8fafc;
+      --card-shadow: 0 6px 18px rgba(15,23,42,0.06);
+      --glass: rgba(255,255,255,0.8);
     }
 
-    @media (max-width: 768px) {
-      .quick-actions {
-        grid-template-columns: repeat(3, 1fr);
-      }
-      .portal-header {
-        padding: 1.25rem;
-      }
-      .portal-header h1 {
-        font-size: 1.25rem;
-      }
+    html,body{height:100%;}
+    body{
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: var(--bg);
+      color: #0f172a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    
+
+    /* Main */
+    .main{flex:1;padding:1.5rem 2rem}
+    .navbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem}
+    .search-input{max-width:420px}
+
+    /* Header card */
+    .hero-card{background:linear-gradient(90deg,var(--primary),#16a34a);color:white;padding:1.25rem;border-radius:.75rem;box-shadow:var(--card-shadow);}
+    .hero-card h2{font-size:1.25rem;margin:0}
+    .hero-card p{margin:0.25rem 0 0;color:rgba(255,255,255,0.9)}
+
+    /* Quick actions */
+    .quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:0.875rem;margin-top:1rem}
+    .qa-card{background:white;border-radius:.6rem;padding:0.9rem;display:flex;align-items:center;gap:.75rem;border:1px solid #eef2f7;box-shadow:0 4px 12px rgba(2,6,23,0.03)}
+    .qa-icon{width:44px;height:44px;border-radius:.6rem;display:flex;align-items:center;justify-content:center;font-size:1.25rem}
+    .qa-title{font-weight:600}
+    .qa-sub{color:var(--muted);font-size:0.85rem}
+
+    /* Cards */
+    .card-clean{border-radius:.75rem;border:0;box-shadow:var(--card-shadow)}
+    .activities .list-group-item{border:none;padding:.85rem 1rem;border-bottom:1px solid #f1f5f9}
+    .activities .list-group-item:last-child{border-bottom:0}
+
+    .schedule-table thead th{background:#fbfdfe;border-bottom:1px solid #f1f5f9;color:var(--muted);font-weight:600;font-size:.78rem}
+    .schedule-table tbody td{vertical-align:middle}
+
+    /* Responsive */
+    @media (max-width: 992px){
+      .sidebar{display:none}
+      .quick-actions{grid-template-columns:repeat(2,1fr)}
+    }
+
+    @media (max-width: 576px){
+      .quick-actions{grid-template-columns:repeat(1,1fr)}
     }
   </style>
 </head>
 <body>
-  @include('layouts.ess-navbar-bootstrap')
-
-  <div class="container py-4" style="margin-top: 76px; max-width: 1100px;">
-
-    <!-- Portal Header -->
-    <div class="portal-header">
-      <div class="d-flex align-items-center justify-content-between">
+  <div class="app-shell">
+    <!-- Sidebar -->
+    @include('layouts.ess-aside')
+    <!-- <aside class="sidebar d-none d-lg-block">
+      <div class="brand">
+        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary),#059669);display:flex;align-items:center;justify-content:center;color:white;font-weight:700">EP</div>
         <div>
-          <h1>Welcome back, {{ Auth::user()->name ?? 'Employee' }} 👋</h1>
-          <p>Manage your work, check schedules, and stay updated.</p>
-        </div>
-        <div class="d-none d-md-block">
-          <span class="badge bg-white bg-opacity-25 text-white px-3 py-2">
-            <i class='bx bx-calendar me-1'></i>{{ now()->format('l, M d') }}
-          </span>
+          <div style="font-weight:700">{{ config('app.name', 'Employee Portal') }}</div>
+          <small style="color:var(--muted)">{{ Auth::user()->name ?? 'Employee' }}</small>
         </div>
       </div>
-    </div>
 
-    <!-- Quick Actions Grid -->
-    <div class="quick-actions">
-      <a href="{{ route('ess.lms') }}" class="quick-action-item">
-        <div class="quick-action-icon learning">
-          <i class='bx bx-book-open'></i>
-        </div>
-        <p class="quick-action-title">Learning</p>
-        <p class="quick-action-subtitle">Courses</p>
-      </a>
+      <nav class="nav flex-column">
+        <a href="{{ route('ess.dashboard') }}" class="nav-link active"><i class='bx bx-home'></i> Dashboard</a>
+        <a href="{{ route('ess.lms') }}" class="nav-link"><i class='bx bx-book-open'></i> Learning</a>
+        <a href="{{ route('ess.leave') }}" class="nav-link"><i class='bx bx-calendar-event'></i> Time Off</a>
+        <a href="{{ route('ess.payslip') }}" class="nav-link"><i class='bx bx-wallet'></i> Payslip</a>
+        <a href="{{ route('ess.promotion-offers') }}" class="nav-link"><i class='bx bx-rocket'></i> Promotions</a>
+        <hr style="margin:1rem 0;border-color:#f3f6f9">
+        <a href="#" class="nav-link"><i class='bx bx-help-circle'></i> Help & Support</a>
+        <a href="#" class="nav-link"><i class='bx bx-cog'></i> Settings</a>
+      </nav>
 
-      <a href="{{ route('ess.leave') }}" class="quick-action-item">
-        <div class="quick-action-icon leave">
-          <i class='bx bx-calendar-event'></i>
-        </div>
-        <p class="quick-action-title">Time Off</p>
-        <p class="quick-action-subtitle">Request</p>
-      </a>
-
-      <a href="{{ route('ess.payslip') }}" class="quick-action-item">
-        <div class="quick-action-icon payslip">
-          <i class='bx bx-wallet'></i>
-        </div>
-        <p class="quick-action-title">Payslip</p>
-        <p class="quick-action-subtitle">Salary</p>
-      </a>
-
-      <a href="{{ route('ess.promotion-offers') }}" class="quick-action-item">
-        <div class="quick-action-icon" style="background: #fef3c7; color: #d97706;">
-          <i class='bx bx-rocket'></i>
-        </div>
-        <p class="quick-action-title">Promotions</p>
-        <p class="quick-action-subtitle">Offers</p>
-      </a>
-    </div>
-
-    <!-- Info Cards Row -->
-    <div class="row g-3 mb-4">
-      <div class="col-md-4">
-        <div class="info-card">
-          <div class="info-icon blue">
-            <i class='bx bx-briefcase'></i>
-          </div>
-          <div class="info-content">
-            <span class="info-label">Job Title</span>
-            <span class="info-value" id="emp-job-title">Loading...</span>
-          </div>
-        </div>
+      <div style="position:absolute;bottom:1.25rem;left:1.25rem;right:1.25rem">
+        <small class="text-muted">Need help? <a href="#">Contact HR</a></small>
       </div>
-      <div class="col-md-4">
-        <div class="info-card">
-          <div class="info-icon green">
-            <i class='bx bx-id-card'></i>
-          </div>
-          <div class="info-content">
-            <span class="info-label">Employee ID</span>
-            <span class="info-value">{{ Auth::user()->employee_id ?? 'N/A' }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="info-card">
-          <div class="info-icon purple">
-            <i class='bx bx-map'></i>
-          </div>
-          <div class="info-content">
-            <span class="info-label">Work Location</span>
-            <span class="info-value" id="emp-location">Loading...</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    </aside> -->
 
-    <!-- Two-column section -->
-    <div class="row g-3">
-      <!-- Recent Activities -->
-      <div class="col-lg-6">
-        <div class="section-card h-100">
-          <div class="section-header">
-            <h5 class="section-title"><i class='bx bx-bell'></i>Recent Activities</h5>
-          </div>
-          <div class="section-body" id="activities-container">
-            <!-- Loading state -->
-            <div class="activity-item" id="activities-loading">
-              <div class="activity-icon primary">
-                <i class='bx bx-loader-alt bx-spin'></i>
+    <!-- Main content -->
+    <main class="main">
+      @include('layouts.ess-navbar')
+      <!-- <div class="navbar">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none" id="mobileMenuBtn"><i class='bx bx-menu'></i></button>
+          <form class="search-input d-none d-md-block">
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0"><i class='bx bx-search'></i></span>
+              <input class="form-control border-start-0" placeholder="Search trainings, payslips, requests..." />
+            </div>
+          </form>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <div class="d-none d-md-block text-muted small">{{ now()->format('l, M d, Y') }}</div>
+          <div class="dropdown">
+            <a href="#" class="d-flex align-items-center text-decoration-none" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+              <div style="width:44px;height:44px;border-radius:8px;background:#eef2f7;display:flex;align-items:center;justify-content:center;margin-right:.5rem">
+                <i class='bx bx-user'></i>
               </div>
-              <div class="activity-content">
-                <h6>Loading activities...</h6>
-                <small>Please wait</small>
+              <div class="d-none d-sm-block text-end">
+                <div style="font-weight:700">{{ Auth::user()->name ?? 'Employee' }}</div>
+                <small class="text-muted">{{ Auth::user()->employee_id ?? '' }}</small>
               </div>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+              <li><a class="dropdown-item" href="#">Profile</a></li>
+              <li><a class="dropdown-item" href="#">Settings</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form method="POST" action="{{ route('logout') }}">@csrf
+                  <button class="dropdown-item">Sign out</button>
+                </form>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div> -->
+
+      <!-- Header / Hero -->
+      <div class="hero-card d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h2>Welcome back, {{ Auth::user()->name ?? 'Employee' }} 👋</h2>
+          <p>Quick overview of your training, schedule and recent activity.</p>
+        </div>
+        <div class="text-end d-none d-md-block">
+          <button class="btn btn-outline-light me-2" onclick="clockIn()"><i class='bx bx-walk'></i> Clock In</button>
+          <a href="{{ route('ess.lms') }}" class="btn btn-white">View Learning</a>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="quick-actions">
+        <a href="{{ route('ess.lms') }}" class="qa-card text-decoration-none">
+          <div class="qa-icon" style="background:#eff6ff;color:#1e3a8a"><i class='bx bx-book-open'></i></div>
+          <div>
+            <div class="qa-title">Learning</div>
+            <div class="qa-sub">Courses & quizzes</div>
+          </div>
+        </a>
+
+        <a href="{{ route('ess.leave') }}" class="qa-card text-decoration-none">
+          <div class="qa-icon" style="background:#fff7ed;color:#92400e"><i class='bx bx-calendar-event'></i></div>
+          <div>
+            <div class="qa-title">Time off</div>
+            <div class="qa-sub">Apply / balances</div>
+          </div>
+        </a>
+
+        <a href="{{ route('ess.payslip') }}" class="qa-card text-decoration-none">
+          <div class="qa-icon" style="background:#ecfdf5;color:#066a50"><i class='bx bx-wallet'></i></div>
+          <div>
+            <div class="qa-title">Payslip</div>
+            <div class="qa-sub">Salary & history</div>
+          </div>
+        </a>
+
+        <a href="{{ route('ess.promotion-offers') }}" class="qa-card text-decoration-none">
+          <div class="qa-icon" style="background:#f8edff;color:#6b21a8"><i class='bx bx-rocket'></i></div>
+          <div>
+            <div class="qa-title">Promotions</div>
+            <div class="qa-sub">Opportunities</div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Info row -->
+      <div class="row mt-3 g-3">
+        <div class="col-md-4">
+          <div class="card card-clean p-3">
+            <div class="d-flex align-items-center gap-3">
+              <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#eef2ff,#e0f2fe);display:flex;align-items:center;justify-content:center"><i class='bx bx-briefcase' style="font-size:1.25rem;color:#075985"></i></div>
+              <div>
+                <div class="text-muted small">Job Title</div>
+                <div id="emp-job-title" style="font-weight:700">Loading…</div>
+              </div>
+            </div>
+            <hr style="margin:12px 0 0;border-color:#f1f5f9">
+            <div class="d-flex justify-content-between mt-2">
+              <small class="text-muted">Employment ID</small>
+              <small style="font-weight:600">{{ Auth::user()->employee_id ?? 'N/A' }}</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card card-clean p-3">
+            <div class="d-flex align-items-center gap-3">
+              <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#ecfdf5,#d1fae5);display:flex;align-items:center;justify-content:center"><i class='bx bx-id-card' style="font-size:1.25rem;color:#065f46"></i></div>
+              <div>
+                <div class="text-muted small">Work Location</div>
+                <div id="emp-location" style="font-weight:700">Loading…</div>
+              </div>
+            </div>
+            <hr style="margin:12px 0 0;border-color:#f1f5f9">
+            <div class="d-flex justify-content-between mt-2">
+              <small class="text-muted">Status</small>
+              <small class="text-success" style="font-weight:600">Active</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card card-clean p-3">
+            <div class="d-flex align-items-center gap-3">
+              <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#f8edff,#f3e8ff);display:flex;align-items:center;justify-content:center"><i class='bx bx-calendar' style="font-size:1.25rem;color:#6b21a8"></i></div>
+              <div>
+                <div class="text-muted small">Upcoming Shift</div>
+                <div id="next-shift" style="font-weight:700">8:00 AM — 5:00 PM</div>
+              </div>
+            </div>
+            <hr style="margin:12px 0 0;border-color:#f1f5f9">
+            <div class="d-flex justify-content-between mt-2">
+              <small class="text-muted">Next Day</small>
+              <small style="font-weight:600">{{ now()->addDay()->format('D, M d') }}</small>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Work Schedule -->
-      <div class="col-lg-6">
-        <div class="section-card h-100">
-          <div class="section-header">
-            <h5 class="section-title"><i class='bx bx-calendar-week'></i>Work Schedule</h5>
+      <!-- Two column content -->
+      <div class="row mt-3 g-3">
+        <div class="col-lg-6">
+          <div class="card card-clean h-100">
+            <div class="card-body activities p-0">
+              <h5 class="mb-0 p-3">Recent Activities</h5>
+              <div id="activities-container" class="list-group list-group-flush">
+                <div class="list-group-item d-flex align-items-start">
+                  <div style="width:36px;height:36px;border-radius:8px;background:#eef2ff;display:flex;align-items:center;justify-content:center;margin-right:.75rem"><i class='bx bx-loader-alt bx-spin' style="color:#2563eb"></i></div>
+                  <div>
+                    <div style="font-weight:600">Loading activities…</div>
+                    <small class="text-muted">Please wait</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer bg-white text-center" style="border-top:1px solid #f1f5f9">
+              <a href="{{ route('ess.lms') }}" class="text-decoration-none">View all activities</a>
+            </div>
           </div>
-          <div class="section-body">
-            <table class="table schedule-table">
-              <thead>
-                <tr>
-                  <th>Day</th>
-                  <th>Shift</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="schedule-body">
-                <tr>
-                  <td colspan="3" class="text-center py-4">
-                    <i class='bx bx-loader-alt bx-spin' style="font-size: 1.5rem; color: var(--secondary);"></i>
-                    <p class="mb-0 mt-2" style="font-size: 0.8rem; color: var(--secondary);">Loading schedule...</p>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="section-footer">
-            <p><i class='bx bx-info-circle me-1'></i>Schedules may vary during holidays.</p>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="card card-clean h-100">
+            <div class="card-body p-0">
+              <h5 class="mb-0 p-3">Work Schedule</h5>
+              <div class="table-responsive">
+                <table class="table schedule-table mb-0">
+                  <thead>
+                    <tr>
+                      <th>Day</th>
+                      <th>Shift</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="schedule-body">
+                    <tr>
+                      <td colspan="3" class="text-center py-4 text-muted">Loading schedule…</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card-footer bg-white" style="border-top:1px solid #f1f5f9">
+              <small class="text-muted">Schedules are maintained by HR. Contact your manager to request changes.</small>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
+      <footer class="mt-4 text-center text-muted small">© {{ date('Y') }} {{ config('app.name') }} — All rights reserved.</footer>
+
+    </main>
   </div>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+  <!-- =========================
+       SAFE LAYOUT SCRIPT
+       ========================= -->
   <script>
-    function clockIn() {
-      const now = new Date();
-      const timeString = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' });
-      const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      alert(`✅ Successfully Clocked In!\n\nTime: ${timeString}\nDate: ${dateString}`);
-    }
+    /*
+      Wired API for ESS Dashboard
+      - Drop this in at the bottom of resources/views/ess/dashboard.blade.php
+      - Uses endpoints:
+          /api/ess/employee/by-email/:email
+          /api/ess/attendance/:employeeId
+          /api/ess/activities/:email
+      - Defensive, logs useful debug info, and provides safe fallbacks
+    */
 
-    // Fetch employee data from HR4 API
-    document.addEventListener('DOMContentLoaded', async function() {
+    (function () {
       const userEmail = '{{ Auth::user()->email ?? "" }}';
       const userEmployeeId = '{{ Auth::user()->employee_id ?? "" }}';
-      console.log('Fetching employee data for:', userEmail);
-      console.log('Employee ID:', userEmployeeId);
-      
-      if (!userEmail) {
-        document.getElementById('emp-job-title').textContent = 'Not Assigned';
-        document.getElementById('emp-location').textContent = 'Not Assigned';
-        return;
+      const empJobTitleEl = document.getElementById('emp-job-title');
+      const empLocationEl = document.getElementById('emp-location');
+      const activitiesContainer = document.getElementById('activities-container');
+      const scheduleBody = document.getElementById('schedule-body');
+      const QUICK_ACTION_SELECTOR = '.quick-action-item';
+
+      // Safe setter helpers
+      function setText(el, text) { if (!el) return; el.textContent = text; }
+      function showLoadingActivities() {
+        activitiesContainer.innerHTML = `
+          <div class="activity-item" id="activities-loading">
+            <div class="activity-icon primary"><i class='bx bx-loader-alt bx-spin'></i></div>
+            <div class="activity-content">
+              <h6>Loading activities...</h6>
+              <small>Please wait</small>
+            </div>
+          </div>`;
       }
-
-      try {
-        const response = await fetch(`/api/ess/employee/by-email/${encodeURIComponent(userEmail)}`);
-        const result = await response.json();
-        console.log('API Response:', result);
-
-        if (result.success && result.employee) {
-          const emp = result.employee;
-          console.log('Employee data:', emp);
-          console.log('Job object:', emp.job);
-          // job_title is nested inside emp.job object
-          const jobTitle = emp.job?.job_title || emp.job_title || 'Not Assigned';
-          document.getElementById('emp-job-title').textContent = jobTitle;
-          document.getElementById('emp-location').textContent = emp.work_location || 'Main Office';
-        } else {
-          console.log('Employee not found or API error');
-          document.getElementById('emp-job-title').textContent = 'Not Assigned';
-          document.getElementById('emp-location').textContent = 'Main Office';
-        }
-      } catch (error) {
-        console.error('Error fetching employee data:', error);
-        document.getElementById('emp-job-title').textContent = 'Not Assigned';
-        document.getElementById('emp-location').textContent = 'Main Office';
-      }
-
-      // Fetch work schedule from HR3 API
-      await loadWorkSchedule(userEmployeeId);
-
-      // Fetch recent activities
-      await loadRecentActivities(userEmail);
-    });
-
-    // Load recent activities from API
-    async function loadRecentActivities(email) {
-      const container = document.getElementById('activities-container');
-      
-      if (!email) {
-        renderEmptyActivities(container);
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/ess/activities/${encodeURIComponent(email)}`);
-        const result = await response.json();
-        console.log('Activities API Response:', result);
-
-        if (result.success && result.activities && result.activities.length > 0) {
-          renderActivities(container, result.activities);
-        } else {
-          renderEmptyActivities(container);
-        }
-      } catch (error) {
-        console.error('Error fetching activities:', error);
-        renderEmptyActivities(container);
-      }
-    }
-
-    // Render activities from API data
-    function renderActivities(container, activities) {
-      let html = '';
-      
-      activities.forEach(activity => {
-        html += `
+      function renderEmptyActivities() {
+        activitiesContainer.innerHTML = `
           <div class="activity-item">
-            <div class="activity-icon ${activity.icon_class}">
-              <i class='bx ${activity.icon}'></i>
+            <div class="activity-icon" style="background: #f1f5f9; color: #94a3b8;">
+              <i class='bx bx-info-circle'></i>
             </div>
             <div class="activity-content">
-              <h6>${activity.title}</h6>
-              <small>${activity.description}</small>
-              <small class="d-block text-muted" style="font-size: 0.65rem;">${activity.time_ago}</small>
+              <h6>No recent activities</h6>
+              <small>Your activities will appear here as you complete trainings and assessments.</small>
             </div>
-          </div>
-        `;
-      });
-      
-      container.innerHTML = html;
-    }
-
-    // Render empty state for activities
-    function renderEmptyActivities(container) {
-      container.innerHTML = `
-        <div class="activity-item">
-          <div class="activity-icon" style="background: #f1f5f9; color: #94a3b8;">
-            <i class='bx bx-info-circle'></i>
-          </div>
-          <div class="activity-content">
-            <h6>No recent activities</h6>
-            <small>Your activities will appear here as you complete trainings and assessments.</small>
-          </div>
-        </div>
-      `;
-    }
-
-    // Load work schedule from HR3 API
-    async function loadWorkSchedule(employeeId) {
-      const scheduleBody = document.getElementById('schedule-body');
-      
-      if (!employeeId) {
-        renderDefaultSchedule(scheduleBody);
-        return;
+          </div>`;
       }
 
-      try {
-        const response = await fetch(`/api/ess/attendance/${encodeURIComponent(employeeId)}`);
-        const result = await response.json();
-        console.log('Schedule API Response:', result);
+      // Convert 24-hour time "HH:MM:SS" or "HH:MM" to "h:mm AM/PM"
+      function formatTime(timeStr) {
+        if (!timeStr) return null;
+        const parts = timeStr.split(':');
+        if (parts.length < 2) return timeStr;
+        const hours = parseInt(parts[0], 10);
+        const minutes = parts[1];
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const h12 = hours % 12 || 12;
+        return `${h12}:${minutes} ${ampm}`;
+      }
 
-        if (result.success && result.attendance) {
-          const att = result.attendance;
-          renderSchedule(scheduleBody, att);
+      // Render schedule table rows
+      function renderSchedule(tbody, attendance) {
+        const days = [
+          { name: 'Monday', key: 'works_on_monday' },
+          { name: 'Tuesday', key: 'works_on_tuesday' },
+          { name: 'Wednesday', key: 'works_on_wednesday' },
+          { name: 'Thursday', key: 'works_on_thursday' },
+          { name: 'Friday', key: 'works_on_friday' },
+          { name: 'Saturday', key: 'works_on_saturday' },
+          { name: 'Sunday', key: 'works_on_sunday' }
+        ];
+
+        const timeIn = attendance?.schedule_time_in ? formatTime(attendance.schedule_time_in) : '8:00 AM';
+        const timeOut = attendance?.schedule_time_out ? formatTime(attendance.schedule_time_out) : '5:00 PM';
+        const shiftText = `${timeIn} – ${timeOut}`;
+
+        let html = '';
+        days.forEach(day => {
+          // Null means unknown — default Mon-Fri work, Sat/Sun rest
+          const isWorkDay = (attendance && attendance[day.key] !== null && attendance[day.key] !== undefined)
+            ? Number(attendance[day.key]) === 1
+            : !['Saturday', 'Sunday'].includes(day.name);
+
+          const iconClass = isWorkDay ? 'active' : 'rest';
+          const iconName = isWorkDay ? 'bx-sun' : 'bx-moon';
+          const statusClass = isWorkDay ? 'on-duty' : 'rest-day';
+          const statusText = isWorkDay ? 'On Duty' : 'Rest Day';
+          const shift = isWorkDay ? shiftText : '—';
+
+          html += `
+            <tr>
+              <td>
+                <div class="day-label">
+                  <span class="day-icon ${iconClass}"><i class='bx ${iconName}'></i></span>
+                  ${day.name}
+                </div>
+              </td>
+              <td>${shift}</td>
+              <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            </tr>
+          `;
+        });
+
+        tbody.innerHTML = html;
+      }
+
+      function renderDefaultSchedule(tbody) {
+        const days = [
+          { name: 'Monday', isWork: true },
+          { name: 'Tuesday', isWork: true },
+          { name: 'Wednesday', isWork: true },
+          { name: 'Thursday', isWork: true },
+          { name: 'Friday', isWork: true },
+          { name: 'Saturday', isWork: false },
+          { name: 'Sunday', isWork: false }
+        ];
+        let html = '';
+        days.forEach(day => {
+          const iconClass = day.isWork ? 'active' : 'rest';
+          const iconName = day.isWork ? 'bx-sun' : 'bx-moon';
+          const statusClass = day.isWork ? 'on-duty' : 'rest-day';
+          const statusText = day.isWork ? 'On Duty' : 'Rest Day';
+          const shift = day.isWork ? '8:00 AM – 5:00 PM' : '—';
+          html += `
+            <tr>
+              <td>
+                <div class="day-label">
+                  <span class="day-icon ${iconClass}"><i class='bx ${iconName}'></i></span>
+                  ${day.name}
+                </div>
+              </td>
+              <td>${shift}</td>
+              <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = html;
+      }
+
+      // Render activities list
+      function renderActivities(container, activities) {
+        if (!Array.isArray(activities) || !activities.length) {
+          renderEmptyActivities();
+          return;
+        }
+        const html = activities.map(a => `
+          <div class="activity-item">
+            <div class="activity-icon ${a.icon_class || 'primary'}"><i class='bx ${a.icon || 'bx-check'}'></i></div>
+            <div class="activity-content">
+              <h6>${a.title || 'Activity'}</h6>
+              <small>${a.description || ''}</small>
+              <small class="d-block text-muted" style="font-size: 0.65rem;">${a.time_ago || ''}</small>
+            </div>
+          </div>`).join('');
+        container.innerHTML = html;
+      }
+
+      // API calls
+      async function fetchEmployeeByEmail(email) {
+        if (!email) return null;
+        try {
+          const res = await fetch(`/api/ess/employee/by-email/${encodeURIComponent(email)}`, { credentials: 'same-origin' });
+          if (!res.ok) { console.warn('employee API status', res.status); return null; }
+          const json = await res.json();
+          return json.success && json.employee ? json.employee : null;
+        } catch (err) {
+          console.error('fetchEmployeeByEmail error', err);
+          return null;
+        }
+      }
+
+      async function fetchAttendance(employeeId) {
+        if (!employeeId) return null;
+        try {
+          const res = await fetch(`/api/ess/attendance/${encodeURIComponent(employeeId)}`, { credentials: 'same-origin' });
+          if (!res.ok) { console.warn('attendance API status', res.status); return null; }
+          const json = await res.json();
+          return json.success && json.attendance ? json.attendance : null;
+        } catch (err) {
+          console.error('fetchAttendance error', err);
+          return null;
+        }
+      }
+
+      async function fetchActivities(email) {
+        if (!email) return [];
+        try {
+          const res = await fetch(`/api/ess/activities/${encodeURIComponent(email)}`, { credentials: 'same-origin' });
+          if (!res.ok) { console.warn('activities API status', res.status); return []; }
+          const json = await res.json();
+          return json.success && Array.isArray(json.activities) ? json.activities : [];
+        } catch (err) {
+          console.error('fetchActivities error', err);
+          return [];
+        }
+      }
+
+      // Wire quick action items to routes — keep them usable and safe
+      function wireQuickActions() {
+        document.querySelectorAll(QUICK_ACTION_SELECTOR).forEach(el => {
+          el.addEventListener('click', (ev) => {
+            // Default anchor behavior if element is an <a>
+            if (el.tagName.toLowerCase() === 'a') return;
+            const href = el.getAttribute('data-href');
+            if (href) window.location.href = href;
+          });
+        });
+      }
+
+      // Main init
+      async function initDashboard() {
+        // sensible defaults
+        setText(empJobTitleEl, 'Loading...');
+        setText(empLocationEl, 'Loading...');
+        showLoadingActivities();
+        renderDefaultSchedule(scheduleBody);
+
+        // 1) employee details
+        const emp = await fetchEmployeeByEmail(userEmail);
+        if (emp) {
+          // job may be nested or top-level — be tolerant
+          const jobTitle = emp.job?.job_title || emp.job_title || emp.position || 'Not Assigned';
+          setText(empJobTitleEl, jobTitle);
+          setText(empLocationEl, emp.work_location || emp.office || 'Main Office');
         } else {
-          // No schedule found, show default
+          setText(empJobTitleEl, 'Not Assigned');
+          setText(empLocationEl, 'Main Office');
+        }
+
+        // 2) schedule/attendance
+        const attendance = await fetchAttendance(userEmployeeId || (emp && (emp.employee_id || emp.id)) || '');
+        if (attendance) {
+          renderSchedule(scheduleBody, attendance);
+        } else {
           renderDefaultSchedule(scheduleBody);
         }
-      } catch (error) {
-        console.error('Error fetching schedule:', error);
-        renderDefaultSchedule(scheduleBody);
+
+        // 3) recent activities
+        const activities = await fetchActivities(userEmail || (emp && (emp.email || '')));
+        if (activities && activities.length) {
+          renderActivities(activitiesContainer, activities);
+        } else {
+          renderEmptyActivities(activitiesContainer);
+        }
+
+        // wire quick actions (if any were not <a> but divs)
+        wireQuickActions();
       }
-    }
 
-    // Format time from 24h to 12h format
-    function formatTime(timeStr) {
-      if (!timeStr) return null;
-      const [hours, minutes] = timeStr.split(':');
-      const h = parseInt(hours);
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      const hour12 = h % 12 || 12;
-      return `${hour12}:${minutes} ${ampm}`;
-    }
-
-    // Render schedule based on API data
-    function renderSchedule(tbody, attendance) {
-      const days = [
-        { name: 'Monday', key: 'works_on_monday' },
-        { name: 'Tuesday', key: 'works_on_tuesday' },
-        { name: 'Wednesday', key: 'works_on_wednesday' },
-        { name: 'Thursday', key: 'works_on_thursday' },
-        { name: 'Friday', key: 'works_on_friday' },
-        { name: 'Saturday', key: 'works_on_saturday' },
-        { name: 'Sunday', key: 'works_on_sunday' }
-      ];
-
-      const timeIn = attendance.schedule_time_in ? formatTime(attendance.schedule_time_in) : '8:00 AM';
-      const timeOut = attendance.schedule_time_out ? formatTime(attendance.schedule_time_out) : '5:00 PM';
-      const shiftText = `${timeIn} – ${timeOut}`;
-
-      let html = '';
-      days.forEach(day => {
-        // If works_on_X is null, default to work days Mon-Fri
-        const isWorkDay = attendance[day.key] !== null 
-          ? attendance[day.key] === 1 
-          : !['Saturday', 'Sunday'].includes(day.name);
-
-        const iconClass = isWorkDay ? 'active' : 'rest';
-        const iconName = isWorkDay ? 'bx-sun' : 'bx-moon';
-        const statusClass = isWorkDay ? 'on-duty' : 'rest-day';
-        const statusText = isWorkDay ? 'On Duty' : 'Rest Day';
-        const shift = isWorkDay ? shiftText : '—';
-
-        html += `
-          <tr>
-            <td>
-              <div class="day-label">
-                <span class="day-icon ${iconClass}"><i class='bx ${iconName}'></i></span>
-                ${day.name}
-              </div>
-            </td>
-            <td>${shift}</td>
-            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-          </tr>
-        `;
-      });
-
-      tbody.innerHTML = html;
-    }
-
-    // Render default schedule (Mon-Fri work, Sat-Sun rest)
-    function renderDefaultSchedule(tbody) {
-      const days = [
-        { name: 'Monday', isWork: true },
-        { name: 'Tuesday', isWork: true },
-        { name: 'Wednesday', isWork: true },
-        { name: 'Thursday', isWork: true },
-        { name: 'Friday', isWork: true },
-        { name: 'Saturday', isWork: false },
-        { name: 'Sunday', isWork: false }
-      ];
-
-      let html = '';
-      days.forEach(day => {
-        const iconClass = day.isWork ? 'active' : 'rest';
-        const iconName = day.isWork ? 'bx-sun' : 'bx-moon';
-        const statusClass = day.isWork ? 'on-duty' : 'rest-day';
-        const statusText = day.isWork ? 'On Duty' : 'Rest Day';
-        const shift = day.isWork ? '8:00 AM – 5:00 PM' : '—';
-
-        html += `
-          <tr>
-            <td>
-              <div class="day-label">
-                <span class="day-icon ${iconClass}"><i class='bx ${iconName}'></i></span>
-                ${day.name}
-              </div>
-            </td>
-            <td>${shift}</td>
-            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-          </tr>
-        `;
-      });
-
-      tbody.innerHTML = html;
-    }
+      // run
+      document.addEventListener('DOMContentLoaded', initDashboard);
+    })();
   </script>
 </body>
 </html>
