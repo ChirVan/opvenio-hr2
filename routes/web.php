@@ -349,6 +349,9 @@ Route::get('/dashboard', function () {
         Route::get('/leave', fn() => view('ess.leave'))->name('leave');
         Route::get('/payslip', fn() => view('ess.payslip'))->name('payslip');
         Route::get('/security-settings', fn() => view('ess.security-settings'))->name('security');
+
+        // Employee Profile/Settings
+        Route::get('/profile', fn() => view('profile.ess-show'))->name('profile');
         
         // Course Grant functionality
         Route::get('/training-catalog/available-courses', [App\Http\Controllers\TrainingCatalogController::class, 'getAvailableCourses'])->name('training-catalog.available-courses');

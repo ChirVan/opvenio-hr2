@@ -22,8 +22,8 @@
               </div>
             </a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-              <li><a class="dropdown-item" href="{{ route('profile.show') }}">Profile</a></li>
-              <li><a class="dropdown-item" href="{{ route('profile.show') }}#two-factor">Settings</a></li>
+              <li><a class="dropdown-item" href="{{ route('ess.profile') }}">Profile</a></li>
+              <li><a class="dropdown-item" href="{{ route('ess.profile') }}">Settings</a></li>
               <li><hr class="dropdown-divider"></li>
               <li>
                 <form method="POST" action="{{ route('logout') }}">@csrf
